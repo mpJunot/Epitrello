@@ -1,0 +1,226 @@
+@startuml
+' Trello-like Class Diagram — Detailed & Readable
+' Organized with packages, attributes, common methods and clear associations.
+' Note: "List" renamed to "ListColumn" to avoid reserved-word issues.
+
+' -------------------------
+' Packages
+' -------------------------
+package "Domain" {
+
+  class Workspace <<entity>> {
+    +id: UUID
+    +name: String
+    +logoUrl: URL
+    +visibility: String
+    +createdAt: DateTime
+    +updatedAt: DateTime
+    __
+    +createBoard(title: String): Board
+    +addMember(user: Member, role: String): Membership
+    +removeMember(userId: UUID)
+    +rename(newName: String)
+  }
+
+  class Board <<entity>> {
+    +id: UUID
+    +workspaceId: UUID
+    +title: String
+    +description: String
+    +visibility: String
+    +background: String
+    +createdAt: DateTime
+    +updatedAt: DateTime
+    __
+    +addList(title: String): ListColumn
+    +moveList(listId: UUID, position: Float)
+    +addMember(user: Member, role: String)
+  }
+
+  class ListColumn <<entity>> {
+    +id: UUID
+    +boardId: UUID
+    +title: String
+    +position: Float
+    +createdAt: DateTime
+    +updatedAt: DateTime
+    __
+    +addCard(card: Card): Card
+    +removeCard(cardId: UUID)
+    +rename(title: String)
+  }
+
+  class Card <<entity>> {
+    +id: UUID
+    +listColumnId: UUID
+    +title: String
+    +description: Text
+    +coverUrl: URL
+    +startDate: DateTime
+    +dueDate: DateTime
+    +position: Float
+    +createdAt: DateTime
+    +updatedAt: DateTime
+    __
+    +assignMember(user: Member)
+    +unassignMember(userId: UUID)
+    +addComment(content: Text, author: Member): Comment
+    +addAttachment(fileUrl: URL): Attachment
+    +moveToList(targetListId: UUID, position: Float)
+  }
+
+  class Member <<entity>> {
+    +id: UUID
+    +email: String
+    +fullName: String
+    +avatarUrl: URL
+    +createdAt: DateTime
+    __
+    +getNotifications(): List<Notification>
+    +subscribeToWorkspace(ws: Workspace)
+  }
+
+  class Membership <<value>> {
+    +id: UUID
+    +workspaceId: UUID
+    +memberId: UUID
+    +role: String
+    +joinedAt: DateTime
+    __
+    +changeRole(newRole: String)
+  }
+
+  class Comment <<entity>> {
+    +id: UUID
+    +cardId: UUID
+    +authorId: UUID
+    +content: Text
+    +createdAt: DateTime
+    +updatedAt: DateTime
+    __
+    +edit(newContent: Text)
+  }
+
+  class Attachment <<entity>> {
+    +id: UUID
+    +cardId: UUID
+    +uploaderId: UUID
+    +url: URL
+    +filename: String
+    +size: Integer
+    +createdAt: DateTime
+  }
+
+  class Checklist <<entity>> {
+    +id: UUID
+    +cardId: UUID
+    +title: String
+    __
+    +addItem(content: String): ChecklistItem
+    +removeItem(itemId: UUID)
+  }
+
+  class ChecklistItem <<value>> {
+    +id: UUID
+    +checklistId: UUID
+    +content: String
+    +checked: Boolean
+    __
+    +toggle()
+  }
+
+  class Label <<entity>> {
+    +id: UUID
+    +boardId: UUID
+    +name: String
+    +color: String
+  }
+
+  class PowerUp <<entity>> {
+    +id: UUID
+    +boardId: UUID
+    +name: String
+    +config: String
+    __
+    +enable()
+    +disable()
+  }
+
+  class Notification <<entity>> {
+    +id: UUID
+    +memberId: UUID
+    +type: String
+    +payload: String
+    +read: Boolean
+    +createdAt: DateTime
+    __
+    +markRead()
+  }
+
+}
+
+' -------------------------
+' Associations (with multiplicities and roles)
+' -------------------------
+Workspace "1" o-- "0..*" Board : contains
+Board "1" o-- "0..*" ListColumn : has
+ListColumn "1" o-- "0..*" Card : contains
+Card "1" o-- "0..*" Comment : comments
+Card "1" o-- "0..*" Attachment : attachments
+Card "1" o-- "0..*" Checklist : checklists
+Checklist "1" o-- "0..*" ChecklistItem : items
+Board "1" o-- "0..*" Label : labels
+Board "1" o-- "0..*" PowerUp : powerUps
+Workspace "1" o-- "0..*" Membership : memberships
+Membership "*" -- "1" Member : member
+Board "*" -- "0..*" Member : participants
+Card "*" -- "0..*" Member : assignees
+Member "1" o-- "0..*" Notification : notifications
+
+' -------------------------
+' Aggregations / navigability hints
+' -------------------------
+Membership -- Workspace : belongsTo
+Card -- ListColumn : locatedIn
+Board -- Workspace : belongsTo
+
+' -------------------------
+' Enums & helper types (kept simple for compatibility)
+' -------------------------
+class Visibility <<enumeration>> {
+  +PRIVATE
+  +WORKSPACE
+  +PUBLIC
+}
+class Role <<enumeration>> {
+  +ADMIN
+  +MEMBER
+  +OBSERVER
+}
+
+' -------------------------
+' Notes for readability
+' -------------------------
+note left of Workspace
+  Workspace groups Boards and manages Members (Membership stores roles).
+end note
+
+note right of Card
+  Card links to attachments, labels, checklists and assignees.
+  Position fields (float) allow ordering within lists.
+end note
+
+note bottom of Membership
+  Membership is the join table between Workspace and Member.
+  It stores the user's role and join date.
+end note
+
+' -------------------------
+' Layout hints (improve readability)
+' -------------------------
+Workspace -[hidden]- Board
+Board -[hidden]- ListColumn
+ListColumn -[hidden]- Card
+
+' -------------------------
+@enduml
