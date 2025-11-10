@@ -13,21 +13,11 @@ backend/
 │   │   ├── Card.ts             # Card model
 │   │   └── index.ts            # Models export
 │   ├── graphql/
-│   │   ├── typeDefs/
-│   │   │   ├── user.ts         # User GraphQL types
-│   │   │   ├── board.ts        # Board GraphQL types
-│   │   │   ├── list.ts         # List GraphQL types
-│   │   │   ├── card.ts         # Card GraphQL types
-│   │   │   └── index.ts        # Types merge
-│   │   ├── resolvers/
-│   │   │   ├── auth.ts         # Authentication resolvers
-│   │   │   ├── user.ts         # User resolvers
-│   │   │   ├── board.ts        # Board resolvers
-│   │   │   ├── list.ts         # List resolvers
-│   │   │   ├── card.ts         # Card resolvers
-│   │   │   └── index.ts        # Resolvers merge
+│   │   ├── typeDefs.ts         # All GraphQL type definitions
+│   │   ├── resolvers.ts        # All GraphQL resolvers
 │   │   └── scalars/
 │   │       └── date.ts         # Custom Date scalar
+│   # (Note: Modular structure with separate typeDefs/ and resolvers/ directories is planned for future refactoring.)
 │   ├── middleware/
 │   │   # (Planned) auth.ts             # Authentication middleware
 │   │   # (Planned) validation.ts       # Data validation
