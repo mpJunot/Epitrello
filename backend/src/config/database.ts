@@ -10,7 +10,7 @@ export const connectDatabase = async (): Promise<void> => {
 
     console.log('Connected to MongoDB');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('Failed to connect to MongoDB. Please verify MONGODB_URI is set correctly and the database is accessible.', error);
     process.exit(1);
   }
 };
