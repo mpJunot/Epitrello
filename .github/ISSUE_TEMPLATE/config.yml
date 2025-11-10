@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 💬 Discussions
+    url: https://github.com/mpJunot/Epitrello/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 📚 Documentation
+    url: https://github.com/mpJunot/Epitrello/blob/main/README.md
+    about: Check the documentation for help and guides
+  - name: 🔒 Security Issue
+    url: https://github.com/mpJunot/Epitrello/security/advisories/new
+    about: Report a security vulnerability (private)

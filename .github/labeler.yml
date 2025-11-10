@@ -1,0 +1,37 @@
+# Label PRs based on changed files
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: ['*.md', 'docs/**/*']
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: ['package.json', 'package-lock.json', 'yarn.lock']
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**/*']
+
+tests:
+  - changed-files:
+    - any-glob-to-any-file: ['**/*.test.*', '**/*.spec.*', 'tests/**/*', 'test/**/*']
+
+frontend:
+  - changed-files:
+    - any-glob-to-any-file: ['src/components/**/*', 'src/pages/**/*', 'src/styles/**/*']
+
+backend:
+  - changed-files:
+    - any-glob-to-any-file: ['src/api/**/*', 'src/services/**/*', 'src/models/**/*']
+
+database:
+  - changed-files:
+    - any-glob-to-any-file: ['src/database/**/*', 'migrations/**/*', 'prisma/**/*']
+
+security:
+  - changed-files:
+    - any-glob-to-any-file: ['src/auth/**/*', 'src/security/**/*']
+
+configuration:
+  - changed-files:
+    - any-glob-to-any-file: ['*.config.*', '.*rc', '.*rc.*', '.env.*']

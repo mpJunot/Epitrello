@@ -1,0 +1,64 @@
+{
+  "categories": [
+    {
+      "title": "## 🚀 Features",
+      "labels": ["feat", "feature", "enhancement"]
+    },
+    {
+      "title": "## 🐛 Bug Fixes",
+      "labels": ["fix", "bugfix", "bug"]
+    },
+    {
+      "title": "## 📚 Documentation",
+      "labels": ["docs", "documentation"]
+    },
+    {
+      "title": "## 🔧 Maintenance",
+      "labels": ["chore", "refactor", "style", "dependencies"]
+    },
+    {
+      "title": "## ⚡ Performance",
+      "labels": ["perf", "performance"]
+    },
+    {
+      "title": "## 🧪 Tests",
+      "labels": ["test", "tests"]
+    }
+  ],
+  "ignore_labels": [
+    "ignore",
+    "wontfix",
+    "duplicate",
+    "invalid"
+  ],
+  "sort": "ASC",
+  "template": "${{CHANGELOG}}\n\n**Full Changelog**: ${{RELEASE_DIFF}}",
+  "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+  "empty_template": "- no changes",
+  "label_extractor": [
+    {
+      "pattern": "^(feat|feature)(\\(.+\\))?:",
+      "target": "feat"
+    },
+    {
+      "pattern": "^fix(\\(.+\\))?:",
+      "target": "fix"
+    },
+    {
+      "pattern": "^docs(\\(.+\\))?:",
+      "target": "docs"
+    },
+    {
+      "pattern": "^(chore|refactor|style)(\\(.+\\))?:",
+      "target": "chore"
+    },
+    {
+      "pattern": "^perf(\\(.+\\))?:",
+      "target": "perf"
+    },
+    {
+      "pattern": "^test(\\(.+\\))?:",
+      "target": "test"
+    }
+  ]
+}
