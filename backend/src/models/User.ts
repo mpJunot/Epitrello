@@ -25,7 +25,10 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    minlength: 3,
+    maxlength: 30,
+    match: [/^[a-zA-Z0-9_]+$/, 'Username must contain only letters, numbers, and underscores']
   },
   password: {
     type: String,
