@@ -33,6 +33,7 @@ backend/
 │   │   ├── listService.ts      # List service
 │   │   └── cardService.ts      # Card service
 │   ├── types/
+│   # Note: The files listed under `src/utils/` and `src/services/` (jwt.ts, context.ts, permissions.ts, validators.ts, authService.ts, boardService.ts, listService.ts, cardService.ts) are planned for future implementation and do not currently exist in this codebase.
 │   │   ├── context.ts          # TypeScript types for context
 │   │   └── auth.ts             # Authentication types
 │   └── index.ts                # Main entry point
