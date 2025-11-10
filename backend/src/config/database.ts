@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
 
+const DEFAULT_MONGODB_URI = 'mongodb://localhost:27017/epitrello';
+
 export const connectDatabase = async (): Promise<void> => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/epitrello';
+    const mongoUri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
 
     await mongoose.connect(mongoUri);
 
