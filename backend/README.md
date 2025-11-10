@@ -29,9 +29,9 @@ backend/
 │   │   └── scalars/
 │   │       └── date.ts         # Custom Date scalar
 │   ├── middleware/
-│   │   ├── auth.ts             # Authentication middleware
-│   │   ├── validation.ts       # Data validation
-│   │   └── errorHandler.ts     # Error handling
+│   │   # (Planned) auth.ts             # Authentication middleware
+│   │   # (Planned) validation.ts       # Data validation
+│   │   # (Planned) errorHandler.ts     # Error handling
 │   ├── utils/
 │   │   ├── jwt.ts              # JWT utilities
 │   │   ├── context.ts          # GraphQL context
