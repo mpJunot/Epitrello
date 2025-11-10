@@ -6,10 +6,13 @@ dotenv.config();
 
 const DEFAULT_PORT = 4000;
 const app = express();
-const PORT = process.env.PORT || DEFAULT_PORT;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : DEFAULT_PORT;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:4000'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Basic Routes
@@ -26,6 +29,7 @@ app.get('/health', (req, res) => {
 });
 
 // Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(` Server running on http://0.0.0.0:${PORT}`);
+  console.log(` Health check: http://0.0.0.0:${PORT}/health`);
 });

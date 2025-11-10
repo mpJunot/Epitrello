@@ -23,7 +23,8 @@
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.0",
     "dotenv": "^16.0.3",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "graphql-tag": "^2.12.6"
   },
   "devDependencies": {
     "@types/node": "^18.15.11",
