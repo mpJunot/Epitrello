@@ -73,17 +73,22 @@ export const typeDefs = gql`
     isPrivate: Boolean = false
   }
 
+  input UpdateBoardInput {
+    title: String
+    description: String
+    isPrivate: Boolean
+  }
+
   type Query {
     me: User
     boards: [Board!]!
     board(id: ID!): Board
-  }
 
   type Mutation {
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     createBoard(input: CreateBoardInput!): Board!
-    updateBoard(id: ID!, input: CreateBoardInput!): Board!
+    updateBoard(id: ID!, input: UpdateBoardInput!): Board!
     deleteBoard(id: ID!): Boolean!
   }
 `;
