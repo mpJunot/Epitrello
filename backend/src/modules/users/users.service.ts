@@ -19,7 +19,7 @@ export class UsersService {
         createdAt: true,
         updatedAt: true,
       },
-    });
+    })
 
     return users.map((user) => ({
       id: user.id,
