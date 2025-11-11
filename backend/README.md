@@ -1,121 +1,208 @@
-# Backend Structure - Node.js + TypeScript + GraphQL
+# Epitrello Backend
 
-```
-backend/
-├── src/
-│   ├── config/
-│   │   ├── database.ts          # MongoDB configuration
-│   │   └── environment.ts       # Environment variables
-│   ├── models/
-│   │   ├── User.ts             # User model
-│   │   ├── Board.ts            # Board model
-│   │   ├── List.ts             # List/column model
-│   │   ├── Card.ts             # Card model
-│   │   └── index.ts            # Models export
-│   ├── graphql/
-│   │   ├── typeDefs.ts         # All GraphQL type definitions
-│   │   ├── resolvers.ts        # All GraphQL resolvers
-│   │   └── scalars/
-│   │       └── date.ts         # Custom Date scalar
-│   # (Note: Modular structure with separate typeDefs/ and resolvers/ directories is planned for future refactoring.)
-│   ├── middleware/
-│   │   # (Planned) auth.ts             # Authentication middleware
-│   │   # (Planned) validation.ts       # Data validation
-│   │   # (Planned) errorHandler.ts     # Error handling
-│   ├── utils/
-│   │   ├── jwt.ts              # JWT utilities
-│   │   ├── context.ts          # GraphQL context
-│   │   ├── permissions.ts      # Permissions management
-│   │   └── validators.ts       # Validation functions
-│   ├── services/
-│   │   ├── authService.ts      # Authentication service
-│   │   ├── boardService.ts     # Board service
-│   │   ├── listService.ts      # List service
-│   │   └── cardService.ts      # Card service
-│   ├── types/
-│   # Note: The files listed under `src/utils/` and `src/services/` (jwt.ts, context.ts, permissions.ts, validators.ts, authService.ts, boardService.ts, listService.ts, cardService.ts) are planned for future implementation and do not currently exist in this codebase.
-│   │   ├── context.ts          # TypeScript types for context
-│   │   └── auth.ts             # Authentication types
-│   └── index.ts                # Main entry point
-├── tests/
-│   ├── __mocks__/              # Test mocks
-│   ├── integration/            # Integration tests
-│   ├── unit/                   # Unit tests
-│   └── setup.ts                # Test configuration
-├── dist/                       # Compiled files (generated)
-├── node_modules/               # Dependencies (generated)
-├── .env                        # Environment variables (git ignored)
-├── .env.example                # Environment variables example
-├── .gitignore                  # Files to ignore
-├── .npmrc                      # pnpm configuration
-├── eslint.config.js            # ESLint configuration
-├── jest.config.js              # Jest configuration
-├── package.json                # Dependencies and scripts
-├── pnpm-lock.yaml              # pnpm lock file (generated)
-├── tsconfig.json               # TypeScript configuration
-└── README.md                   # Documentation
-```
+Backend API built with NestJS, GraphQL, Prisma, and PostgreSQL.
 
-## Folder Descriptions
+## Tech Stack
 
-### `/src/config/`
-Application configuration (database, environment variables)
+- NestJS - Node.js framework
+- GraphQL - API with Apollo Server
+- Prisma - ORM for database access
+- PostgreSQL - Database
+- JWT - Authentication
+- TypeScript
 
-### `/src/models/`
-Mongoose models for MongoDB with TypeScript interfaces
+## Prerequisites
 
-### `/src/graphql/`
-- `typeDefs/` : GraphQL schema definitions
-- `resolvers/` : GraphQL resolution functions
-- `scalars/` : Custom scalar types
+- Node.js >= 18.x
+- pnpm >= 8.x
+- Docker and Docker Compose
 
-### `/src/middleware/`
-Express middleware and utility functions
+## Quick Start
 
-### `/src/utils/`
-Reusable utility functions
-
-### `/src/services/`
-Business logic separated from resolvers
-
-### `/src/types/`
-TypeScript type definitions
-
-### `/tests/`
-Unit and integration tests
-
-## Configuration Files
-
-- `package.json` : npm/pnpm dependencies and scripts
-- `tsconfig.json` : TypeScript configuration
-- `.npmrc` : pnpm specific configuration
-- `eslint.config.js` : Linting rules
-- `jest.config.js` : Test configuration
-
-## Getting Started
-
-Environment variables needed (create a .env file based on .env.example):
+### 1. Install Dependencies
 
 ```bash
-NODE_ENV=development
-PORT=4000
-MONGODB_URI=mongodb://localhost:27017/epitrello
-JWT_SECRET=your_jwt_secret
+pnpm install
 ```
 
-### Installation & Setup
+### 2. Configure Environment
 
-1. Install dependencies: `pnpm install`
-2. Configure your environment variables in `.env`
-3. Start development server: `pnpm dev`
+```bash
+cp .env.example .env
+```
 
-The server will be available at http://localhost:4000
+Edit `.env` with your configuration:
 
-### Available Scripts
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/epitrello?schema=public"
+JWT_SECRET="your-secret-key-change-in-production"
+JWT_EXPIRES_IN="7d"
+PORT=4000
+NODE_ENV="development"
+FRONTEND_URL="http://localhost:3000"
+```
 
-- `pnpm dev` - Start development server with hot reload
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm test` - Run tests
-- `pnpm lint` - Run ESLint
-- `pnpm type-check` - Check TypeScript types
+Generate JWT secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+### 3. Start Database
+
+```bash
+docker-compose up -d
+```
+
+### 4. Setup Database
+
+```bash
+pnpm prisma:generate
+pnpm prisma db push
+```
+
+### 5. Start Application
+
+```bash
+pnpm start:dev
+```
+
+API available at: `http://localhost:4000/graphql`
+
+## Available Scripts
+
+| Script                 | Description              |
+| ---------------------- | ------------------------ |
+| `pnpm start:dev`       | Start development server |
+| `pnpm build`           | Build the application    |
+| `pnpm test`            | Run tests                |
+| `pnpm lint`            | Lint code                |
+| `pnpm prisma:generate` | Generate Prisma Client   |
+| `pnpm prisma:studio`   | Open Prisma Studio       |
+
+## GraphQL API
+
+### Authentication
+
+#### Register
+
+```graphql
+mutation {
+  register(input: { email: "user@example.com", name: "John Doe", password: "password123" }) {
+    token
+    user {
+      id
+      email
+      name
+    }
+  }
+}
+```
+
+#### Login
+
+```graphql
+mutation {
+  login(input: { email: "user@example.com", password: "password123" }) {
+    token
+    user {
+      id
+      email
+      name
+    }
+  }
+}
+```
+
+### Users
+
+#### Get All Users
+
+```graphql
+query {
+  users {
+    id
+    email
+    name
+    avatar
+  }
+}
+```
+
+#### Get User by ID
+
+```graphql
+query {
+  user(id: "user-id") {
+    id
+    email
+    name
+  }
+}
+```
+
+#### Create User
+
+```graphql
+mutation {
+  createUser(input: { email: "new@example.com", name: "New User", password: "password123" }) {
+    id
+    email
+    name
+  }
+}
+```
+
+#### Update User
+
+```graphql
+mutation {
+  updateUser(id: "user-id", input: { name: "Updated Name" }) {
+    id
+    email
+    name
+  }
+}
+```
+
+#### Delete User
+
+```graphql
+mutation {
+  deleteUser(id: "user-id")
+}
+```
+
+## Authentication
+
+Include JWT token in HTTP Headers:
+
+```json
+{
+  "Authorization": "Bearer YOUR_JWT_TOKEN"
+}
+```
+
+## Environment Variables
+
+| Variable         | Description                  | Default                 |
+| ---------------- | ---------------------------- | ----------------------- |
+| `DATABASE_URL`   | PostgreSQL connection string | -                       |
+| `JWT_SECRET`     | Secret key for JWT signing   | -                       |
+| `JWT_EXPIRES_IN` | JWT token expiration time    | `7d`                    |
+| `PORT`           | Server port                  | `4000`                  |
+| `NODE_ENV`       | Environment                  | `development`           |
+| `FRONTEND_URL`   | Frontend URL for CORS        | `http://localhost:3000` |
+
+## Docker Commands
+
+```bash
+# Start PostgreSQL
+docker-compose up -d
+
+# Stop PostgreSQL
+docker-compose down
+
+# View logs
+docker-compose logs -f postgres
+```
