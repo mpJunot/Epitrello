@@ -33,7 +33,7 @@ services:
       PORT: ${PORT}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-      FRONTEND_URL: http://frontend:3000
+      FRONTEND_URL: ${FRONTEND_URL}
     ports:
       - "${PORT}:4000"
     depends_on:
@@ -51,8 +51,6 @@ services:
       target: production
     container_name: epitrello-frontend
     restart: unless-stopped
-    env_file:
-      - ./.env
     environment:
       NODE_ENV: ${NODE_ENV}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
