@@ -1,0 +1,92 @@
+# Docker Compose for development
+#
+# Usage:
+#   - To start only the DB: docker-compose -f docker-compose.dev.yml up -d postgres
+#   - To start all services in dev: docker-compose -f docker-compose.dev.yml up
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: epitrello-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    command: postgres -c listen_addresses='*'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - epitrello-network-dev
+
+  # Backend in development mode with hot-reload
+  # Uncomment if you want to run the backend in Docker
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #     target: base
+  #   container_name: epitrello-backend-dev
+  #   restart: unless-stopped
+  #   environment:
+  #     DATABASE_URL: ${DATABASE_URL}
+  #     NODE_ENV: development
+  #     PORT: ${PORT}
+  #     JWT_SECRET: ${JWT_SECRET}
+  #     JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+  #     FRONTEND_URL: ${FRONTEND_URL}
+  #   ports:
+  #     - "${PORT}:4000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./backend:/app
+  #     - /app/node_modules
+  #     - /app/dist
+  #   command: pnpm start:dev
+  #   networks:
+  #     - epitrello-network-dev
+
+  # Frontend in development mode with hot-reload
+  # Uncomment if you want to run the frontend in Docker
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #     target: base
+  #   container_name: epitrello-frontend-dev
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: development
+  #     NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+  #   ports:
+  #     - "${FRONTEND_PORT}:3000"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #     - /app/.next
+  #   command: pnpm dev
+  #   networks:
+  #     - epitrello-network-dev
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  epitrello-network-dev:
+    driver: bridge
+
