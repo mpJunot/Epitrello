@@ -29,7 +29,6 @@ COPY . .
 RUN pnpm prisma generate
 RUN pnpm run build
 
-
 # ---- 3. Production Runtime ----
 FROM node:20-alpine AS production
 
