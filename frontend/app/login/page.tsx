@@ -135,7 +135,7 @@ export default function LoginPage() {
               </div>
 
               <p className="text-center text-sm text-gray-500 mt-2">
-                Vous n'avez pas de compte ? <a href="/auth/register" className="text-indigo-600 hover:underline">Créer un compte</a>
+                Vous n'avez pas de compte ? <a href="/register" className="text-indigo-600 hover:underline">Créer un compte</a>
               </p>
             </form>
           </div>
