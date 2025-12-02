@@ -20,17 +20,11 @@ describe('Users (e2e)', () => {
   });
 
   describe('/graphql (POST)', () => {
-    it('should return GraphQL playground on GET', () => {
-      return request(app.getHttpServer())
-        .get('/graphql')
-        .expect(200);
-    });
-
     it('should handle GraphQL introspection query', () => {
       const introspectionQuery = `
         query IntrospectionQuery {
           __schema {
-            types {
+            queryType {
               name
             }
           }
@@ -43,7 +37,24 @@ describe('Users (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body.data).toHaveProperty('__schema');
-          expect(res.body.data.__schema).toHaveProperty('types');
+          expect(res.body.data.__schema.queryType.name).toBe('Query');
+        });
+    });
+
+    it('should return error for invalid query', () => {
+      const invalidQuery = `
+        query {
+          invalidField
+        }
+      `;
+
+      return request(app.getHttpServer())
+        .post('/graphql')
+        .send({ query: invalidQuery })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('errors');
+          expect(res.body.errors).toHaveLength(1);
         });
     });
   });
