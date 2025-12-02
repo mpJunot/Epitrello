@@ -22,6 +22,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return null;
     }
 
-    return { userId: user.id, email: user.email };
+    // Return user object that will be attached to req.user
+    return {
+      id: user.id,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+    };
   }
 }
