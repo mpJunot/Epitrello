@@ -1,12 +1,15 @@
+"use client";
 import { useState } from "react";
 
-export default function ResetPasswordPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default function ResetPasswordPage(props: any) {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const token = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') : (searchParams && searchParams.token) || null;
+  const token = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('token')
+    : (props && props.searchParams && (props.searchParams.token)) || null;
 
   const validate = () => {
     if (!password || !confirm) return "Veuillez remplir tous les champs.";
