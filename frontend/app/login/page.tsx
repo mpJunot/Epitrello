@@ -5,6 +5,7 @@ import React, { useState } from "react";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -80,15 +81,27 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20"
+                    placeholder="••••••••"
+                    aria-label="Mot de passe"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 px-2 py-1 rounded"
+                    aria-pressed={showPassword}
+                    aria-label={showPassword ? "Cacher le mot de passe" : "Voir le mot de passe"}
+                  >
+                    {showPassword ? "Cacher" : "Voir"}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-between text-sm">
@@ -118,8 +131,17 @@ export default function LoginPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                  {/* Placeholder icons using text */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint. Backend is expected to
+                    // handle the Google OAuth handshake and callback.
+                    if (typeof window !== "undefined") {
+                      window.location.href = "/api/auth/google";
+                    }
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                >
                   <span className="text-sm text-gray-700">Google</span>
                 </button>
                 <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm">
@@ -135,7 +157,7 @@ export default function LoginPage() {
               </div>
 
               <p className="text-center text-sm text-gray-500 mt-2">
-                Vous n'avez pas de compte ? <a href="/register" className="text-indigo-600 hover:underline">Créer un compte</a>
+                Vous n'avez pas de compte ? <a href="/auth/register/" className="text-indigo-600 hover:underline">Créer un compte</a>
               </p>
             </form>
           </div>
