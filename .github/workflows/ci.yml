@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: epitrello_test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: ./backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: ./backend
+        run: pnpm prisma migrate deploy
+
+      - name: Lint
+        working-directory: ./backend
+        run: pnpm lint
+
+      - name: Build
+        working-directory: ./backend
+        run: pnpm build
+
+      - name: Run tests
+        working-directory: ./backend
+        run: pnpm test
+
+      - name: Run E2E tests
+        working-directory: ./backend
+        run: pnpm test:e2e
+
+  frontend:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: ./frontend
+        run: pnpm lint
+
+      - name: Build
+        working-directory: ./frontend
+        run: pnpm build
