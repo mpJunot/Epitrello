@@ -24,7 +24,26 @@ export class AuthService {
       },
     });
 
-    const token = this.jwtService.sign({ userId: user.id, email: user.email });
+    // Create workspace if companyName is provided
+    if (input.companyName) {
+      await this.prisma.workspace.create({
+        data: {
+          name: input.companyName,
+          memberships: {
+            create: {
+              userId: user.id,
+              role: 'ADMIN',
+            },
+          },
+        },
+      });
+    }
+
+    // Default token expiration (7 days)
+    const token = this.jwtService.sign(
+      { userId: user.id, email: user.email },
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    );
 
     return {
       token,
@@ -54,7 +73,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = this.jwtService.sign({ userId: user.id, email: user.email });
+    // Use longer expiration if rememberMe is true (30 days), otherwise default (7 days)
+    const expiresIn = input.rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '7d';
+    const token = this.jwtService.sign(
+      { userId: user.id, email: user.email },
+      { expiresIn },
+    );
 
     return {
       token,
