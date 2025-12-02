@@ -1,0 +1,67 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  format-check:
+    name: Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        working-directory: ./backend
+        run: pnpm format --check || true
+
+  prisma-validate:
+    name: Prisma Schema Validation
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5432/epitrello_test?schema=public
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Prisma schema
+        working-directory: ./backend
+        run: pnpm prisma validate
