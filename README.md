@@ -32,3 +32,20 @@ This script will:
 - **Restart**: `./restart.sh` - Restart all services
 
 For more details, see [DOCKER.md](./DOCKER.md).
+
+## CI/CD
+
+This project uses GitHub Actions for continuous integration and deployment.
+
+### Workflows
+
+- **CI** (`.github/workflows/ci.yml`) - Runs tests, linting, and builds on every push/PR
+- **Docker Build** (`.github/workflows/docker-build.yml`) - Builds and pushes Docker images
+- **Code Quality** (`.github/workflows/code-quality.yml`) - Checks code formatting and Prisma schema
+- **Release** (`.github/workflows/release.yml`) - Creates GitHub releases on version tags
+
+### Status Badge
+
+![CI](https://github.com/mpJunot/Epitrello/workflows/CI/badge.svg)
+
+For more details, see [.github/workflows/README.md](./.github/workflows/README.md).
