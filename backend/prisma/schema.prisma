@@ -1,15 +1,73 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// ============================================================================
+// Prisma Schema - Epitrello
+// ============================================================================
+// This file defines the database schema for the Epitrello application.
+// Learn more: https://pris.ly/d/prisma-schema
+// ============================================================================
+
+// ============================================================================
+// Generator Configuration
+// ============================================================================
 
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
+// ============================================================================
+// Datasource Configuration
+// ============================================================================
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ============================================================================
+// Enums
+// ============================================================================
+
+enum Visibility {
+  PRIVATE
+  WORKSPACE
+  PUBLIC
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  OBSERVER
+}
+
+// ============================================================================
+// Core Models
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Workspace
+// ----------------------------------------------------------------------------
+// Represents a workspace that can contain multiple boards and members.
+// A workspace is the top-level organizational unit.
+
+model Workspace {
+  id         String     @id @default(uuid())
+  name       String
+  logoUrl    String?
+  visibility Visibility @default(PRIVATE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  boards      Board[]
+  memberships WorkspaceMember[]
+
+  @@map("workspaces")
+}
+
+// ----------------------------------------------------------------------------
+// User
+// ----------------------------------------------------------------------------
+// Represents a user in the system.
+// Users can create boards, be assigned to cards, and participate in workspaces.
 
 model User {
   id        String   @id @default(uuid())
@@ -20,6 +78,199 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  createdBoards        Board[]           @relation("BoardCreator")
+  boardMembers         BoardMember[]
+  cardAssignees        CardAssignee[]
+  comments             Comment[]
+  attachments          Attachment[]
+  workspaceMemberships WorkspaceMember[]
+
   @@map("users")
 }
 
+// ============================================================================
+// Board Domain Models
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Board
+// ----------------------------------------------------------------------------
+// Represents a board (project board) that contains lists and cards.
+// A board can belong to a workspace and has a creator.
+
+model Board {
+  id          String     @id @default(uuid())
+  workspaceId String?
+  title       String
+  description String?
+  visibility  Visibility @default(PRIVATE)
+  background  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   User          @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members   BoardMember[]
+  lists     List[]
+
+  @@map("boards")
+}
+
+// ----------------------------------------------------------------------------
+// BoardMember
+// ----------------------------------------------------------------------------
+// Junction table for the many-to-many relationship between Board and User.
+// Represents a user's membership in a board with a specific role.
+
+model BoardMember {
+  id       String   @id @default(uuid())
+  boardId  String
+  userId   String
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@map("board_members")
+}
+
+// ============================================================================
+// Card Domain Models
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// List
+// ----------------------------------------------------------------------------
+// Represents a list (column) within a board.
+// Lists contain cards and can be reordered by position.
+
+model List {
+  id        String   @id @default(uuid())
+  boardId   String
+  title     String
+  position  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@map("lists")
+}
+
+// ----------------------------------------------------------------------------
+// Card
+// ----------------------------------------------------------------------------
+// Represents a card (task) within a list.
+// Cards can have assignees, comments, attachments, and due dates.
+
+model Card {
+  id          String    @id @default(uuid())
+  listId      String
+  title       String
+  description String?
+  coverUrl    String?
+  startDate   DateTime?
+  dueDate     DateTime?
+  position    Float     @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  list        List           @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignees   CardAssignee[]
+  comments    Comment[]
+  attachments Attachment[]
+
+  @@map("cards")
+}
+
+// ----------------------------------------------------------------------------
+// CardAssignee
+// ----------------------------------------------------------------------------
+// Junction table for the many-to-many relationship between Card and User.
+// Represents a user assigned to a card.
+
+model CardAssignee {
+  id         String   @id @default(uuid())
+  cardId     String
+  userId     String
+  assignedAt DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
+  @@map("card_assignees")
+}
+
+// ============================================================================
+// Content Models
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Comment
+// ----------------------------------------------------------------------------
+// Represents a comment on a card.
+// Comments are authored by users and can be edited.
+
+model Comment {
+  id        String   @id @default(uuid())
+  cardId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  card   Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// ----------------------------------------------------------------------------
+// Attachment
+// ----------------------------------------------------------------------------
+// Represents a file attachment on a card.
+// Attachments store file metadata and URL.
+
+model Attachment {
+  id         String   @id @default(uuid())
+  cardId     String
+  uploaderId String
+  url        String
+  filename   String
+  size       Int
+  createdAt  DateTime @default(now())
+
+  card     Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  uploader User @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+// ============================================================================
+// Workspace Domain Models
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// WorkspaceMember
+// ----------------------------------------------------------------------------
+// Junction table for the many-to-many relationship between Workspace and User.
+// Represents a user's membership in a workspace with a specific role.
+
+model WorkspaceMember {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        Role     @default(MEMBER)
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@map("workspace_members")
+}
