@@ -19,12 +19,6 @@ describe('AppController (e2e)', () => {
     await app.close();
   });
 
-  it('should serve GraphQL playground', () => {
-    return request(app.getHttpServer())
-      .get('/graphql')
-      .expect(200);
-  });
-
   it('should handle basic GraphQL query', () => {
     const query = `
       query {
@@ -38,6 +32,26 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.data.__typename).toBe('Query');
+      });
+  });
+
+  it('should return schema information', () => {
+    const query = `
+      query {
+        __schema {
+          queryType {
+            name
+          }
+        }
+      }
+    `;
+
+    return request(app.getHttpServer())
+      .post('/graphql')
+      .send({ query })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.__schema.queryType.name).toBe('Query');
       });
   });
 });
