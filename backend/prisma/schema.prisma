@@ -39,6 +39,14 @@ enum Role {
   OBSERVER
 }
 
+enum NotificationType {
+  CARD_ASSIGNED
+  CARD_DUE_SOON
+  COMMENT_ADDED
+  BOARD_INVITATION
+  WORKSPACE_INVITATION
+}
+
 // ============================================================================
 // Core Models
 // ============================================================================
@@ -84,6 +92,7 @@ model User {
   comments             Comment[]
   attachments          Attachment[]
   workspaceMemberships WorkspaceMember[]
+  notifications        Notification[]
 
   @@map("users")
 }
@@ -113,6 +122,7 @@ model Board {
   creator   User          @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   members   BoardMember[]
   lists     List[]
+  labels    Label[]
 
   @@map("boards")
 }
@@ -183,6 +193,8 @@ model Card {
   assignees   CardAssignee[]
   comments    Comment[]
   attachments Attachment[]
+  checklists  Checklist[]
+  labels      CardLabel[]
 
   @@map("cards")
 }
@@ -273,4 +285,89 @@ model WorkspaceMember {
 
   @@unique([workspaceId, userId])
   @@map("workspace_members")
+}
+
+// ----------------------------------------------------------------------------
+// Label
+// ----------------------------------------------------------------------------
+// Represents a colored label that can be applied to cards.
+
+model Label {
+  id      String @id @default(uuid())
+  boardId String
+  name    String
+  color   String
+
+  board Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards CardLabel[]
+
+  @@map("labels")
+}
+
+// ----------------------------------------------------------------------------
+// CardLabel
+// ----------------------------------------------------------------------------
+// Junction table for the many-to-many relationship between Card and Label.
+
+model CardLabel {
+  id      String @id @default(uuid())
+  cardId  String
+  labelId String
+
+  card  Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, labelId])
+  @@map("card_labels")
+}
+
+// ----------------------------------------------------------------------------
+// Checklist
+// ----------------------------------------------------------------------------
+// Represents a checklist within a card.
+
+model Checklist {
+  id     String @id @default(uuid())
+  cardId String
+  title  String
+
+  card  Card            @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  items ChecklistItem[]
+
+  @@map("checklists")
+}
+
+// ----------------------------------------------------------------------------
+// ChecklistItem
+// ----------------------------------------------------------------------------
+// Represents an item within a checklist.
+
+model ChecklistItem {
+  id          String  @id @default(uuid())
+  checklistId String
+  content     String
+  checked     Boolean @default(false)
+  position    Float   @default(0)
+
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@map("checklist_items")
+}
+
+// ----------------------------------------------------------------------------
+// Notification
+// ----------------------------------------------------------------------------
+// Represents a notification for a user.
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  payload   String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
 }
