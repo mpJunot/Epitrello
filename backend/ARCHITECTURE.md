@@ -1,349 +1,119 @@
-# Epitrello Backend Architecture
+# Backend Architecture
 
-Complete project structure for the Epitrello backend application.
-
-## Project Structure
-
+## Structure
 ```
 backend/
 ├── src/
-│   ├── main.ts                          [EXISTS]
-│   ├── app.module.ts                    [EXISTS]
-│   │
-│   ├── common/                          [PLANNED]
-│   │   ├── decorators/
-│   │   │   ├── current-user.decorator.ts
-│   │   │   └── public.decorator.ts
-│   │   ├── dto/
-│   │   │   └── pagination.dto.ts
-│   │   ├── filters/
-│   │   │   └── http-exception.filter.ts
-│   │   ├── guards/
-│   │   │   ├── jwt-auth.guard.ts
-│   │   │   └── gql-auth.guard.ts
-│   │   ├── pipes/
-│   │   │   └── validation.pipe.ts
-│   │   └── types/
-│   │       ├── context.type.ts
-│   │       └── auth.type.ts
-│   │
-│   ├── config/                          [EXISTS]
-│   │   ├── app.config.ts                 [EXISTS]
-│   │   ├── database.config.ts            [EXISTS]
-│   │   └── jwt.config.ts                [EXISTS]
-│   │
 │   ├── modules/
-│   │   ├── auth/                        [EXISTS]
-│   │   │   ├── auth.module.ts           [EXISTS]
-│   │   │   ├── auth.service.ts          [EXISTS]
-│   │   │   ├── auth.resolver.ts         [EXISTS]
-│   │   │   ├── dto/
-│   │   │   │   ├── login.input.ts       [EXISTS]
-│   │   │   │   ├── register.input.ts    [EXISTS]
-│   │   │   │   └── auth-payload.type.ts [EXISTS]
-│   │   │   └── strategies/
-│   │   │       └── jwt.strategy.ts      [EXISTS]
-│   │   │
-│   │   ├── users/                       [EXISTS]
-│   │   │   ├── users.module.ts          [EXISTS]
-│   │   │   ├── users.service.ts         [EXISTS]
-│   │   │   ├── users.resolver.ts        [EXISTS]
-│   │   │   ├── dto/
-│   │   │   │   ├── create-user.input.ts [EXISTS]
-│   │   │   │   ├── update-user.input.ts [EXISTS]
-│   │   │   │   └── user-filter.input.ts [PLANNED]
-│   │   │   └── entities/
-│   │   │       └── user.entity.ts       [EXISTS]
-│   │   │
-│   │   ├── boards/                     [PLANNED]
-│   │   │   ├── boards.module.ts
-│   │   │   ├── boards.service.ts
-│   │   │   ├── boards.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   ├── create-board.input.ts
-│   │   │   │   ├── update-board.input.ts
-│   │   │   │   ├── add-member.input.ts
-│   │   │   │   └── board-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── board.entity.ts
-│   │   │
-│   │   ├── lists/                       [PLANNED]
-│   │   │   ├── lists.module.ts
-│   │   │   ├── lists.service.ts
-│   │   │   ├── lists.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   ├── create-list.input.ts
-│   │   │   │   ├── update-list.input.ts
-│   │   │   │   ├── move-list.input.ts
-│   │   │   │   └── list-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── list.entity.ts
-│   │   │
-│   │   ├── cards/                       [PLANNED]
-│   │   │   ├── cards.module.ts
-│   │   │   ├── cards.service.ts
-│   │   │   ├── cards.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   ├── create-card.input.ts
-│   │   │   │   ├── update-card.input.ts
-│   │   │   │   ├── move-card.input.ts
-│   │   │   │   ├── assign-user.input.ts
-│   │   │   │   └── card-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── card.entity.ts
-│   │   │
-│   │   ├── comments/                    [PLANNED]
-│   │   │   ├── comments.module.ts
-│   │   │   ├── comments.service.ts
-│   │   │   ├── comments.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   ├── create-comment.input.ts
-│   │   │   │   ├── update-comment.input.ts
-│   │   │   │   └── comment-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── comment.entity.ts
-│   │   │
-│   │   ├── attachments/                 [PLANNED]
-│   │   │   ├── attachments.module.ts
-│   │   │   ├── attachments.service.ts
-│   │   │   ├── attachments.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   ├── upload-file.input.ts
-│   │   │   │   └── attachment-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── attachment.entity.ts
-│   │   │
-│   │   ├── activities/                  [PLANNED]
-│   │   │   ├── activities.module.ts
-│   │   │   ├── activities.service.ts
-│   │   │   ├── activities.resolver.ts
-│   │   │   ├── dto/
-│   │   │   │   └── activity-filter.input.ts
-│   │   │   └── entities/
-│   │   │       └── activity.entity.ts
-│   │   │
-│   │   └── notifications/               [PLANNED]
-│   │       ├── notifications.module.ts
-│   │       ├── notifications.service.ts
-│   │       ├── notifications.resolver.ts
-│   │       ├── notifications.gateway.ts
-│   │       ├── dto/
-│   │       │   ├── create-notification.input.ts
-│   │       │   └── notification-filter.input.ts
-│   │       └── entities/
-│   │           └── notification.entity.ts
-│   │
-│   ├── prisma/                          [EXISTS]
-│   │   ├── prisma.module.ts             [EXISTS]
-│   │   └── prisma.service.ts            [EXISTS]
-│   │
-│   └── graphql/                         [EXISTS]
-│       ├── schema.gql                   [EXISTS]
-│       └── scalars/                     [PLANNED]
-│           ├── date.scalar.ts
-│           └── upload.scalar.ts
-│
+│   │   ├── auth/           # Authentication (JWT)
+│   │   ├── users/          # User management
+│   │   ├── boards/         # [TODO] Board management
+│   │   ├── lists/          # [TODO] List management
+│   │   ├── cards/          # [TODO] Card management
+│   │   ├── comments/       # [TODO] Comments
+│   │   └── attachments/    # [TODO] File uploads
+│   ├── prisma/            # Database service
+│   └── graphql/           # GraphQL schema
 ├── prisma/
-│   ├── schema.prisma                    [EXISTS]
-│   ├── migrations/                      [PLANNED]
-│   ├── seeds/                           [PLANNED]
-│   │   ├── seed.ts
-│   │   └── data/
-│   │       ├── users.json
-│   │       ├── boards.json
-│   │       └── demo-data.json
-│   └── dev.db                           [PLANNED]
-│
-├── uploads/                             [PLANNED]
-│   ├── avatars/
-│   └── attachments/
-│
-├── test/                                 [EXISTS]
-│   ├── app.e2e-spec.ts                  [EXISTS]
-│   ├── auth.e2e-spec.ts                 [PLANNED]
-│   ├── boards.e2e-spec.ts               [PLANNED]
-│   ├── jest-e2e.json                    [EXISTS]
-│   └── setup.ts                         [PLANNED]
-│
-├── .env                                 [EXISTS]
-├── .env.example                         [PLANNED]
-├── .env.test                            [PLANNED]
-├── .gitignore                           [EXISTS]
-├── docker-compose.yml                   [EXISTS]
-├── Dockerfile                           [PLANNED]
-├── package.json                         [EXISTS]
-├── pnpm-lock.yaml                       [EXISTS]
-├── tsconfig.json                        [EXISTS]
-├── tsconfig.build.json                  [EXISTS]
-├── nest-cli.json                        [EXISTS]
-├── eslint.config.js                     [EXISTS]
-├── prettier.config.js                   [EXISTS]
-├── jest.config.js                       [EXISTS]
-└── README.md                            [EXISTS]
+│   └── schema.prisma      # Database schema
+└── test/                  # Tests
 ```
 
-## Module Status
+## Modules Explained
 
-### Implemented Modules
+### Core Modules
 
-- **Auth Module** - User authentication with JWT
-  - Register mutation
-  - Login mutation
-  - JWT strategy
+**Auth Module**
+- Handles user registration and login
+- Generates and validates JWT tokens
+- Protects routes with authentication guards
+- Provides login/register GraphQL mutations
 
-- **Users Module** - User management
-  - CRUD operations
-  - User queries and mutations
+**Users Module**
+- Manages user accounts and profiles
+- CRUD operations for user data
+- User queries and mutations in GraphQL
+- Password hashing and validation
 
-- **Prisma Module** - Database service
-  - Prisma client integration
-  - Connection management
+**Prisma Module**
+- Database connection service
+- Provides Prisma client to other modules
+- Handles database transactions
+- Manages connection pooling
 
-### Planned Modules
+### Business Logic Modules (TODO)
 
-- **Boards Module** - Board management
-  - Create, read, update, delete boards
-  - Board member management
-  - Board permissions
+**Boards Module**
+- Create, read, update, delete boards
+- Manage board visibility (private/public)
+- Handle board member invitations and roles
+- Board-level permissions and access control
 
-- **Lists Module** - List (column) management
-  - Create, update, delete lists
-  - List reordering (drag & drop)
-  - List position management
+**Lists Module**
+- Create and manage lists within boards
+- Handle drag-and-drop list reordering
+- Position management with float values
+- List CRUD operations
 
-- **Cards Module** - Card (task) management
-  - Create, update, delete cards
-  - Card assignment to users
-  - Card movement between lists
-  - Due date management
+**Cards Module**
+- Create and manage task cards
+- Move cards between lists
+- Assign users to cards
+- Handle due dates and descriptions
+- Card position management
 
-- **Comments Module** - Card comments
-  - Create, update, delete comments
-  - Comment threading
-  - Comment notifications
+**Comments Module**
+- Add comments to cards
+- Edit and delete comments
+- Real-time comment notifications
+- Comment history and threading
 
-- **Attachments Module** - File attachments
-  - File upload
-  - File management
-  - File deletion
+**Attachments Module**
+- File upload to cards
+- Support multiple file types
+- File size and type validation
+- File deletion and management
 
-- **Activities Module** - Activity tracking
-  - Activity log creation
-  - Activity history
-  - Activity filtering
+## Database Models
 
-- **Notifications Module** - Real-time notifications
-  - WebSocket gateway
-  - Notification creation
-  - Notification delivery
+**Core Entities**
+- **User** - User accounts with email, password, profile info
+- **Workspace** - Top-level organization units for teams
+- **Board** - Project boards containing lists and cards
+- **List** - Columns/stages in a board (To Do, In Progress, Done)
+- **Card** - Individual tasks with title, description, dates
+- **Comment** - User discussions on cards
+- **Attachment** - Files uploaded to cards
+- **Label** - Color-coded tags for categorizing cards
+- **Checklist** - Sub-tasks within cards
+- **Notification** - User alerts for various events
 
-## Common Utilities (Planned)
+**Relationship Tables**
+- **BoardMember** - Links users to boards with specific roles
+- **WorkspaceMember** - Links users to workspaces with permissions
+- **CardAssignee** - Assigns users to specific cards
+- **CardLabel** - Applies labels to cards
 
-- **Decorators** - Custom decorators
-  - `@CurrentUser()` - Get current authenticated user
-  - `@Public()` - Mark route as public
+## Technology Stack
+- **Framework**: NestJS - Scalable Node.js framework
+- **API**: GraphQL - Flexible query language and runtime
+- **Database**: PostgreSQL - Robust relational database
+- **ORM**: Prisma - Type-safe database toolkit
+- **Auth**: JWT - Stateless authentication tokens
+- **Testing**: Jest - JavaScript testing framework
 
-- **Guards** - Authentication guards
-  - `JwtAuthGuard` - HTTP JWT guard
-  - `GqlAuthGuard` - GraphQL JWT guard
+## What's Done
+- [x] Basic NestJS setup with modules and dependency injection
+- [x] GraphQL configuration with Apollo Server
+- [x] User authentication with JWT strategy
+- [x] Complete database schema with all relationships
+- [x] Testing setup with unit and e2e tests
+- [x] Code quality tools (ESLint, Prettier)
 
-- **Filters** - Exception filters
-  - `HttpExceptionFilter` - Global exception handler
-
-- **Pipes** - Validation pipes
-  - `ValidationPipe` - Input validation
-
-- **Types** - Shared types
-  - `ContextType` - GraphQL context type
-  - `AuthType` - Authentication type definitions
-
-## Database Schema (Planned)
-
-The complete Prisma schema should include:
-
-- User model (EXISTS)
-- Board model
-- List model
-- Card model
-- Comment model
-- Attachment model
-- Activity model
-- Notification model
-- BoardMember model (many-to-many)
-- CardAssignee model (many-to-many)
-
-## Features Status
-
-### Core Features
-
-- [x] User authentication (register/login)
-- [x] User CRUD operations
-- [ ] Board management
-- [ ] List management
-- [ ] Card management
-- [ ] Member management
-
-### Advanced Features
-
-- [ ] Comments system
-- [ ] File attachments
-- [ ] Activity tracking
-- [ ] Real-time notifications (WebSocket)
-- [ ] Search and filtering
-- [ ] Role-based permissions
-
-### Infrastructure
-
-- [x] Database setup (PostgreSQL)
-- [x] Prisma integration
-- [x] GraphQL setup
-- [x] JWT authentication
-- [ ] Database migrations
-- [ ] Data seeding
-- [ ] File storage
-- [ ] Docker setup
-- [ ] Health checks
-- [ ] Logging system
-
-## Development Status
-
-### Completed
-
-- Project structure setup
-- NestJS configuration
-- GraphQL integration
-- Prisma setup
-- Authentication module
-- Users module
-- Database connection
-- Docker Compose configuration
-
-### In Progress
-
-- None
-
-### Planned
-
-- Board module implementation
-- List module implementation
-- Card module implementation
-- Comments module implementation
-- Attachments module implementation
-- Activities module implementation
-- Notifications module implementation
-- Common utilities
-- Testing suite
-- Documentation
-
-## Next Steps
-
-1. Implement Board module
-2. Implement List module
-3. Implement Card module
-4. Add relationships between models
-5. Implement Comments module
-6. Implement Attachments module
-7. Add authentication guards
-8. Implement real-time notifications
-9. Add comprehensive tests
-10. Add API documentation
+## What's Next
+- [ ] Board operations - Create, manage, and share boards
+- [ ] Card management - Full card lifecycle with assignments
+- [ ] Real-time updates - WebSocket for live collaboration
+- [ ] File uploads - Handle attachments with proper storage
+- [ ] Search and filters - Advanced querying capabilities
+- [ ] Role-based permissions - Fine-grained access control
