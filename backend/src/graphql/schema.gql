@@ -2,8 +2,12 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+"""Authentication response containing JWT token and user data"""
 type AuthPayload {
+  """JWT token to use in Authorization header for authenticated requests"""
   token: String!
+
+  """Authenticated user information"""
   user: User!
 }
 
@@ -19,27 +23,62 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+"""Input for user login"""
 input LoginInput {
+  """User email address"""
   email: String!
+
+  """User password"""
   password: String!
+
+  """If true, token expires in 30 days instead of 7 days"""
+  rememberMe: Boolean = false
 }
 
 type Mutation {
+  """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
+
+  """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
+
+  """
+  Login with email and password. Returns a JWT token for authenticated requests.
+  """
   login(input: LoginInput!): AuthPayload!
+
+  """
+  Register a new user account. If companyName is provided, a workspace is automatically created.
+  """
   register(input: RegisterInput!): AuthPayload!
+
+  """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
 }
 
 type Query {
+  """Get the currently authenticated user information"""
+  me: User
+
+  """Get a user by ID (requires authentication)"""
   user(id: ID!): User
+
+  """Get all users (requires authentication)"""
   users: [User!]!
 }
 
+"""Input for user registration"""
 input RegisterInput {
+  """Optional company name - creates a workspace if provided"""
+  companyName: String
+
+  """User email address (must be unique)"""
   email: String!
+
+  """User full name (minimum 3 characters)"""
   name: String!
+
+  """User password (minimum 6 characters)"""
   password: String!
 }
 
