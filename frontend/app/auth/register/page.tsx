@@ -53,10 +53,10 @@ export default function RegisterPage() {
         `,
         variables: {
           "input": {
-            "email": "maillotbenjamin1@gmail.com",
-            "name": "bob",
-            "password": "Test974!",
-            "companyName": "My Company" // Optional - creates a workspace
+            "email": email,
+            "name": name,
+            "password": password,
+            "companyName": company
           }
         }
       })
