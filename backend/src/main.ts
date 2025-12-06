@@ -10,8 +10,16 @@ async function bootstrap() {
    * origin: process.env.FRONTEND_URL || 'http://localhost:3000' - The origin of the request.
    * credentials: true - Allow credentials.
    */
+  // Enable CORS. In development reflect the request origin (origin: true)
+  // so the Access-Control-Allow-Origin header is set dynamically. In
+  // production, restrict to configured frontends.
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowedOrigins = isProduction
+    ? [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://postgres:3000', 'http://localhost:4000']
+    : true; // reflect request origin in dev
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
   });
 
