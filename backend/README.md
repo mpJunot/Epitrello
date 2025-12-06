@@ -1,208 +1,100 @@
 # Epitrello Backend
 
-Backend API built with NestJS, GraphQL, Prisma, and PostgreSQL.
+NestJS GraphQL API with PostgreSQL and Prisma.
 
-## Tech Stack
+## Setup
 
-- NestJS - Node.js framework
-- GraphQL - API with Apollo Server
-- Prisma - ORM for database access
-- PostgreSQL - Database
-- JWT - Authentication
-- TypeScript
+### Requirements
+- Node.js 20+
+- pnpm
+- PostgreSQL
 
-## Prerequisites
-
-- Node.js >= 18.x
-- pnpm >= 8.x
-- Docker and Docker Compose
-
-## Quick Start
-
-### 1. Install Dependencies
-
+### Install
 ```bash
+cd backend
 pnpm install
 ```
 
-### 2. Configure Environment
+### Database
+Start PostgreSQL with Docker:
+```bash
+docker-compose up -d postgres
+```
 
+### Configure
+Copy environment file:
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration:
-
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/epitrello?schema=public"
-JWT_SECRET="your-secret-key-change-in-production"
-JWT_EXPIRES_IN="7d"
-PORT=4000
-NODE_ENV="development"
-FRONTEND_URL="http://localhost:3000"
-```
-
-Generate JWT secret:
-
+### Migrate Database
 ```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+pnpm prisma generate
+pnpm prisma migrate dev --name init
 ```
 
-### 3. Start Database
-
-```bash
-docker-compose up -d
-```
-
-### 4. Setup Database
-
-```bash
-pnpm prisma:generate
-pnpm prisma db push
-```
-
-### 5. Start Application
-
+### Start
 ```bash
 pnpm start:dev
 ```
 
-API available at: `http://localhost:4000/graphql`
+Server runs at http://localhost:4000/graphql
 
-## Available Scripts
+## Commands
 
-| Script                 | Description              |
-| ---------------------- | ------------------------ |
-| `pnpm start:dev`       | Start development server |
-| `pnpm build`           | Build the application    |
-| `pnpm test`            | Run tests                |
-| `pnpm lint`            | Lint code                |
-| `pnpm prisma:generate` | Generate Prisma Client   |
-| `pnpm prisma:studio`   | Open Prisma Studio       |
-
-## GraphQL API
-
-### Authentication
-
-#### Register
-
-```graphql
-mutation {
-  register(input: { email: "user@example.com", name: "John Doe", password: "password123" }) {
-    token
-    user {
-      id
-      email
-      name
-    }
-  }
-}
+### Development
+```bash
+pnpm start:dev    # Start with hot reload
+pnpm start        # Start normally
+pnpm build        # Build for production
 ```
 
-#### Login
-
-```graphql
-mutation {
-  login(input: { email: "user@example.com", password: "password123" }) {
-    token
-    user {
-      id
-      email
-      name
-    }
-  }
-}
+### Testing
+```bash
+pnpm test         # Run unit tests
+pnpm test:e2e     # Run e2e tests
 ```
 
-### Users
-
-#### Get All Users
-
-```graphql
-query {
-  users {
-    id
-    email
-    name
-    avatar
-  }
-}
+### Database
+```bash
+pnpm prisma generate    # Generate Prisma client
+pnpm prisma migrate dev # Run migrations
+pnpm prisma studio      # Open database GUI
 ```
 
-#### Get User by ID
-
-```graphql
-query {
-  user(id: "user-id") {
-    id
-    email
-    name
-  }
-}
-```
-
-#### Create User
-
-```graphql
-mutation {
-  createUser(input: { email: "new@example.com", name: "New User", password: "password123" }) {
-    id
-    email
-    name
-  }
-}
-```
-
-#### Update User
-
-```graphql
-mutation {
-  updateUser(id: "user-id", input: { name: "Updated Name" }) {
-    id
-    email
-    name
-  }
-}
-```
-
-#### Delete User
-
-```graphql
-mutation {
-  deleteUser(id: "user-id")
-}
-```
-
-## Authentication
-
-Include JWT token in HTTP Headers:
-
-```json
-{
-  "Authorization": "Bearer YOUR_JWT_TOKEN"
-}
+### Code Quality
+```bash
+pnpm lint         # Fix code issues
+pnpm format       # Format code
 ```
 
 ## Environment Variables
-
-| Variable         | Description                  | Default                 |
-| ---------------- | ---------------------------- | ----------------------- |
-| `DATABASE_URL`   | PostgreSQL connection string | -                       |
-| `JWT_SECRET`     | Secret key for JWT signing   | -                       |
-| `JWT_EXPIRES_IN` | JWT token expiration time    | `7d`                    |
-| `PORT`           | Server port                  | `4000`                  |
-| `NODE_ENV`       | Environment                  | `development`           |
-| `FRONTEND_URL`   | Frontend URL for CORS        | `http://localhost:3000` |
-
-## Docker Commands
-
 ```bash
-# Start PostgreSQL
-docker-compose up -d
-
-# Stop PostgreSQL
-docker-compose down
-
-# View logs
-docker-compose logs -f postgres
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/epitrello"
+PORT=4000
+NODE_ENV="development"
 ```
+
+## Troubleshooting
+
+### Database Issues
+```bash
+docker-compose restart postgres
+pnpm prisma migrate reset
+```
+
+### Port Conflicts
+```bash
+lsof -ti:4000 | xargs kill -9
+```
+
+## Documentation
+- API: http://localhost:4000/graphql (GraphQL Playground)
+- Schema: [prisma/schema.prisma](./prisma/schema.prisma)
+- Architecture: [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+## Current Status
+- Basic NestJS + GraphQL setup
+- User authentication and management
+- PostgreSQL with Prisma ORM
+- Testing configured
