@@ -6,22 +6,39 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleSubmit = async (e : any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      // Call frontend proxy route which forwards to backend GraphQL and sets httpOnly cookie
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
-      if (!res.ok) throw new Error("Identifiants invalides");
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data?.error || "Identifiants invalides");
+      }
+
+      // Save token locally so client-side code can call backend with Authorization header if needed.
+      try {
+        if (data.token && typeof window !== "undefined") {
+          localStorage.setItem("token", data.token);
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+
+      // Redirect to dashboard
       window.location.href = "/dashboard";
-    } catch (err : any) {
+    } catch (err: any) {
       setError(err.message || "Une erreur est survenue");
     } finally {
       setLoading(false);
@@ -106,7 +123,12 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" className="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                  />
                   <span className="block text-sm font-medium text-gray-700 ">Se souvenir de moi</span>
                 </label>
                 <a href="/auth/forgot" className="text-indigo-600 hover:underline">Mot de passe oublié ?</a>

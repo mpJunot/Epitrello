@@ -24,17 +24,62 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     const v = validate();
-    if (v) return setError("error");
+    if (v) return setError(v);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company, name, email, password }),
-      });
-      if (!res.ok) throw new Error("Impossible de créer le compte.");
-      // redirection vers page de succès ou connexion
-      window.location.href = "/register/success";
+      console.log("Registering", { company, name, email, password });
+      const url = "http://localhost:4000/graphql";
+      console.log("Posting to", url);
+      const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: `
+          mutation Register($input: RegisterInput!) {
+          register(input: $input) {
+            token
+            user {
+              id
+              email
+              name
+              avatar
+              createdAt
+              updatedAt
+            }
+          }
+        }
+        `,
+        variables: {
+          "input": {
+            "email": "maillotbenjamin1@gmail.com",
+            "name": "bob",
+            "password": "Test974!",
+            "companyName": "My Company" // Optional - creates a workspace
+          }
+        }
+      })
+    });
+
+      // parse body to show server error message when present
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        const msg = data?.error || "Impossible de créer le compte.";
+        throw new Error(msg);
+      }
+
+      // Save token locally (optional) so client can call backend directly using Authorization header
+      try {
+        if (data.token && typeof window !== "undefined") {
+          localStorage.setItem("token", data.token);
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+
+      // redirection vers page de succès ou connexion (chemin dans l'app)
+      window.location.href = "/auth/register/success";
     } catch (err : any) {
       setError(err.message || "Erreur lors de l'inscription");
     } finally {
