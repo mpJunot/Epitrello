@@ -63,11 +63,17 @@ export default function RegisterPage() {
     });
 
       // parse body to show server error message when present
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.ok) {
-        const msg = data?.error || "Impossible de créer le compte.";
-        throw new Error(msg);
+      if (!res.ok ) {
+        console.error("HTTP error:", res.status, res.statusText);
+        throw new Error(`Erreur serveur: ${res.status} ${res.statusText}`);
       }
+      const data = await res.json().catch(() => ({}));
+      if (data.errors && data.errors.length > 0) {
+        console.error("GraphQL errors:", data.errors);
+        throw new Error(data.errors[0].message || "Erreur lors de l'inscription");
+      }
+      // check response
+      const dataRegister = data.data?.register;
 
       // Save token locally (optional) so client can call backend directly using Authorization header
       try {
