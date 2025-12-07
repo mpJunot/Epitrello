@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcryptjs from 'bcryptjs';
@@ -14,48 +14,72 @@ export class AuthService {
   ) {}
 
   async register(input: RegisterInput): Promise<AuthPayload> {
-    const hashedPassword = await bcryptjs.hash(input.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        password: hashedPassword,
-      },
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: input.email },
     });
 
-    // Create workspace if companyName is provided
-    if (input.companyName) {
-      await this.prisma.workspace.create({
-        data: {
-          name: input.companyName,
-          memberships: {
-            create: {
-              userId: user.id,
-              role: 'ADMIN',
-            },
-          },
-        },
-      });
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
     }
 
-    // Default token expiration (7 days)
-    const token = this.jwtService.sign(
-      { userId: user.id, email: user.email },
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
-    );
+    const hashedPassword = await bcryptjs.hash(input.password, 10);
 
-    return {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-      },
-    };
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: input.email,
+          name: input.name,
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Create workspace if companyName is provided
+      if (input.companyName) {
+        await this.prisma.workspace.create({
+          data: {
+            name: input.companyName,
+            memberships: {
+              create: {
+                userId: user.id,
+                role: 'ADMIN',
+              },
+            },
+          },
+        });
+      }
+
+      // Default token expiration (7 days)
+      const token = this.jwtService.sign(
+        { userId: user.id, email: user.email },
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+      );
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          avatar: user.avatar,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      };
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Email already in use');
+      }
+      throw error;
+    }
   }
 
   async login(input: LoginInput): Promise<AuthPayload> {
@@ -64,16 +88,15 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await bcryptjs.compare(input.password, user.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid email or password');
     }
 
-    // Use longer expiration if rememberMe is true (30 days), otherwise default (7 days)
     const expiresIn = input.rememberMe ? '30d' : process.env.JWT_EXPIRES_IN || '7d';
     const token = this.jwtService.sign(
       { userId: user.id, email: user.email },
