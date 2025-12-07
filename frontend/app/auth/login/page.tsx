@@ -1,53 +1,65 @@
 "use client";
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const LoginSchema = z.object({
+  email: z.string().min(1, "Email requis").email("Email invalide"),
+  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  rememberMe: z.boolean().optional(),
+});
+
+type LoginForm = z.infer<typeof LoginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: { rememberMe: false },
+  });
+
+  const onSubmit = async (data: LoginForm) => {
     setError(null);
     setLoading(true);
     const url = "http://localhost:4000/graphql";
-    console.log("Posting to", url);
     try {
       const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        query: `
-          mutation Register($input: RegisterInput!) {
-          register(input: $input) {
-            token
-            user {
-              id
-              email
-              name
-              avatar
-              createdAt
-              updatedAt
-            }
-          }
-        }
-        `,
-        variables: {
-          "input": {
-            "email": email,
-            "name": name,
-            "password": password,
-          }
-        }
-      }),
-    });
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    token\n    user { id email name avatar createdAt updatedAt }\n  }\n}\n`,
+          variables: {
+            input: {
+              email: data.email,
+              password: data.password,
+              rememberMe: data.rememberMe || false,
+            },
+          },
+        }),
+      });
 
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Erreur réseau");
+      }
+
+      const json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || "Erreur GraphQL");
+      }
+
+      // Optionally store token from json.data.login.token
       // Redirect to dashboard
       window.location.href = "/dashboard";
     } catch (err: any) {
@@ -94,18 +106,17 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-white shadow-lg rounded-2xl p-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">Adresse e-mail</label>
                 <input
                   id="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2"
+                  {...register("email")}
+                  className={`text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 ${errors.email ? "border-red-500" : ""}`}
                   placeholder="vous@exemple.com"
                 />
+                {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
               </div>
 
               <div>
@@ -114,13 +125,12 @@ export default function LoginPage() {
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20"
+                    {...register("password")}
+                    className={`text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20 ${errors.password ? "border-red-500" : ""}`}
                     placeholder="••••••••"
                     aria-label="Mot de passe"
                   />
+                  {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
@@ -137,8 +147,7 @@ export default function LoginPage() {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
+                    {...register("rememberMe")}
                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   />
                   <span className="block text-sm font-medium text-gray-700 ">Se souvenir de moi</span>
