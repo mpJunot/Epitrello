@@ -14,27 +14,39 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const url = "http://localhost:4000/graphql";
+    console.log("Posting to", url);
     try {
-      // Call frontend proxy route which forwards to backend GraphQL and sets httpOnly cookie
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.error || "Identifiants invalides");
-      }
-
-      // Save token locally so client-side code can call backend with Authorization header if needed.
-      try {
-        if (data.token && typeof window !== "undefined") {
-          localStorage.setItem("token", data.token);
+      const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: `
+          mutation Register($input: RegisterInput!) {
+          register(input: $input) {
+            token
+            user {
+              id
+              email
+              name
+              avatar
+              createdAt
+              updatedAt
+            }
+          }
         }
-      } catch (e) {
-        // ignore storage errors
-      }
+        `,
+        variables: {
+          "input": {
+            "email": email,
+            "name": name,
+            "password": password,
+          }
+        }
+      }),
+    });
 
       // Redirect to dashboard
       window.location.href = "/dashboard";
