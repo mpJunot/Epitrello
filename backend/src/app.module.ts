@@ -6,6 +6,7 @@ import { join } from 'path';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { EmailModule } from './modules/email/email.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -32,6 +33,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     PrismaModule,
     UsersModule,
     AuthModule,
+    EmailModule,
   ],
   providers: [
     {
