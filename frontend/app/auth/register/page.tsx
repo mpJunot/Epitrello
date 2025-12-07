@@ -1,134 +1,125 @@
 "use client";
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-// ---- Registration components (à placer si besoin dans /app/register/page.jsx) ----
+const RegisterSchema = z
+  .object({
+    name: z.string().min(1, "Nom requis"),
+    company: z.string().optional(),
+    email: z.string().min(1, "Email requis").email("Email invalide"),
+    password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    confirm: z.string().min(1, "Veuillez confirmer le mot de passe"),
+  })
+  .refine((data) => data.password === data.confirm, {
+    path: ["confirm"],
+    message: "Les mots de passe ne correspondent pas",
+  });
 
-export default function RegisterPage() {    
-  const [company, setCompany] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null as string | null);
+type RegisterForm = z.infer<typeof RegisterSchema>;
 
-  const validate = () => {
-    if (!email || !password || !name) return "Veuillez remplir tous les champs requis.";
-    if (password.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
-    if (password !== confirm) return "Les mots de passe ne correspondent pas.";
-    return null;
-  };
+export default function RegisterPage() {
+  const [error, setError] = useState<string | null>(null);
 
-  const handleRegister = async (e : any) => {
-    e.preventDefault();
-    setError(null);
-    const v = validate();
-    if (v) return setError(v);
-    setLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterForm>({
+    resolver: zodResolver(RegisterSchema),
+    defaultValues: { company: "" },
+  });
+
+  const onSubmit = async (data: RegisterForm) => {
+    const url = "http://localhost:4000/graphql";
     try {
-      console.log("Registering", { company, name, email, password });
-      const url = "http://localhost:4000/graphql";
-      console.log("Posting to", url);
+      setError(null);
       const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        query: `
-          mutation Register($input: RegisterInput!) {
-          register(input: $input) {
-            token
-            user {
-              id
-              email
-              name
-              avatar
-              createdAt
-              updatedAt
-            }
-          }
-        }
-        `,
-        variables: {
-          "input": {
-            "email": email,
-            "name": name,
-            "password": password,
-            "companyName": company
-          }
-        }
-      })
-    });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `mutation Register($input: RegisterInput!) {\n  register(input: $input) {\n    token\n    user { id email name avatar createdAt updatedAt }\n  }\n}\n`,
+          variables: {
+            input: {
+              email: data.email,
+              name: data.name,
+              password: data.password,
+              companyName: data.company || undefined,
+            },
+          },
+        }),
+      });
 
-      // parse body to show server error message when present
-      if (!res.ok ) {
-        console.error("HTTP error:", res.status, res.statusText);
-        throw new Error(`Erreur serveur: ${res.status} ${res.statusText}`);
-      }
-      const data = await res.json().catch(() => ({}));
-      if (data.errors && data.errors.length > 0) {
-        console.error("GraphQL errors:", data.errors);
-        throw new Error(data.errors[0].message || "Erreur lors de l'inscription");
-      }
-      // check response
-      const dataRegister = data.data?.register;
-
-      // Save token locally (optional) so client can call backend directly using Authorization header
-      try {
-        if (data.token && typeof window !== "undefined") {
-          localStorage.setItem("token", data.token);
-        }
-      } catch (e) {
-        // ignore storage errors
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Erreur serveur: ${res.status}`);
       }
 
-      // redirection vers page de succès ou connexion (chemin dans l'app)
-      window.location.href = "/auth/register/success";
-    } catch (err : any) {
+      const json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || "Erreur GraphQL");
+      }
+
+      const token = json.data?.register?.token;
+      if (token && typeof window !== "undefined") {
+        try {
+          localStorage.setItem("token", token);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // redirect to success page
+      if (typeof window !== "undefined") {
+        window.location.href = "/auth/register/success";
+      }
+    } catch (err: any) {
       setError(err.message || "Erreur lors de l'inscription");
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-      <div className="max-w-md w-full"> 
+      <div className="max-w-md w-full">
         <div className="bg-white shadow rounded-2xl p-6">
           <h2 className="text-black text-lg font-semibold mb-4">Créer un compte</h2>
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="block text-sm text-gray-600">Nom complet</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="Jean Dupont" />
+              <input {...register("name")}
+                className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.name ? "border-red-500" : ""}`}
+                placeholder="Jean Dupont" />
+              {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm text-gray-600">Nom de la boutique (optionnel)</label>
-              <input value={company} onChange={(e) => setCompany(e.target.value)} className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="Ma boutique" />
+              <input {...register("company")} className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="Ma boutique" />
             </div>
 
             <div>
               <label className="block text-sm text-gray-600">Adresse e-mail</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="vous@exemple.com" />
+              <input {...register("email")} type="email" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.email ? "border-red-500" : ""}`} placeholder="vous@exemple.com" />
+              {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm text-gray-600">Mot de passe</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="••••••••" />
+              <input {...register("password")} type="password" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.password ? "border-red-500" : ""}`} placeholder="••••••••" />
+              {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
             </div>
 
             <div>
               <label className="block text-sm text-gray-600">Confirmer le mot de passe</label>
-              <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="••••••••" />
+              <input {...register("confirm")} type="password" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.confirm ? "border-red-500" : ""}`} placeholder="••••••••" />
+              {errors.confirm && <p className="text-red-600 text-sm mt-1">{errors.confirm.message}</p>}
             </div>
 
-            {error && <div className="text-red-600 text-sm text-gray-600">{error}</div>}
-
             <div>
-              <button type="submit" disabled={loading} className="w-full rounded-lg px-4 py-2 bg-indigo-600 text-white">
-                {loading ? "Création..." : "Créer mon compte"}
+              <button type="submit" disabled={isSubmitting} className="w-full rounded-lg px-4 py-2 bg-indigo-600 text-white">
+                {isSubmitting ? "Création..." : "Créer mon compte"}
               </button>
             </div>
 
