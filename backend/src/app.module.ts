@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -16,7 +17,6 @@ import { GqlAuthGuard } from './common/guards/gql-auth.guard';
       sortSchema: true,
       playground: process.env.NODE_ENV !== 'production',
       introspection: process.env.NODE_ENV !== 'production',
-      // Enable Apollo Studio (modern alternative to Playground)
       apollo: {
         key: process.env.APOLLO_KEY,
         graphRef: process.env.APOLLO_GRAPH_REF,
@@ -25,7 +25,7 @@ import { GqlAuthGuard } from './common/guards/gql-auth.guard';
         return {
           req,
           res,
-          user: req.user, // Make user available in GraphQL context
+          user: req.user,
         };
       },
     }),
@@ -37,6 +37,10 @@ import { GqlAuthGuard } from './common/guards/gql-auth.guard';
     {
       provide: APP_GUARD,
       useClass: GqlAuthGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })

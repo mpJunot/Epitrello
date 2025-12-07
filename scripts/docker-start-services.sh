@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Epitrello Startup Script
+# Epitrello Docker Services Startup Script
+# This script starts all Docker services (PostgreSQL, Backend, Frontend)
 
 set -e
 
@@ -10,7 +11,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting Epitrello...${NC}"
+echo -e "${GREEN}Starting Epitrello Docker services...${NC}"
+
+# Get the script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+cd "$PROJECT_ROOT"
 
 # Check if .env file exists
 if [ ! -f .env ]; then
@@ -84,5 +91,5 @@ echo -e "\n${GREEN}Epitrello is running!${NC}"
 echo -e "${GREEN}Backend: http://localhost:${PORT:-4000}/graphql${NC}"
 echo -e "${GREEN}Frontend: http://localhost:${FRONTEND_PORT:-3000}${NC}"
 echo -e "\n${YELLOW}To view logs: $COMPOSE_CMD logs -f${NC}"
-echo -e "${YELLOW}To stop: $COMPOSE_CMD down${NC}"
+echo -e "${YELLOW}To stop: ./scripts/docker-stop-services.sh${NC}"
 

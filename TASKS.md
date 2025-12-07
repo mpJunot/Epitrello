@@ -1,6 +1,8 @@
-# Priority Tasks - Epitrello
+# Epitrello Development Tasks
 
-## 🔴 PRIORITY 1 - Foundations (CRITICAL)
+This document outlines the prioritized development tasks for the Epitrello project.
+
+## PRIORITY 1 - Foundations (Critical)
 
 ### 1.1 Environment Configuration
 
@@ -39,7 +41,7 @@
 - [ ] Apply guards on existing resolvers (Users)
 - [ ] Test JWT authentication
 
-## 🟠 PRIORITY 2 - Core Modules (ESSENTIAL)
+## PRIORITY 2 - Core Modules (Essential)
 
 ### 2.1 Boards Module
 
@@ -86,7 +88,7 @@
 - [ ] Implement user assignment
 - [ ] Add module to `app.module.ts`
 
-## 🟡 PRIORITY 3 - Secondary Features
+## PRIORITY 3 - Secondary Features
 
 ### 3.1 Comments Module
 
@@ -109,7 +111,7 @@
 - [ ] Create `attachment.entity.ts`
 - [ ] Add module to `app.module.ts`
 
-## 🟢 PRIORITY 4 - Improvements and Optimizations
+## PRIORITY 4 - Improvements and Optimizations
 
 ### 4.1 Common Utilities
 
@@ -138,48 +140,23 @@
 - [ ] Checklists in cards
 - [ ] Advanced search and filtering
 
-## 📋 Recommended Execution Order
+## Recommended Execution Order
 
-1. **Phase 1 - Foundations** (Priority 1)
+| Phase                            | Priority   | Tasks                                                                                   |
+| -------------------------------- | ---------- | --------------------------------------------------------------------------------------- |
+| Phase 1 - Foundations            | Priority 1 | Environment configuration, Complete Prisma schema, Authentication guards and decorators |
+| Phase 2 - Core Features          | Priority 2 | Boards Module, Lists Module, Cards Module                                               |
+| Phase 3 - Complementary Features | Priority 3 | Comments Module, Attachments Module                                                     |
+| Phase 4 - Polish                 | Priority 4 | Testing, Documentation, Optimizations                                                   |
 
-   - Environment configuration
-   - Complete Prisma schema
-   - Authentication guards and decorators
+## Useful Commands
 
-2. **Phase 2 - Core Features** (Priority 2)
-
-   - Boards Module
-   - Lists Module
-   - Cards Module
-
-3. **Phase 3 - Complementary Features** (Priority 3)
-
-   - Comments Module
-   - Attachments Module
-
-4. **Phase 4 - Polish** (Priority 4)
-   - Testing
-   - Documentation
-   - Optimizations
-
-## 🚀 Useful Commands
-
-```bash
-# Generate Prisma client
-cd backend && pnpm prisma generate
-
-# Create a migration
-cd backend && pnpm prisma migrate dev --name migration_name
-
-# Apply migrations
-cd backend && pnpm prisma migrate deploy
-
-# Open Prisma Studio
-cd backend && pnpm prisma studio
-
-# Start DB in dev
-docker-compose -f docker-compose.dev.yml up -d postgres
-
-# Start backend in dev
-cd backend && pnpm start:dev
-```
+| Task                   | Command                                                       |
+| ---------------------- | ------------------------------------------------------------- |
+| Generate Prisma client | `cd backend && pnpm prisma generate`                          |
+| Create a migration     | `cd backend && pnpm prisma migrate dev --name migration_name` |
+| Apply migrations       | `cd backend && pnpm prisma migrate deploy`                    |
+| Open Prisma Studio     | `cd backend && pnpm prisma studio`                            |
+| Start DB in dev        | `docker-compose -f docker-compose.dev.yml up -d postgres`     |
+| Start backend in dev   | `cd backend && pnpm start:dev`                                |
+| Start frontend in dev  | `cd frontend && pnpm dev`                                     |
