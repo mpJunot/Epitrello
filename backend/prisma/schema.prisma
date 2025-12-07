@@ -78,13 +78,15 @@ model Workspace {
 // Users can create boards, be assigned to cards, and participate in workspaces.
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  name                 String
+  password             String
+  avatar               String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   createdBoards        Board[]           @relation("BoardCreator")
   boardMembers         BoardMember[]
