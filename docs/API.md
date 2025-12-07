@@ -70,7 +70,7 @@ mutation Register($input: RegisterInput!) {
     "email": "user@example.com",
     "name": "John Doe",
     "password": "password123",
-    "companyName": "My Company" // Optional - creates a workspace
+    "companyName": "My Company"
   }
 }
 ```
@@ -128,7 +128,7 @@ mutation Login($input: LoginInput!) {
   "input": {
     "email": "user@example.com",
     "password": "password123",
-    "rememberMe": true // Optional - extends token to 30 days
+    "rememberMe": true
   }
 }
 ```
