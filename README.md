@@ -113,6 +113,58 @@ See [frontend/README.md](./frontend/README.md) for detailed instructions.
 | Backend only  | `make dev-backend`  | `cd backend && pnpm start:dev`                            |
 | Frontend only | `make dev-frontend` | `cd frontend && pnpm dev`                                 |
 
+### Backend Docker + Frontend Local
+
+To run the backend in Docker and frontend locally:
+
+#### 1. Configure Environment Variables
+
+**Root `.env` file:**
+
+```env
+# Database URL - Use "postgres" as hostname (Docker service name)
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/epitrello?schema=public
+
+# Backend Configuration
+PORT=4000
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# JWT Configuration
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=7d
+
+# PostgreSQL Configuration
+POSTGRES_DB=epitrello
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_PORT=5432
+```
+
+**`frontend/.env.local` file:**
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
+```
+
+#### 2. Start Services
+
+```bash
+# Start backend in Docker (includes PostgreSQL)
+make docker-backend
+
+# In another terminal, start frontend locally
+make dev-frontend
+```
+
+#### Important Configuration Notes
+
+- **DATABASE_URL**: Use `postgres` as hostname (Docker service name), not `localhost`
+- **FRONTEND_URL**: Must be `http://localhost:3000` to allow local frontend to connect
+- **NEXT_PUBLIC_API_URL**: Use `http://localhost:4000/graphql` (backend exposed on localhost:4000)
+
+The backend will be accessible at `http://localhost:4000/graphql` and the frontend at `http://localhost:3000`.
+
 ## CI/CD
 
 This project uses GitHub Actions for continuous integration and deployment.
