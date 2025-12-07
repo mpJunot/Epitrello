@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
@@ -45,67 +45,90 @@ export class UsersService {
     });
 
     if (!user) {
-      return null;
+      throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar: user.avatar,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+    return user;
   }
 
   async create(input: CreateUserInput): Promise<User> {
-    const hashedPassword = await bcryptjs.hash(input.password, 10);
-
-    const user = await this.prisma.user.create({
-      data: {
-        email: input.email,
-        name: input.name,
-        password: hashedPassword,
-        avatar: input.avatar,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    // Check if email exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: input.email },
     });
 
-    return user;
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const hashedPassword = await bcryptjs.hash(input.password, 10);
+
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email: input.email,
+          name: input.name,
+          password: hashedPassword,
+          avatar: input.avatar,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Email already in use');
+      }
+      throw error;
+    }
   }
 
   async update(id: string, input: UpdateUserInput): Promise<User> {
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: {
-        name: input.name,
-        avatar: input.avatar,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatar: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          name: input.name,
+          avatar: input.avatar,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
-    return user;
+      return user;
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<boolean> {
-    await this.prisma.user.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.user.delete({
+        where: { id },
+      });
 
-    return true;
+      return true;
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`User with ID ${id} not found`);
+      }
+      throw error;
+    }
   }
 }
