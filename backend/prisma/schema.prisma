@@ -47,6 +47,13 @@ enum NotificationType {
   WORKSPACE_INVITATION
 }
 
+enum OAuthProvider {
+  GOOGLE
+  APPLE
+  MICROSOFT
+  SLACK
+}
+
 // ============================================================================
 // Core Models
 // ============================================================================
@@ -95,6 +102,7 @@ model User {
   attachments          Attachment[]
   workspaceMemberships WorkspaceMember[]
   notifications        Notification[]
+  oauthAccounts        OAuthAccount[]
 
   @@map("users")
 }
@@ -372,4 +380,31 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+// ----------------------------------------------------------------------------
+// OAuthAccount
+// ----------------------------------------------------------------------------
+// Represents an OAuth account linked to a user.
+// A user can have multiple OAuth accounts (e.g., Google + Microsoft).
+
+model OAuthAccount {
+  id           String        @id @default(uuid())
+  userId       String
+  provider     OAuthProvider
+  providerId   String // ID de l'utilisateur chez le provider
+  accessToken  String?       @db.Text
+  refreshToken String?       @db.Text
+  expiresAt    DateTime?
+  scope        String?
+  tokenType    String?
+  idToken      String?       @db.Text
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }

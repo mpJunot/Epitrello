@@ -10,6 +10,17 @@ import { AuthPayload } from './dto/auth-payload.type';
 import { ForgotPasswordInput } from './dto/forgot-password.input';
 import { ResetPasswordInput } from './dto/reset-password.input';
 
+interface OAuthProfile {
+  provider: string;
+  providerId: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  idToken?: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -47,7 +58,7 @@ export class AuthService {
         },
       });
 
-      // Create workspace if companyName is provided
+      // we create a workspace if companyName is provided
       if (input.companyName) {
         await this.prisma.workspace.create({
           data: {
@@ -62,7 +73,6 @@ export class AuthService {
         });
       }
 
-      // Default token expiration (7 days)
       const token = this.jwtService.sign(
         { userId: user.id, email: user.email },
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
@@ -196,6 +206,91 @@ export class AuthService {
 
     return {
       message: 'Password has been successfully reset. You can now login with your new password.',
+    };
+  }
+
+  async oauthLogin(oauthProfile: OAuthProfile): Promise<AuthPayload> {
+    const { provider, providerId, email, name, avatar, accessToken, refreshToken, idToken } = oauthProfile;
+
+    // Find existing OAuth account
+    let oauthAccount = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerId: {
+          provider: provider as any,
+          providerId,
+        },
+      },
+      include: { user: true },
+    });
+
+    let user;
+
+    if (oauthAccount) {
+      // Update existing OAuth account tokens
+      oauthAccount = await this.prisma.oAuthAccount.update({
+        where: { id: oauthAccount.id },
+        data: {
+          accessToken,
+          refreshToken,
+          idToken,
+          updatedAt: new Date(),
+        },
+        include: { user: true },
+      });
+      user = oauthAccount.user;
+    } else {
+      user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        user = await this.prisma.user.create({
+          data: {
+            email,
+            name,
+            password: crypto.randomBytes(32).toString('hex'),
+            avatar,
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            avatar: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+      }
+
+      // Create OAuth account
+      await this.prisma.oAuthAccount.create({
+        data: {
+          userId: user.id,
+          provider: provider as any,
+          providerId,
+          accessToken,
+          refreshToken,
+          idToken,
+        },
+      });
+    }
+
+    // Generate JWT token
+    const token = this.jwtService.sign(
+      { userId: user.id, email: user.email },
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    );
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
     };
   }
 }
