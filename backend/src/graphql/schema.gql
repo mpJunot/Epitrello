@@ -23,6 +23,12 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+"""Input for requesting password reset"""
+input ForgotPasswordInput {
+  """User email address"""
+  email: String!
+}
+
 """Input for user login"""
 input LoginInput {
   """User email address"""
@@ -35,12 +41,23 @@ input LoginInput {
   rememberMe: Boolean = false
 }
 
+"""Generic message response"""
+type MessageResponse {
+  """Response message"""
+  message: String!
+}
+
 type Mutation {
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
 
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
+
+  """
+  Request a password reset. A reset token will be sent to the provided email address if the account exists.
+  """
+  forgotPassword(input: ForgotPasswordInput!): MessageResponse!
 
   """
   Login with email and password. Returns a JWT token for authenticated requests.
@@ -51,6 +68,11 @@ type Mutation {
   Register a new user account. If companyName is provided, a workspace is automatically created.
   """
   register(input: RegisterInput!): AuthPayload!
+
+  """
+  Reset password using a valid reset token. The token is received via email after requesting a password reset.
+  """
+  resetPassword(input: ResetPasswordInput!): MessageResponse!
 
   """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
@@ -80,6 +102,15 @@ input RegisterInput {
 
   """User password (minimum 6 characters)"""
   password: String!
+}
+
+"""Input for resetting password with token"""
+input ResetPasswordInput {
+  """New password (minimum 6 characters)"""
+  newPassword: String!
+
+  """Password reset token received via email"""
+  token: String!
 }
 
 input UpdateUserInput {
