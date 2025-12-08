@@ -30,7 +30,7 @@ Epitrello provides a flexible project management platform where:
    cp .env.example .env
    ```
 
-2. Configure the `.env` file with your settings (see [DOCKER.md](./DOCKER.md) for details)
+2. Configure the `.env` file with your settings (see [DOCKER.md](./DOCKER.md) for details). A template is available in `.env.example`.
 
 ### Launch the Application
 
@@ -115,33 +115,50 @@ See [frontend/README.md](./frontend/README.md) for detailed instructions.
 
 ### Backend Docker + Frontend Local
 
-To run the backend in Docker and frontend locally:
+To run the backend in Docker and the frontend locally:
 
 #### 1. Configure Environment Variables
 
-**Root `.env` file:**
+Copy `.env.example` to `.env` and adjust:
 
 ```env
-# Database URL - Use "postgres" as hostname (Docker service name)
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/epitrello?schema=public
+# Database
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=epitrello
+POSTGRES_PORT=5432
 
-# Backend Configuration
+# For backend+DB in Docker, use host 'postgres'; for backend local + DB Docker, use 'localhost'
+POSTGRES_HOST=postgres
+
+DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}?schema=public"
+
+# JWT
+JWT_SECRET=your-secret-key-change-in-production
+JWT_EXPIRES_IN=7d
+
+# App / Frontend
 PORT=4000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
 
-# JWT Configuration
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=7d
+# Resend (emails)
+RESEND_API_KEY=re_your_api_key_here
+EMAIL_FROM=onboarding@resend.dev
 
-# PostgreSQL Configuration
-POSTGRES_DB=epitrello
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_PORT=5432
+# OAuth (uncomment and set only what you use)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback
+# APPLE_* (commented by default)
+MICROSOFT_CLIENT_ID=your-microsoft-client-id
+MICROSOFT_CLIENT_SECRET=your-microsoft-client-secret
+MICROSOFT_CALLBACK_URL=http://localhost:4000/auth/microsoft/callback
+# SLACK_* (commented by default)
 ```
 
-**`frontend/.env.local` file:**
+`frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
@@ -157,13 +174,7 @@ make docker-backend
 make dev-frontend
 ```
 
-#### Important Configuration Notes
-
-- **DATABASE_URL**: Use `postgres` as hostname (Docker service name), not `localhost`
-- **FRONTEND_URL**: Must be `http://localhost:3000` to allow local frontend to connect
-- **NEXT_PUBLIC_API_URL**: Use `http://localhost:4000/graphql` (backend exposed on localhost:4000)
-
-The backend will be accessible at `http://localhost:4000/graphql` and the frontend at `http://localhost:3000`.
+The backend is exposed at `http://localhost:4000/graphql` and the frontend at `http://localhost:3000`.
 
 ## CI/CD
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
@@ -12,6 +13,14 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      expandVariables: true, // Enable variable expansion (${VAR})
+      envFilePath: [
+        join(process.cwd(), '..', '.env'), // Look for .env in parent directory (root)
+        join(process.cwd(), '.env'), // Fallback to .env in backend directory
+      ],
+    }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/graphql/schema.gql'),
