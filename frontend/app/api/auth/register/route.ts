@@ -24,13 +24,13 @@ export async function POST(request: Request) {
 
     const data = await res.json();
     if (!res.ok || data.errors) {
-      const message = data?.errors?.[0]?.message || "Impossible de créer le compte";
+      const message = data?.errors?.[0]?.message || "Unable to create account";
       return NextResponse.json({ ok: false, error: message }, { status: 400 });
     }
 
     const auth = data.data?.register;
     if (!auth || !auth.token) {
-      return NextResponse.json({ ok: false, error: "Réponse d'inscription invalide" }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "Invalid registration response" }, { status: 500 });
     }
 
     const maxAge = 60 * 60 * 24 * 7;
@@ -39,7 +39,8 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true, user: auth.user, token: auth.token }, { status: 201 });
     response.headers.append("Set-Cookie", cookie);
     return response;
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || "Invalid request" }, { status: 400 });
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Invalid request";
+    return NextResponse.json({ ok: false, error }, { status: 400 });
   }
 }
