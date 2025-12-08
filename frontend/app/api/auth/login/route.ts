@@ -24,13 +24,13 @@ export async function POST(request: Request) {
     const data = await res.json();
 
     if (!res.ok || data.errors) {
-      const message = data?.errors?.[0]?.message || "Identifiants invalides";
+      const message = data?.errors?.[0]?.message || "Invalid credentials";
       return NextResponse.json({ ok: false, error: message }, { status: 400 });
     }
 
     const auth = data.data?.login;
     if (!auth || !auth.token) {
-      return NextResponse.json({ ok: false, error: "Réponse d'authentification invalide" }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "Invalid authentication response" }, { status: 500 });
     }
 
     // Set httpOnly cookie with token. Max-Age based on rememberMe (30d vs 7d)
@@ -40,7 +40,8 @@ export async function POST(request: Request) {
   const response = NextResponse.json({ ok: true, user: auth.user, token: auth.token }, { status: 200 });
     response.headers.append("Set-Cookie", cookie);
     return response;
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || "Invalid request" }, { status: 400 });
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Invalid request";
+    return NextResponse.json({ ok: false, error }, { status: 400 });
   }
 }
