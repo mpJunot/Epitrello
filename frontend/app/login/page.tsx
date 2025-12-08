@@ -8,9 +8,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -24,7 +24,7 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        throw new Error(data?.error || 'Identifiants invalides');
+        throw new Error(data?.error || 'Invalid credentials');
       }
 
       // Save token locally so client-side code can call backend with Authorization header if needed.
@@ -32,15 +32,16 @@ export default function LoginPage() {
         if (data.token && typeof window !== 'undefined') {
           localStorage.setItem('token', data.token);
         }
-      } catch (e) {
+      } catch {
         // ignore storage errors
-        console.error(e);
       }
 
       // Redirect to dashboard
       window.location.href = '/dashboard';
-    } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -59,8 +60,7 @@ export default function LoginPage() {
               <div>
                 <h1 className='text-3xl font-semibold'>Epitrello</h1>
                 <p className='text-sm opacity-90'>
-                  Back-office pour commerçants — connectez-vous pour accéder à
-                  votre tableau de bord
+                  Back-office for merchants — log in to access your dashboard
                 </p>
               </div>
             </div>
@@ -68,16 +68,15 @@ export default function LoginPage() {
 
           <div className='space-y-4'>
             <h2 className='text-2xl font-semibold'>
-              Gérez vos produits et commandes
+              Manage your products and orders
             </h2>
             <p className='opacity-95'>
-              Voir statistiques, ajouter des produits, et configurer votre
-              boutique.
+              View statistics, add products, and configure your store.
             </p>
             <ul className='mt-4 space-y-2 text-sm opacity-95'>
-              <li>• Tableau de bord en temps réel</li>
-              <li>• Gestion des produits</li>
-              <li>• Historique des commandes</li>
+              <li>• Real-time dashboard</li>
+              <li>• Product management</li>
+              <li>• Order history</li>
             </ul>
           </div>
         </div>
@@ -91,9 +90,7 @@ export default function LoginPage() {
               E
             </div>
             <h1 className='mt-3 text-xl font-semibold'>Epitrello</h1>
-            <p className='text-sm text-gray-600'>
-              Connectez-vous à votre compte
-            </p>
+            <p className='text-sm text-gray-600'>Sign in to your account</p>
           </div>
 
           <div className='bg-white shadow-lg rounded-2xl p-6'>
@@ -103,7 +100,7 @@ export default function LoginPage() {
                   htmlFor='email'
                   className='block text-sm font-medium text-gray-700'
                 >
-                  Adresse e-mail
+                  Email address
                 </label>
                 <input
                   id='email'
@@ -112,7 +109,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className='text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2'
-                  placeholder='vous@exemple.com'
+                  placeholder='you@example.com'
                 />
               </div>
 
@@ -121,7 +118,7 @@ export default function LoginPage() {
                   htmlFor='password'
                   className='block text-sm font-medium text-gray-700'
                 >
-                  Mot de passe
+                  Password
                 </label>
                 <div className='relative'>
                   <input
@@ -132,7 +129,7 @@ export default function LoginPage() {
                     required
                     className='text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20'
                     placeholder='••••••••'
-                    aria-label='Mot de passe'
+                    aria-label='Password'
                   />
                   <button
                     type='button'
@@ -145,7 +142,7 @@ export default function LoginPage() {
                         : 'Voir le mot de passe'
                     }
                   >
-                    {showPassword ? 'Cacher' : 'Voir'}
+                    {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
               </div>
@@ -159,14 +156,14 @@ export default function LoginPage() {
                     className='h-4 w-4 text-indigo-600 border-gray-300 rounded'
                   />
                   <span className='block text-sm font-medium text-gray-700 '>
-                    Se souvenir de moi
+                    Remember me
                   </span>
                 </label>
                 <a
                   href='/auth/forgot'
                   className='text-indigo-600 hover:underline'
                 >
-                  Mot de passe oublié ?
+                  Forgot password?
                 </a>
               </div>
 
@@ -178,13 +175,13 @@ export default function LoginPage() {
                   disabled={loading}
                   className='w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 bg-indigo-600 text-white font-medium shadow hover:bg-indigo-700 disabled:opacity-60'
                 >
-                  {loading ? 'Connexion...' : 'Se connecter'}
+                  {loading ? 'Signing in...' : 'Sign in'}
                 </button>
               </div>
 
               <div className='flex items-center gap-2'>
                 <div className='flex-1 h-px bg-gray-200' />
-                <div className='text-xs text-gray-400 uppercase'>ou</div>
+                <div className='text-xs text-gray-400 uppercase'>or</div>
                 <div className='flex-1 h-px bg-gray-200' />
               </div>
 
@@ -224,20 +221,19 @@ export default function LoginPage() {
               </div>
 
               <p className='text-center text-sm text-gray-500 mt-2'>
-                Vous n&apos;avez pas de compte ?{' '}
+                Don&apos;t have an account?{' '}
                 <a
                   href='/auth/register/'
                   className='text-indigo-600 hover:underline'
                 >
-                  Créer un compte
+                  Create an account
                 </a>
               </p>
             </form>
           </div>
 
           <p className='text-xs text-gray-400 text-center mt-4'>
-            En vous connectant, vous acceptez les conditions d&apos;utilisation
-            et la politique de confidentialité.
+            By signing in, you agree to the terms of use and privacy policy.
           </p>
         </div>
       </div>
