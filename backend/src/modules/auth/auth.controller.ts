@@ -38,7 +38,6 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
-    console.log('Google OAuth flow initiated');
     return;
   }
 
@@ -53,7 +52,6 @@ export class AuthController {
   @Get('apple')
   @UseGuards(AuthGuard('apple'))
   async appleAuth() {
-    console.log('Apple OAuth flow initiated');
     return;
   }
 
@@ -68,7 +66,6 @@ export class AuthController {
   @Get('microsoft')
   @UseGuards(AuthGuard('microsoft'))
   async microsoftAuth() {
-    console.log('Microsoft OAuth flow initiated');
     return;
   }
 
@@ -83,7 +80,6 @@ export class AuthController {
   @Get('slack')
   @UseGuards(AuthGuard('slack'))
   async slackAuth() {
-    console.log('Slack OAuth flow initiated');
     return;
   }
 
