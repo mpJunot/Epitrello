@@ -72,10 +72,12 @@ mutation Register($input: RegisterInput!) {
     "email": "user@example.com",
     "name": "John Doe",
     "password": "password123",
-    "companyName": "My Company" // Optional - creates a workspace
+    "companyName": "My Company"
   }
 }
 ```
+
+> **Note:** `companyName` is optional - automatically creates a workspace if provided
 
 **Response:**
 
@@ -130,10 +132,12 @@ mutation Login($input: LoginInput!) {
   "input": {
     "email": "user@example.com",
     "password": "password123",
-    "rememberMe": true // Optional - extends token to 30 days
+    "rememberMe": true
   }
 }
 ```
+
+> **Note:** `rememberMe` is optional - extends token expiration to 30 days if `true`
 
 **Response:**
 
@@ -397,10 +401,12 @@ mutation CreateUser($input: CreateUserInput!) {
     "email": "newuser@example.com",
     "name": "New User",
     "password": "password123",
-    "avatar": "https://example.com/avatar.jpg" // Optional
+    "avatar": "https://example.com/avatar.jpg"
   }
 }
 ```
+
+> **Note:** `avatar` is optional
 
 #### Update User
 
@@ -515,9 +521,11 @@ input RegisterInput {
   email: String!
   name: String!
   password: String!
-  companyName: String # Optional
+  companyName: String
 }
 ```
+
+> **Note:** `companyName` is optional
 
 ### LoginInput
 
@@ -525,9 +533,11 @@ input RegisterInput {
 input LoginInput {
   email: String!
   password: String!
-  rememberMe: Boolean # Optional, default: false
+  rememberMe: Boolean
 }
 ```
+
+> **Note:** `rememberMe` is optional, default value: `false`
 
 ### ForgotPasswordInput
 
