@@ -160,6 +160,52 @@ mutation Login($input: LoginInput!) {
 - If `rememberMe` is `true`, token expires in 30 days
 - If `rememberMe` is `false` or not provided, token expires in 7 days (or `JWT_EXPIRES_IN` env var)
 
+#### OAuth2 Login (Google / Apple / Microsoft / Slack)
+
+Backend (NestJS) endpoints:
+
+- **Start**: `GET /auth/{provider}` (public) — the Passport guard triggers the redirect to the provider.
+- **Callback**: `GET /auth/{provider}/callback` (public) — handled by `handleOAuthCallback`.
+
+Callback behavior:
+
+- On success: issues a JWT, sets a httpOnly cookie `token` (7 days, `SameSite=Lax`), then redirects to:
+  ```
+  {FRONTEND_URL}/auth/callback?token=JWT
+  ```
+- On error: redirects to:
+  ```
+  {FRONTEND_URL}/auth/callback?error=encoded_message
+  ```
+
+Required env vars (strategy enabled only if non-empty):
+
+```
+FRONTEND_URL=http://localhost:3000
+
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback
+
+APPLE_CLIENT_ID=...
+APPLE_CLIENT_SECRET=...
+APPLE_CALLBACK_URL=http://localhost:4000/auth/apple/callback
+
+MICROSOFT_CLIENT_ID=...
+MICROSOFT_CLIENT_SECRET=...
+MICROSOFT_CALLBACK_URL=http://localhost:4000/auth/microsoft/callback
+
+SLACK_CLIENT_ID=...
+SLACK_CLIENT_SECRET=...
+SLACK_CALLBACK_URL=http://localhost:4000/auth/slack/callback
+```
+
+Notes:
+
+- Register the same callback URL in each provider console (must match backend).
+- In production, serve over HTTPS and add `Secure` to the cookie (and `SameSite=None` if frontend/backend are on different domains).
+- The frontend page expected by the redirect is `/auth/callback`, which should read `token` or `error` from the querystring and finalize the session client-side if needed.
+
 #### Forgot Password
 
 Request a password reset. A reset token will be generated and sent to the provided email address if the account exists.
