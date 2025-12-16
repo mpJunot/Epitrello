@@ -37,6 +37,8 @@ The following endpoints are public (no authentication required):
 
 - `register` - User registration
 - `login` - User login
+- `forgotPassword` - Request password reset
+- `resetPassword` - Reset password with token
 
 ## Mutations
 
@@ -74,6 +76,8 @@ mutation Register($input: RegisterInput!) {
   }
 }
 ```
+
+> **Note:** `companyName` is optional - automatically creates a workspace if provided
 
 **Response:**
 
@@ -133,6 +137,8 @@ mutation Login($input: LoginInput!) {
 }
 ```
 
+> **Note:** `rememberMe` is optional - extends token expiration to 30 days if `true`
+
 **Response:**
 
 ```json
@@ -157,6 +163,145 @@ mutation Login($input: LoginInput!) {
 
 - If `rememberMe` is `true`, token expires in 30 days
 - If `rememberMe` is `false` or not provided, token expires in 7 days (or `JWT_EXPIRES_IN` env var)
+
+#### OAuth2 Login (Google / Apple / Microsoft / Slack)
+
+Backend (NestJS) endpoints:
+
+- **Start**: `GET /auth/{provider}` (public) — the Passport guard triggers the redirect to the provider.
+- **Callback**: `GET /auth/{provider}/callback` (public) — handled by `handleOAuthCallback`.
+
+Callback behavior:
+
+- On success: issues a JWT, sets a httpOnly cookie `token` (7 days, `SameSite=Lax`), then redirects to:
+  ```
+  {FRONTEND_URL}/auth/callback?token=JWT
+  ```
+- On error: redirects to:
+  ```
+  {FRONTEND_URL}/auth/callback?error=encoded_message
+  ```
+
+Required env vars (strategy enabled only if non-empty):
+
+```
+FRONTEND_URL=http://localhost:3000
+
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_CALLBACK_URL=http://localhost:4000/auth/google/callback
+
+APPLE_CLIENT_ID=...
+APPLE_CLIENT_SECRET=...
+APPLE_CALLBACK_URL=http://localhost:4000/auth/apple/callback
+
+MICROSOFT_CLIENT_ID=...
+MICROSOFT_CLIENT_SECRET=...
+MICROSOFT_CALLBACK_URL=http://localhost:4000/auth/microsoft/callback
+
+SLACK_CLIENT_ID=...
+SLACK_CLIENT_SECRET=...
+SLACK_CALLBACK_URL=http://localhost:4000/auth/slack/callback
+```
+
+Notes:
+
+- Register the same callback URL in each provider console (must match backend).
+- In production, serve over HTTPS and add `Secure` to the cookie (and `SameSite=None` if frontend/backend are on different domains).
+- The frontend page expected by the redirect is `/auth/callback`, which should read `token` or `error` from the querystring and finalize the session client-side if needed.
+
+#### Forgot Password
+
+Request a password reset. A reset token will be generated and sent to the provided email address if the account exists.
+
+```graphql
+mutation ForgotPassword($input: ForgotPasswordInput!) {
+  forgotPassword(input: $input) {
+    message
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "input": {
+    "email": "user@example.com"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "forgotPassword": {
+      "message": "If an account with that email exists, a password reset link has been sent."
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Always returns the same success message to prevent email enumeration attacks
+- Reset token expires in 1 hour
+- Email is sent via Resend service (if `RESEND_API_KEY` is configured)
+- If `RESEND_API_KEY` is not set, the reset token is logged to the console (development mode)
+- The reset link is sent to the user's email address automatically
+
+**Error Cases:**
+
+- `BAD_USER_INPUT` (400) - Invalid email format
+
+#### Reset Password
+
+Reset password using a valid reset token received via email.
+
+```graphql
+mutation ResetPassword($input: ResetPasswordInput!) {
+  resetPassword(input: $input) {
+    message
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "input": {
+    "token": "reset-token-received-via-email",
+    "newPassword": "newpassword123"
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "resetPassword": {
+      "message": "Password has been successfully reset. You can now login with your new password."
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Token must be valid and not expired (expires after 1 hour)
+- Password must be at least 6 characters long
+- Token is automatically cleared after successful password reset
+
+**Error Cases:**
+
+- `BAD_USER_INPUT` (400) - Invalid or expired reset token
+- `BAD_USER_INPUT` (400) - Password too short (less than 6 characters)
+- `BAD_USER_INPUT` (400) - Token is required
 
 ### Users
 
@@ -256,10 +401,12 @@ mutation CreateUser($input: CreateUserInput!) {
     "email": "newuser@example.com",
     "name": "New User",
     "password": "password123",
-    "avatar": "https://example.com/avatar.jpg" // Optional
+    "avatar": "https://example.com/avatar.jpg"
   }
 }
 ```
+
+> **Note:** `avatar` is optional
 
 #### Update User
 
@@ -332,7 +479,16 @@ GraphQL returns errors in a standardized format:
 - `UNAUTHENTICATED` (401) - Missing or invalid JWT token
 - `FORBIDDEN` (403) - Valid token but insufficient permissions
 - `BAD_USER_INPUT` (400) - Invalid input data
+- `CONFLICT` (409) - Resource conflict (e.g., email already in use)
 - `INTERNAL_SERVER_ERROR` (500) - Server error
+
+### Password Reset Error Messages
+
+- `"Invalid or expired reset token"` - Token is invalid, expired, or already used
+- `"Reset token has expired. Please request a new password reset."` - Token has expired
+- `"Password must be at least 6 characters long"` - Password validation failed
+- `"Token must be a string"` - Invalid token format
+- `"Invalid email format"` - Email validation failed
 
 ## Types
 
@@ -365,9 +521,11 @@ input RegisterInput {
   email: String!
   name: String!
   password: String!
-  companyName: String # Optional
+  companyName: String
 }
 ```
+
+> **Note:** `companyName` is optional
 
 ### LoginInput
 
@@ -375,7 +533,34 @@ input RegisterInput {
 input LoginInput {
   email: String!
   password: String!
-  rememberMe: Boolean # Optional, default: false
+  rememberMe: Boolean
+}
+```
+
+> **Note:** `rememberMe` is optional, default value: `false`
+
+### ForgotPasswordInput
+
+```graphql
+input ForgotPasswordInput {
+  email: String!
+}
+```
+
+### ResetPasswordInput
+
+```graphql
+input ResetPasswordInput {
+  token: String!
+  newPassword: String!
+}
+```
+
+### MessageResponse
+
+```graphql
+type MessageResponse {
+  message: String!
 }
 ```
 
@@ -419,6 +604,47 @@ query {
 
 Headers: `Authorization: Bearer <token_from_register>`
 
+### Password Reset Flow
+
+1. **Request password reset:**
+
+```graphql
+mutation {
+  forgotPassword(input: { email: "user@example.com" }) {
+    message
+  }
+}
+```
+
+2. **Check email for reset link** (sent automatically via Resend, or check console logs if `RESEND_API_KEY` is not set)
+
+3. **Reset password with token:**
+
+```graphql
+mutation {
+  resetPassword(
+    input: { token: "reset-token-from-email", newPassword: "newpassword123" }
+  ) {
+    message
+  }
+}
+```
+
+4. **Login with new password:**
+
+```graphql
+mutation {
+  login(input: { email: "user@example.com", password: "newpassword123" }) {
+    token
+    user {
+      id
+      email
+      name
+    }
+  }
+}
+```
+
 ### Using cURL
 
 **Register:**
@@ -449,6 +675,26 @@ curl -X POST http://localhost:4000/graphql \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
     "query": "query { me { id email name } }"
+  }'
+```
+
+**Forgot Password:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "mutation { forgotPassword(input: { email: \"user@example.com\" }) { message } }"
+  }'
+```
+
+**Reset Password:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "mutation { resetPassword(input: { token: \"reset-token-here\", newPassword: \"newpassword123\" }) { message } }"
   }'
 ```
 
@@ -484,6 +730,50 @@ query {
   }
 }
 ```
+
+## Email Service
+
+The API uses [Resend](https://resend.com) for sending emails (e.g., password reset emails).
+
+### Configuration
+
+The following environment variables are required for email functionality:
+
+```env
+# Resend API Configuration
+RESEND_API_KEY=re_your_api_key_here
+
+# Email Configuration
+EMAIL_FROM=noreply@yourdomain.com
+
+# Frontend URL (for password reset links)
+FRONTEND_URL=http://localhost:3000
+```
+
+### Getting Resend API Key
+
+1. Sign up at [resend.com](https://resend.com)
+2. Go to API Keys section
+3. Create a new API key
+4. Copy the key and add it to your `.env` file
+
+### Development Mode
+
+If `RESEND_API_KEY` is not set, the email service will:
+
+- Log the password reset token to the console
+- Log the reset link to the console
+- Not send actual emails
+
+This allows development without requiring a Resend account.
+
+### Free Tier
+
+Resend offers:
+
+- 3,000 emails/month free
+- 100 emails/day free
+- Perfect for development and small projects
 
 ## Rate Limiting
 

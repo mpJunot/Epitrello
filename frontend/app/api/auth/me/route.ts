@@ -27,7 +27,8 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ ok: true, user: data.data.me }, { status: 200 });
-  } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err?.message || "Invalid request" }, { status: 400 });
+  } catch (err) {
+    const error = err instanceof Error ? err.message : "Invalid request";
+    return NextResponse.json({ ok: false, error }, { status: 400 });
   }
 }

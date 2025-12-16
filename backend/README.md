@@ -94,16 +94,24 @@ The GraphQL API will be available at `http://localhost:4000/graphql`
 
 ## Environment Variables
 
-| Variable         | Description                  | Example                                                   |
-| ---------------- | ---------------------------- | --------------------------------------------------------- |
-| `DATABASE_URL`   | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/epitrello` |
-| `PORT`           | Server port                  | `4000`                                                    |
-| `NODE_ENV`       | Environment mode             | `development` or `production`                             |
-| `JWT_SECRET`     | Secret key for JWT tokens    | `your-secret-key`                                         |
-| `JWT_EXPIRES_IN` | Token expiration time        | `7d`                                                      |
-| `FRONTEND_URL`   | Frontend URL for CORS        | `http://localhost:3000`                                   |
+| Variable         | Description                                 | Example                                                   |
+| ---------------- | ------------------------------------------- | --------------------------------------------------------- |
+| `DATABASE_URL`   | PostgreSQL connection string                | `postgresql://postgres:postgres@localhost:5432/epitrello` |
+| `PORT`           | Server port                                 | `4000`                                                    |
+| `NODE_ENV`       | Environment mode                            | `development` or `production`                             |
+| `JWT_SECRET`     | Secret key for JWT tokens                   | `your-secret-key`                                         |
+| `JWT_EXPIRES_IN` | Token expiration time                       | `7d`                                                      |
+| `FRONTEND_URL`   | Frontend URL for CORS                       | `http://localhost:3000`                                   |
+| `RESEND_API_KEY` | Resend API key for email sending (optional) | `re_your_api_key_here`                                    |
+| `EMAIL_FROM`     | Email sender address (optional)             | `noreply@yourdomain.com`                                  |
 
-See `.env.example` for the complete list of environment variables.
+**Email Configuration:**
+
+- `RESEND_API_KEY`: Get your API key from [resend.com](https://resend.com)
+- `EMAIL_FROM`: Email address to send from (must be verified in Resend)
+- If `RESEND_API_KEY` is not set, emails will be logged to console in development
+
+See `.env.example` in this directory for the complete list of environment variables.
 
 ## Troubleshooting
 

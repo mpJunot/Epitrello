@@ -3,10 +3,11 @@
 # ============================================================================
 
 .PHONY: help install setup docker-start docker-stop docker-restart \
-	dev-backend dev-frontend build-backend build-frontend \
-	db-up db-down db-reset db-migrate prisma-generate prisma-studio \
-	test test-backend test-e2e lint lint-backend lint-frontend \
-	format format-backend clean clean-backend clean-frontend
+	docker-backend docker-frontend dev-backend dev-frontend \
+	build-backend build-frontend db-up db-down db-reset db-migrate \
+	prisma-generate prisma-studio test test-backend test-e2e \
+	lint lint-backend lint-frontend format format-backend \
+	clean clean-backend clean-frontend
 
 # Variables
 DOCKER_COMPOSE = docker-compose
@@ -41,10 +42,20 @@ docker-logs: ## View logs from all Docker services
 docker-ps: ## Show status of all Docker services
 	@$(DOCKER_COMPOSE) ps
 
-# Development
-dev-backend: ## Start backend in development mode
+# Docker Individual Services
+docker-backend: db-up ## Start backend in Docker
+	@echo "Starting backend in Docker..."
+	@$(DOCKER_COMPOSE) up -d backend
+	@echo "Backend is running at http://localhost:4000/graphql"
+docker-frontend: ## Start frontend in Docker
+	@echo "Starting frontend in Docker..."
+	@$(DOCKER_COMPOSE) up -d frontend
+	@echo "Frontend is running at http://localhost:3000"
+
+# Development (Local)
+dev-backend: ## Start backend in development mode (local)
 	cd $(BACKEND_DIR) && pnpm start:dev
-dev-frontend: ## Start frontend in development mode
+dev-frontend: ## Start frontend in development mode (local)
 	cd $(FRONTEND_DIR) && pnpm dev
 
 # Build

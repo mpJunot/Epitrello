@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -123,11 +123,18 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            <p className="text-sm text-gray-600 text-gray-500 text-center">En créant un compte, vous acceptez nos conditions.</p>
+            <p className='text-sm text-gray-600 text-center'>
+              By creating an account, you accept our terms.
+            </p>
           </form>
         </div>
 
-        <p className="text-center text-sm text-gray-600 mt-4">Déjà un compte ? <a href="/login" className="text-indigo-600">Se connecter</a></p>
+        <p className='text-center text-sm text-gray-600 mt-4'>
+          Already have an account?{' '}
+          <a href='/login' className='text-indigo-600'>
+            Sign in
+          </a>
+        </p>
       </div>
     </div>
   );
