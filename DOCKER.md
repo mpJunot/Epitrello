@@ -125,6 +125,11 @@ FRONTEND_URL=http://localhost:3000
 # Frontend Configuration
 FRONTEND_PORT=3000
 NEXT_PUBLIC_API_URL=http://localhost:4000/graphql
+
+# Email Configuration (Resend)
+# Get your API key from https://resend.com
+RESEND_API_KEY=re_your_api_key_here
+EMAIL_FROM=noreply@yourdomain.com
 ```
 
 **Important**:
