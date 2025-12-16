@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -16,6 +16,7 @@ type LoginForm = z.infer<typeof LoginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -61,54 +62,71 @@ export default function LoginPage() {
 
       // Optionally store token from json.data.login.token
       // Redirect to dashboard
-      window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message || "Une erreur est survenue");
+      window.location.href = '/dashboard';
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className='min-h-screen flex'>
       {/* Left: brand / illustration */}
-      <div className="hidden md:flex w-1/2 bg-gradient-to-b from-sky-600 to-indigo-700 items-center justify-center p-12">
-        <div className="max-w-md text-white">
-          <div className="mb-8">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">E</div>
+      <div className='hidden md:flex w-1/2 bg-linear-to-b from-sky-600 to-indigo-700 items-center justify-center p-12'>
+        <div className='max-w-md text-white'>
+          <div className='mb-8'>
+            <div className='flex items-center gap-3'>
+              <div className='h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold'>
+                E
+              </div>
               <div>
-                <h1 className="text-3xl font-semibold">Epitrello</h1>
-                <p className="text-sm opacity-90">Back-office pour commerçants — connectez-vous pour accéder à votre tableau de bord</p>
+                <h1 className='text-3xl font-semibold'>Epitrello</h1>
+                <p className='text-sm opacity-90'>
+                  Back-office for merchants — log in to access your dashboard
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="text-2xl font-semibold">Gérez vos produits et commandes</h2>
-            <p className="opacity-95">Voir statistiques, ajouter des produits, et configurer votre boutique.</p>
-            <ul className="mt-4 space-y-2 text-sm opacity-95">
-              <li>• Tableau de bord en temps réel</li>
-              <li>• Gestion des produits</li>
-              <li>• Historique des commandes</li>
+          <div className='space-y-4'>
+            <h2 className='text-2xl font-semibold'>
+              Manage your products and orders
+            </h2>
+            <p className='opacity-95'>
+              View statistics, add products, and configure your store.
+            </p>
+            <ul className='mt-4 space-y-2 text-sm opacity-95'>
+              <li>• Real-time dashboard</li>
+              <li>• Product management</li>
+              <li>• Order history</li>
             </ul>
           </div>
         </div>
       </div>
 
       {/* Right: form */}
-      <div className="flex flex-1 items-center justify-center p-8 bg-white">
-        <div className="max-w-md w-full">
-          <div className="mb-6 md:hidden text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-bold">E</div>
-            <h1 className="mt-3 text-xl font-semibold">Epitrello</h1>
-            <p className="text-sm text-gray-600">Connectez-vous à votre compte</p>
+      <div className='flex flex-1 items-center justify-center p-8 bg-white'>
+        <div className='max-w-md w-full'>
+          <div className='mb-6 md:hidden text-center'>
+            <div className='mx-auto h-12 w-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-bold'>
+              E
+            </div>
+            <h1 className='mt-3 text-xl font-semibold'>Epitrello</h1>
+            <p className='text-sm text-gray-600'>Sign in to your account</p>
           </div>
 
           <div className="bg-white shadow-lg rounded-2xl p-6">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Adresse e-mail</label>
+                <label
+                  htmlFor='email'
+                  className='block text-sm font-medium text-gray-700'
+                >
+                  Email address
+                </label>
                 <input
                   id="email"
                   type="email"
@@ -120,8 +138,13 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mot de passe</label>
-                <div className="relative">
+                <label
+                  htmlFor='password'
+                  className='block text-sm font-medium text-gray-700'
+                >
+                  Password
+                </label>
+                <div className='relative'>
                   <input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -132,80 +155,108 @@ export default function LoginPage() {
                   />
                   {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 px-2 py-1 rounded"
+                    className='absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-600 px-2 py-1 rounded'
                     aria-pressed={showPassword}
-                    aria-label={showPassword ? "Cacher le mot de passe" : "Voir le mot de passe"}
+                    aria-label={
+                      showPassword
+                        ? 'Cacher le mot de passe'
+                        : 'Voir le mot de passe'
+                    }
                   >
-                    {showPassword ? "Cacher" : "Voir"}
+                    {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2">
+              <div className='flex items-center justify-between text-sm'>
+                <label className='flex items-center gap-2'>
                   <input
                     type="checkbox"
                     {...register("rememberMe")}
                     className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   />
-                  <span className="block text-sm font-medium text-gray-700 ">Se souvenir de moi</span>
+                  <span className='block text-sm font-medium text-gray-700 '>
+                    Remember me
+                  </span>
                 </label>
-                <a href="/auth/forgot" className="text-indigo-600 hover:underline">Mot de passe oublié ?</a>
+                <a
+                  href='/auth/forgot'
+                  className='text-indigo-600 hover:underline'
+                >
+                  Forgot password?
+                </a>
               </div>
 
-              {error && <div className="text-red-600 text-sm">{error}</div>}
+              {error && <div className='text-red-600 text-sm'>{error}</div>}
 
               <div>
                 <button
-                  type="submit"
+                  type='submit'
                   disabled={loading}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 bg-indigo-600 text-white font-medium shadow hover:bg-indigo-700 disabled:opacity-60"
+                  className='w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 bg-indigo-600 text-white font-medium shadow hover:bg-indigo-700 disabled:opacity-60'
                 >
-                  {loading ? "Connexion..." : "Se connecter"}
+                  {loading ? 'Signing in...' : 'Sign in'}
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-px bg-gray-200" />
-                <div className="text-xs text-gray-400 uppercase">ou</div>
-                <div className="flex-1 h-px bg-gray-200" />
+              <div className='flex items-center gap-2'>
+                <div className='flex-1 h-px bg-gray-200' />
+                <div className='text-xs text-gray-400 uppercase'>or</div>
+                <div className='flex-1 h-px bg-gray-200' />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className='grid grid-cols-2 gap-3'>
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => {
                     // Redirect to backend OAuth start endpoint. Backend is expected to
                     // handle the Google OAuth handshake and callback.
-                    if (typeof window !== "undefined") {
-                      window.location.href = "/api/auth/google";
+                    if (typeof window !== 'undefined') {
+                      window.location.href = '/api/auth/google';
                     }
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm"
+                  className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
-                  <span className="text-sm text-gray-700">Google</span>
+                  <span className='text-sm text-gray-700'>Google</span>
                 </button>
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                  <span className="text-sm text-gray-700">Microsoft</span>
+                <button
+                  type='button'
+                  className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
+                >
+                  <span className='text-sm text-gray-700'>Microsoft</span>
                 </button>
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm">
+                <button
+                  type='button'
+                  className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
+                >
                   {/* Placeholder icons using text */}
-                  <span className="text-sm text-gray-700">Apple</span>
+                  <span className='text-sm text-gray-700'>Apple</span>
                 </button>
-                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm">
-                  <span className="text-sm text-gray-700">Slack</span>
+                <button
+                  type='button'
+                  className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
+                >
+                  <span className='text-sm text-gray-700'>Slack</span>
                 </button>
               </div>
 
-              <p className="text-center text-sm text-gray-500 mt-2">
-                Vous n'avez pas de compte ? <a href="/auth/register/" className="text-indigo-600 hover:underline">Créer un compte</a>
+              <p className='text-center text-sm text-gray-500 mt-2'>
+                Don&apos;t have an account?{' '}
+                <a
+                  href='/auth/register/'
+                  className='text-indigo-600 hover:underline'
+                >
+                  Create an account
+                </a>
               </p>
             </form>
           </div>
 
-          <p className="text-xs text-gray-400 text-center mt-4">En vous connectant, vous acceptez les conditions d'utilisation et la politique de confidentialité.</p>
+          <p className='text-xs text-gray-400 text-center mt-4'>
+            By signing in, you agree to the terms of use and privacy policy.
+          </p>
         </div>
       </div>
     </div>
