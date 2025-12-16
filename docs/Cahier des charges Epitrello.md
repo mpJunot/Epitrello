@@ -62,7 +62,7 @@ EpiTrello ne vise **aucun public spécifique**. Il s'adresse à un large éventa
 
 - Langue principale : **Anglais**
 - Langue secondaire : **Français (internationalisation i18n prévue)**
-- Formats de date : **AAAA-MM-JJ**
+- Formats de date :  **AAAA-MM-JJ (ISO 8601)**
 - Fuseau horaire : détection automatique selon le navigateur de l'utilisateur
 
 ## **6. Plateforme de développement**
@@ -80,7 +80,7 @@ EpiTrello ne vise **aucun public spécifique**. Il s'adresse à un large éventa
 | **ORM** | Prisma |
 | **Temps réel** | Socket.IO |
 | **Authentification** | JWT (Passport.js) |
-| **Hébergement** | Vercel (Frontend) + Render/DigitalOcean (Backend) |
+| **Hébergement** | App Engine (Frontend) + Cloud Run (Backend) |
 
 ### **6.2. Choix technologiques justifiés**
 
@@ -139,7 +139,28 @@ EpiTrello ne vise **aucun public spécifique**. Il s'adresse à un large éventa
 - Génère automatiquement les **types** **TypeScript**
 - Simplifie les **migrations** et améliore la productivité
 
-### 6.2.4. Temps réel & fichiers
+### 6.2.4. Hébergement sur Google Cloud Platform
+
+### Architecture GCP
+
+- **App Engine (Frontend) :** Plateforme managée pour Next.js avec scaling automatique
+- **Cloud Run (Backend) :** API NestJS containerisée avec auto-scaling selon la charge
+- **Cloud SQL (PostgreSQL) :** Base de données managée avec haute disponibilité
+- **Cloud Storage :** Stockage des fichiers uploadés avec URLs signées
+- **Cloud Build :** CI/CD intégré pour déploiement automatique
+- **Cloud CDN :** Distribution du contenu statique à l'échelle mondiale
+
+### Avantages de GCP
+
+- Écosystème Google intégré (Auth, Analytics, etc.)
+- App Engine optimisé pour Next.js (support natif Node.js)
+- Cloud Run performant pour APIs containerisées
+- Tarification à l'usage (pay-as-you-go)
+- Niveau gratuit généreux (App Engine, Cloud Run, Storage, SQL)
+- Infrastructure mondiale avec faible latence
+- Monitoring et logging intégrés (Cloud Logging, Cloud Monitoring)
+
+### 6.2.5. Temps réel & fichiers
 
 ### Socket.IO
 
@@ -147,11 +168,12 @@ EpiTrello ne vise **aucun public spécifique**. Il s'adresse à un large éventa
 - Faible latence pour synchronisation instantanée
 - Facile à intégrer pour synchroniser actions et présence
 
-### Stockage fichiers (S3 / Spaces)
+### **Stockage fichiers (Google Cloud Storage)**
 
-- Évite les **blobs** lourds dans la base de données
-- **URLs signées** pour accès sécurisé
-- Solution **scalable** et **économique**
+- Évite les blobs lourds dans la base de données
+- URLs signées pour accès sécurisé et temporaire
+- Intégration native avec Cloud Run
+- Solution scalable, performante et économique
 
 ## 7. Sécurité
 
