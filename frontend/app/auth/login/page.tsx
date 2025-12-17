@@ -17,7 +17,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -211,10 +210,20 @@ export default function LoginPage() {
                 <button
                   type='button'
                   onClick={() => {
-                    // Redirect to backend OAuth start endpoint. Backend is expected to
-                    // handle the Google OAuth handshake and callback.
+                    console.log('Google OAuth login');
+                    // Redirect to backend OAuth start endpoint for Google.
+                    // Use NEXT_PUBLIC_BACKEND_URL if available (strip /graphql),
+                    // otherwise fallback to http://localhost:4000
                     if (typeof window !== 'undefined') {
-                      window.location.href = '/api/auth/google';
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      console.log("url backend:", backend);
+                      const target = `${backend}/auth/google`;
+                      console.log("auth] redirecting to Google OAuth:", target);
+                      try {
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
                     }
                   }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
@@ -236,6 +245,19 @@ export default function LoginPage() {
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Slack.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/slack`;
+                      try {
+                        console.log('[auth] redirecting to Slack OAuth:', target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   <span className='text-sm text-gray-700'>Slack</span>
