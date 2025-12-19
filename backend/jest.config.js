@@ -24,13 +24,30 @@ module.exports = {
   coverageDirectory: '../coverage',
   coverageReporters: ['json', 'lcov', 'text', 'clover', 'json-summary'],
   coverageThreshold: {
+    // Global thresholds (applied only to tested files)
     global: {
       branches: 70,
       functions: 80,
       lines: 80,
       statements: 80,
     },
+    // Per-module thresholds
+    './modules/workspaces/**/*.ts': {
+      branches: 70,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
   },
+  // Only collect coverage from files with tests
+  collectCoverageOnlyFrom: undefined,
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/',
+    '/coverage/',
+    '\\.spec\\.ts$',
+    '\\.e2e-spec\\.ts$',
+  ],
   testEnvironment: 'node',
   verbose: true,
 };
