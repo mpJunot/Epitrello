@@ -18,6 +18,12 @@ input CreateUserInput {
   password: String!
 }
 
+input CreateWorkspaceInput {
+  logoUrl: String
+  name: String!
+  visibility: String
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -51,8 +57,14 @@ type Mutation {
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
 
+  """Create a new workspace. The creator becomes an ADMIN automatically."""
+  createWorkspace(input: CreateWorkspaceInput!): Workspace!
+
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
+
+  """Delete a workspace. Only ADMIN members can delete."""
+  deleteWorkspace(id: ID!): Boolean!
 
   """
   Request a password reset. A reset token will be sent to the provided email address if the account exists.
@@ -76,17 +88,26 @@ type Mutation {
 
   """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
+
+  """Update a workspace. Only ADMIN members can update."""
+  updateWorkspace(id: ID!, input: UpdateWorkspaceInput!): Workspace!
 }
 
 type Query {
   """Get the currently authenticated user information"""
   me: User
 
+  """Get all workspaces where the current user is a member"""
+  myWorkspaces: [Workspace!]!
+
   """Get a user by ID (requires authentication)"""
   user(id: ID!): User
 
   """Get all users (requires authentication)"""
   users: [User!]!
+
+  """Get a workspace by ID. User must be a member to access."""
+  workspace(id: ID!): Workspace!
 }
 
 """Input for user registration"""
@@ -120,6 +141,12 @@ input UpdateUserInput {
   password: String
 }
 
+input UpdateWorkspaceInput {
+  logoUrl: String
+  name: String
+  visibility: String
+}
+
 type User {
   avatar: String
   createdAt: DateTime!
@@ -127,4 +154,29 @@ type User {
   id: ID!
   name: String!
   updatedAt: DateTime!
+}
+
+"""Workspace visibility level"""
+enum Visibility {
+  PRIVATE
+  PUBLIC
+  WORKSPACE
+}
+
+type Workspace {
+  createdAt: DateTime!
+  id: ID!
+  logoUrl: String
+  memberCount: Float!
+  memberships: [WorkspaceMember!]
+  name: String!
+  updatedAt: DateTime!
+  visibility: Visibility!
+}
+
+type WorkspaceMember {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  userId: ID!
 }

@@ -564,6 +564,67 @@ type MessageResponse {
 }
 ```
 
+### Workspace
+
+```graphql
+type Workspace {
+  id: ID!
+  name: String!
+  logoUrl: String
+  visibility: Visibility!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  memberCount: Float!
+  memberships: [WorkspaceMember!]
+}
+```
+
+### WorkspaceMember
+
+```graphql
+type WorkspaceMember {
+  id: ID!
+  userId: ID!
+  role: String!
+  joinedAt: DateTime!
+}
+```
+
+### Visibility
+
+```graphql
+enum Visibility {
+  PRIVATE
+  WORKSPACE
+  PUBLIC
+}
+```
+
+### CreateWorkspaceInput
+
+```graphql
+input CreateWorkspaceInput {
+  name: String!
+  logoUrl: String
+  visibility: String
+}
+```
+
+> **Note:** `logoUrl` is optional
+> **Note:** `visibility` is optional, default: `PRIVATE`
+
+### UpdateWorkspaceInput
+
+```graphql
+input UpdateWorkspaceInput {
+  name: String
+  logoUrl: String
+  visibility: String
+}
+```
+
+> **Note:** All fields are optional
+
 ## Examples
 
 ### Complete Authentication Flow
@@ -603,6 +664,80 @@ query {
 ```
 
 Headers: `Authorization: Bearer <token_from_register>`
+
+### Workspace Management Flow
+
+1. **Create a workspace:**
+
+```graphql
+mutation {
+  createWorkspace(
+    input: {
+      name: "My Team Workspace"
+      logoUrl: "https://example.com/logo.png"
+      visibility: PRIVATE
+    }
+  ) {
+    id
+    name
+    memberCount
+  }
+}
+```
+
+2. **Get your workspaces:**
+
+```graphql
+query {
+  myWorkspaces {
+    id
+    name
+    visibility
+    memberCount
+  }
+}
+```
+
+3. **Get workspace details:**
+
+```graphql
+query {
+  workspace(id: "workspace-uuid") {
+    id
+    name
+    visibility
+    memberCount
+    memberships {
+      userId
+      role
+      joinedAt
+    }
+  }
+}
+```
+
+4. **Update workspace (ADMIN only):**
+
+```graphql
+mutation {
+  updateWorkspace(
+    id: "workspace-uuid"
+    input: { name: "Updated Team Name", visibility: WORKSPACE }
+  ) {
+    id
+    name
+    visibility
+  }
+}
+```
+
+5. **Delete workspace (ADMIN only):**
+
+```graphql
+mutation {
+  deleteWorkspace(id: "workspace-uuid")
+}
+```
 
 ### Password Reset Flow
 
@@ -698,6 +833,61 @@ curl -X POST http://localhost:4000/graphql \
   }'
 ```
 
+**Create Workspace:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "query": "mutation { createWorkspace(input: { name: \"My Workspace\", visibility: \"PRIVATE\" }) { id name memberCount } }"
+  }'
+```
+
+**Get My Workspaces:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "query": "query { myWorkspaces { id name visibility memberCount } }"
+  }'
+```
+
+**Get Workspace by ID:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "query": "query { workspace(id: \"workspace-uuid\") { id name memberCount memberships { userId role } } }"
+  }'
+```
+
+**Update Workspace:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "query": "mutation { updateWorkspace(id: \"workspace-uuid\", input: { name: \"Updated Name\" }) { id name } }"
+  }'
+```
+
+**Delete Workspace:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "query": "mutation { deleteWorkspace(id: \"workspace-uuid\") }"
+  }'
+```
+
 ## Schema Introspection
 
 You can query the schema itself using GraphQL introspection:
@@ -774,6 +964,309 @@ Resend offers:
 - 3,000 emails/month free
 - 100 emails/day free
 - Perfect for development and small projects
+
+### Workspaces
+
+#### Create Workspace
+
+Create a new workspace. The creator automatically becomes an ADMIN member.
+
+```graphql
+mutation CreateWorkspace($input: CreateWorkspaceInput!) {
+  createWorkspace(input: $input) {
+    id
+    name
+    logoUrl
+    visibility
+    memberCount
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "input": {
+    "name": "My Workspace",
+    "logoUrl": "https://example.com/logo.png",
+    "visibility": "PRIVATE"
+  }
+}
+```
+
+> **Note:** `logoUrl` is optional
+> **Note:** `visibility` is optional, default value: `PRIVATE` (options: `PRIVATE`, `WORKSPACE`, `PUBLIC`)
+
+**Response:**
+
+```json
+{
+  "data": {
+    "createWorkspace": {
+      "id": "workspace-uuid",
+      "name": "My Workspace",
+      "logoUrl": "https://example.com/logo.png",
+      "visibility": "PRIVATE",
+      "memberCount": 1,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Creator automatically becomes ADMIN
+- Requires authentication
+- Workspace name is required (max 100 characters)
+
+**Error Cases:**
+
+- `UNAUTHENTICATED` (401) - Missing or invalid JWT token
+- `BAD_USER_INPUT` (400) - Invalid input data
+
+#### Get Workspace by ID
+
+Get a specific workspace by ID. User must be a member to access.
+
+```graphql
+query Workspace($id: ID!) {
+  workspace(id: $id) {
+    id
+    name
+    logoUrl
+    visibility
+    memberCount
+    createdAt
+    updatedAt
+    memberships {
+      id
+      userId
+      role
+      joinedAt
+    }
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "id": "workspace-uuid"
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "workspace": {
+      "id": "workspace-uuid",
+      "name": "My Workspace",
+      "logoUrl": "https://example.com/logo.png",
+      "visibility": "PRIVATE",
+      "memberCount": 2,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "memberships": [
+        {
+          "id": "membership-uuid-1",
+          "userId": "user-uuid-1",
+          "role": "ADMIN",
+          "joinedAt": "2024-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "membership-uuid-2",
+          "userId": "user-uuid-2",
+          "role": "MEMBER",
+          "joinedAt": "2024-01-02T00:00:00.000Z"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Requires authentication
+- User must be a member of the workspace
+- Returns workspace with member details
+
+**Error Cases:**
+
+- `UNAUTHENTICATED` (401) - Missing or invalid JWT token
+- `NOT_FOUND` (404) - Workspace not found
+- `FORBIDDEN` (403) - User is not a member of the workspace
+
+#### Get My Workspaces
+
+Get all workspaces where the current user is a member.
+
+```graphql
+query MyWorkspaces {
+  myWorkspaces {
+    id
+    name
+    logoUrl
+    visibility
+    memberCount
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "myWorkspaces": [
+      {
+        "id": "workspace-uuid-1",
+        "name": "My Workspace",
+        "logoUrl": "https://example.com/logo.png",
+        "visibility": "PRIVATE",
+        "memberCount": 3,
+        "createdAt": "2024-01-01T00:00:00.000Z",
+        "updatedAt": "2024-01-01T00:00:00.000Z"
+      },
+      {
+        "id": "workspace-uuid-2",
+        "name": "Another Workspace",
+        "logoUrl": null,
+        "visibility": "WORKSPACE",
+        "memberCount": 5,
+        "createdAt": "2024-01-05T00:00:00.000Z",
+        "updatedAt": "2024-01-05T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Notes:**
+
+- Requires authentication
+- Returns all workspaces where user is a member
+- Results ordered by creation date (newest first)
+
+**Error Cases:**
+
+- `UNAUTHENTICATED` (401) - Missing or invalid JWT token
+
+#### Update Workspace
+
+Update an existing workspace. Only ADMIN members can update.
+
+```graphql
+mutation UpdateWorkspace($id: ID!, $input: UpdateWorkspaceInput!) {
+  updateWorkspace(id: $id, input: $input) {
+    id
+    name
+    logoUrl
+    visibility
+    memberCount
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "id": "workspace-uuid",
+  "input": {
+    "name": "Updated Workspace Name",
+    "logoUrl": "https://example.com/new-logo.png",
+    "visibility": "WORKSPACE"
+  }
+}
+```
+
+> **Note:** All fields are optional - update only the fields you want to change
+
+**Response:**
+
+```json
+{
+  "data": {
+    "updateWorkspace": {
+      "id": "workspace-uuid",
+      "name": "Updated Workspace Name",
+      "logoUrl": "https://example.com/new-logo.png",
+      "visibility": "WORKSPACE",
+      "memberCount": 3,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-10T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes:**
+
+- Requires authentication
+- Only ADMIN members can update
+- At least one field must be provided
+- Name max length: 100 characters
+
+**Error Cases:**
+
+- `UNAUTHENTICATED` (401) - Missing or invalid JWT token
+- `NOT_FOUND` (404) - Workspace not found
+- `FORBIDDEN` (403) - User is not an ADMIN
+- `BAD_USER_INPUT` (400) - No fields to update or invalid input
+
+#### Delete Workspace
+
+Delete a workspace. Only ADMIN members can delete.
+
+```graphql
+mutation DeleteWorkspace($id: ID!) {
+  deleteWorkspace(id: $id)
+}
+```
+
+**Variables:**
+
+```json
+{
+  "id": "workspace-uuid"
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "deleteWorkspace": true
+  }
+}
+```
+
+**Notes:**
+
+- Requires authentication
+- Only ADMIN members can delete
+- Deletes workspace and all associated data (boards, lists, cards, etc.)
+- This action is irreversible
+
+**Error Cases:**
+
+- `UNAUTHENTICATED` (401) - Missing or invalid JWT token
+- `NOT_FOUND` (404) - Workspace not found
+- `FORBIDDEN` (403) - User is not an ADMIN
 
 ## Rate Limiting
 
