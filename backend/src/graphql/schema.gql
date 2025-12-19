@@ -35,6 +35,20 @@ input ForgotPasswordInput {
   email: String!
 }
 
+"""Status of a workspace invitation"""
+enum InvitationStatus {
+  ACCEPTED
+  CANCELLED
+  PENDING
+  REJECTED
+}
+
+input InviteMemberInput {
+  inviteeEmail: String!
+  role: String = "MEMBER"
+  workspaceId: String!
+}
+
 """Input for user login"""
 input LoginInput {
   """User email address"""
@@ -47,6 +61,13 @@ input LoginInput {
   rememberMe: Boolean = false
 }
 
+type MemberUser {
+  avatar: String
+  email: String!
+  id: ID!
+  name: String!
+}
+
 """Generic message response"""
 type MessageResponse {
   """Response message"""
@@ -54,6 +75,14 @@ type MessageResponse {
 }
 
 type Mutation {
+  """Accept a workspace invitation."""
+  acceptInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
+
+  """
+  Cancel a pending invitation. Only the inviter or workspace admin can cancel.
+  """
+  cancelInvitation(invitationId: ID!): Boolean!
+
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
 
@@ -71,6 +100,12 @@ type Mutation {
   """
   forgotPassword(input: ForgotPasswordInput!): MessageResponse!
 
+  """Invite a member to a workspace. Only ADMIN members can invite."""
+  inviteMember(input: InviteMemberInput!): WorkspaceInvitation!
+
+  """Leave a workspace. Cannot leave if you are the last admin."""
+  leaveWorkspace(workspaceId: ID!): Boolean!
+
   """
   Login with email and password. Returns a JWT token for authenticated requests.
   """
@@ -81,10 +116,19 @@ type Mutation {
   """
   register(input: RegisterInput!): AuthPayload!
 
+  """Reject a workspace invitation."""
+  rejectInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
+
+  """Remove a member from a workspace. Only ADMIN can remove members."""
+  removeMember(input: RemoveMemberInput!): Boolean!
+
   """
   Reset password using a valid reset token. The token is received via email after requesting a password reset.
   """
   resetPassword(input: ResetPasswordInput!): MessageResponse!
+
+  """Update a member role in a workspace. Only ADMIN can update roles."""
+  updateMemberRole(input: UpdateMemberRoleInput!): Boolean!
 
   """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
@@ -97,6 +141,9 @@ type Query {
   """Get the currently authenticated user information"""
   me: User
 
+  """Get all pending invitations for the current user."""
+  myInvitations: [WorkspaceInvitation!]!
+
   """Get all workspaces where the current user is a member"""
   myWorkspaces: [Workspace!]!
 
@@ -108,6 +155,12 @@ type Query {
 
   """Get a workspace by ID. User must be a member to access."""
   workspace(id: ID!): Workspace!
+
+  """Get pending invitations for a workspace. Only ADMIN can view."""
+  workspaceInvitations(workspaceId: ID!): [WorkspaceInvitation!]!
+
+  """Get all members of a workspace. User must be a member to view."""
+  workspaceMembers(workspaceId: ID!): [WorkspaceMemberWithUser!]!
 }
 
 """Input for user registration"""
@@ -125,6 +178,11 @@ input RegisterInput {
   password: String!
 }
 
+input RemoveMemberInput {
+  userId: String!
+  workspaceId: String!
+}
+
 """Input for resetting password with token"""
 input ResetPasswordInput {
   """New password (minimum 6 characters)"""
@@ -132,6 +190,16 @@ input ResetPasswordInput {
 
   """Password reset token received via email"""
   token: String!
+}
+
+input RespondInvitationInput {
+  invitationId: String!
+}
+
+input UpdateMemberRoleInput {
+  role: String!
+  userId: String!
+  workspaceId: String!
 }
 
 input UpdateUserInput {
@@ -174,9 +242,33 @@ type Workspace {
   visibility: Visibility!
 }
 
+type WorkspaceInvitation {
+  createdAt: DateTime!
+  expiresAt: DateTime!
+  id: ID!
+  inviteeEmail: String!
+  inviteeId: ID
+  inviterId: ID!
+  inviterName: String
+  role: String!
+  status: InvitationStatus!
+  updatedAt: DateTime!
+  workspaceId: ID!
+  workspaceName: String
+}
+
 type WorkspaceMember {
   id: ID!
   joinedAt: DateTime!
   role: String!
   userId: ID!
+}
+
+type WorkspaceMemberWithUser {
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  user: MemberUser!
+  userId: ID!
+  workspaceId: ID!
 }
