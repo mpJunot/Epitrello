@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthResolver } from './auth.resolver';
 import { AuthController } from './auth.controller';
@@ -47,9 +48,23 @@ const buildOAuthProviders = () => {
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
+    JwtModule.registerAsync({
+      useFactory: (configService: ConfigService) => {
+        const logger = new Logger('JwtModule');
+        const secret = configService.get<string>('JWT_SECRET') || 'your-secret-key';
+        const expiresIn = configService.get<string>('JWT_EXPIRES_IN') || '7d';
+
+        logger.log(`JWT configured with expiresIn: ${expiresIn}`);
+        if (!configService.get<string>('JWT_SECRET')) {
+          logger.warn('JWT_SECRET not configured, using default (insecure!)');
+        }
+
+        return {
+          secret,
+          signOptions: { expiresIn },
+        };
+      },
+      inject: [ConfigService],
     }),
     UsersModule,
     EmailModule,

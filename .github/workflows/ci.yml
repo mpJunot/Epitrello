@@ -77,9 +77,48 @@ jobs:
         working-directory: backend
         run: pnpm build
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: backend
         run: pnpm test
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: pnpm test:cov
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check coverage for tested modules
+        working-directory: backend
+        run: |
+          echo "Coverage Summary:"
+          if [ -f coverage/coverage-summary.json ]; then
+            # Display overall coverage for information
+            TOTAL_COV=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "  Total Project Coverage: ${TOTAL_COV}%"
+
+            # Check workspace module if it exists (search by key containing workspaces.service.ts)
+            WORKSPACE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("workspaces.service.ts"))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            if [ "$WORKSPACE_COV" != "0" ]; then
+              echo "  Workspace Service: ${WORKSPACE_COV}%"
+              if (( $(echo "$WORKSPACE_COV < 80" | bc -l) )); then
+                echo "WARNING: Workspace service coverage is below 80%"
+              else
+                echo "SUCCESS: Workspace service meets coverage requirements"
+              fi
+            fi
+          fi
 
       - name: Run e2e tests
         working-directory: backend
