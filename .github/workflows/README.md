@@ -16,6 +16,9 @@ Runs on every push and pull request to main branches.
 - Lints code
 - Builds the application
 - Runs unit tests
+- Runs tests with coverage
+- Uploads coverage to Codecov
+- Checks coverage for tested modules (Workspaces, Invitations)
 - Runs E2E tests
 
 **Frontend:**
@@ -24,7 +27,18 @@ Runs on every push and pull request to main branches.
 - Lints code
 - Builds the application
 
-### 2. Docker Build (`docker-build.yml`)
+### 2. Tests (`tests.yml`)
+
+Runs on every push and pull request to any branch.
+
+**Jobs:**
+
+- **Unit Tests**: Runs all unit tests with coverage and uploads to Codecov
+- **Workspace Module Tests**: Dedicated tests for workspace module with 80% coverage threshold
+- **Invitations Module Tests**: Dedicated tests for invitations module with 80% coverage threshold
+- **E2E Tests**: End-to-end integration tests
+
+### 3. Docker Build (`docker-build.yml`)
 
 Builds and pushes Docker images to Docker Hub.
 
@@ -45,7 +59,7 @@ Set the following secrets in GitHub:
 - `DOCKER_USERNAME` - Docker Hub username
 - `DOCKER_PASSWORD` - Docker Hub password or access token
 
-### 3. Code Quality (`code-quality.yml`)
+### 4. Code Quality (`code-quality.yml`)
 
 Checks code formatting and validates Prisma schema.
 
@@ -54,7 +68,7 @@ Checks code formatting and validates Prisma schema.
 - Code formatting (Prettier)
 - Prisma schema validation
 
-### 4. Release (`release.yml`)
+### 5. Release (`release.yml`)
 
 Creates a GitHub release when a version tag is pushed.
 
@@ -67,6 +81,15 @@ Creates a GitHub release when a version tag is pushed.
 ### Test Environment Variables
 
 Test environment variables are defined at the job level in workflow files. No configuration required - workflows work out of the box.
+
+### Test Coverage Thresholds
+
+The following modules have enforced coverage thresholds:
+
+- **Workspace Module**: 80% minimum coverage
+- **Invitations Module**: 80% minimum coverage
+
+These thresholds are checked in both the `ci.yml` and `tests.yml` workflows.
 
 ### GitHub Secrets (Optional)
 
