@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { InvitationsModule } from './modules/invitations/invitations.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
@@ -45,6 +46,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     AuthModule,
     EmailModule,
     WorkspacesModule,
+    InvitationsModule,
   ],
   providers: [
     {
