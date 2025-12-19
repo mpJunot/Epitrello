@@ -1,0 +1,251 @@
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'backend/**'
+      - '.github/workflows/tests.yml'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      PNPM_VERSION: 9
+      NODE_VERSION: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Run unit tests with coverage
+        working-directory: backend
+        run: pnpm test:cov
+
+      - name: Generate coverage summary
+        working-directory: backend
+        run: |
+          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | % Stmts | % Branch | % Funcs | % Lines |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|---------|----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f coverage/coverage-summary.json ]; then
+            TOTAL_STMTS=$(cat coverage/coverage-summary.json | jq -r '.total.statements.pct')
+            TOTAL_BRANCH=$(cat coverage/coverage-summary.json | jq -r '.total.branches.pct')
+            TOTAL_FUNCS=$(cat coverage/coverage-summary.json | jq -r '.total.functions.pct')
+            TOTAL_LINES=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+
+            echo "| **Total** | ${TOTAL_STMTS}% | ${TOTAL_BRANCH}% | ${TOTAL_FUNCS}% | ${TOTAL_LINES}% |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if (( $(echo "$TOTAL_LINES < 80" | bc -l) )); then
+              echo "**Warning**: Coverage is below 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "SUCCESS: Coverage meets 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: unittests
+          name: unit-tests-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Archive coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: backend/coverage/
+          retention-days: 30
+
+  workspace-tests:
+    name: Workspace Module Tests
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      PNPM_VERSION: 9
+      NODE_VERSION: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Run workspace tests
+        working-directory: backend
+        run: pnpm test -- workspaces --coverage
+
+      - name: Check workspace module coverage
+        working-directory: backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            WORKSPACE_COVERAGE=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+            echo "Workspace module coverage: ${WORKSPACE_COVERAGE}%"
+
+            if (( $(echo "$WORKSPACE_COVERAGE < 80" | bc -l) )); then
+              echo "ERROR: Workspace module coverage is below 80% threshold"
+              exit 1
+            fi
+            echo "SUCCESS: Workspace module meets 80% coverage threshold"
+          fi
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      PNPM_VERSION: 9
+      NODE_VERSION: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Run e2e tests
+        working-directory: backend
+        run: pnpm run test:e2e
+
+      - name: Archive e2e test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: backend/test-results/
+          retention-days: 30

@@ -1,6 +1,8 @@
 # Epitrello
 
 ![CI](https://github.com/mpJunot/Epitrello/workflows/CI/badge.svg)
+![Tests](https://github.com/mpJunot/Epitrello/workflows/Tests/badge.svg)
+[![codecov](https://codecov.io/gh/mpJunot/Epitrello/branch/master/graph/badge.svg)](https://codecov.io/gh/mpJunot/Epitrello)
 
 Epitrello is an online project management tool inspired by Toyota's Kanban methodology. It enables teams to organize work into boards, lists, and cards, facilitating task tracking and collaboration.
 
