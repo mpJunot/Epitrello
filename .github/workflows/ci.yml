@@ -77,9 +77,33 @@ jobs:
         working-directory: backend
         run: pnpm build
 
-      - name: Run tests
+      - name: Run unit tests
         working-directory: backend
         run: pnpm test
+
+      - name: Run tests with coverage
+        working-directory: backend
+        run: pnpm test:cov
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check coverage threshold
+        working-directory: backend
+        run: |
+          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+          echo "Total coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+            echo "ERROR: Coverage is below 80% threshold"
+            exit 1
+          fi
+          echo "SUCCESS: Coverage meets 80% threshold"
 
       - name: Run e2e tests
         working-directory: backend

@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
@@ -11,16 +11,26 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
  */
 @Injectable()
 export class GqlAuthGuard extends AuthGuard('jwt') {
+  private readonly logger = new Logger(GqlAuthGuard.name);
+
   constructor(private reflector: Reflector) {
     super();
   }
 
   getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext().req;
+    const req = ctx.getContext().req;
+
+    if (req.headers.authorization) {
+      this.logger.debug('Authentication attempt with Bearer token');
+    } else {
+      this.logger.debug('No authorization header found');
+    }
+
+    return req;
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if route is marked as public
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
@@ -28,9 +38,17 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
     ]);
 
     if (isPublic) {
+      this.logger.debug('Public route accessed, skipping authentication');
       return true;
     }
 
-    return super.canActivate(context);
+    try {
+      const result = await super.canActivate(context);
+      this.logger.debug('Authentication successful');
+      return result as boolean;
+    } catch (error) {
+      this.logger.warn(`Authentication failed: ${error.message}`);
+      throw error;
+    }
   }
 }
