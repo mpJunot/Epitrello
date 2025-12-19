@@ -1,9 +1,23 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Configure logger based on environment
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const logLevels: LogLevel[] = isDevelopment
+    ? ['log', 'error', 'warn', 'debug', 'verbose']
+    : ['log', 'error', 'warn'];
+
+  const app = await NestFactory.create(AppModule, {
+    logger: logLevels,
+  });
+
+  const logger = new Logger('Bootstrap');
+
+  // Enable global logging interceptor for all requests
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   /**
    * Enable CORS.
@@ -39,7 +53,10 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/graphql`);
+
+  logger.log(`🚀 Application is running on: http://localhost:${port}/graphql`);
+  logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`📝 Log levels: ${logLevels.join(', ')}`);
 }
 bootstrap();
 

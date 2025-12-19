@@ -73,16 +73,20 @@ db-reset: ## Reset database (WARNING: deletes all data)
 	@read -p "Are you sure? [y/N] " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		set -a; [ -f .env ] && . .env; set +a; \
 		cd $(BACKEND_DIR) && pnpm prisma migrate reset --force; \
 	fi
 db-migrate: ## Create and apply a new Prisma migration
 	@read -p "Migration name: " name; \
+	set -a; [ -f .env ] && . .env; set +a; \
 	cd $(BACKEND_DIR) && pnpm prisma migrate dev --name $$name
 
 # Prisma
 prisma-generate: ## Generate Prisma Client
+	@set -a; [ -f .env ] && . .env; set +a; \
 	cd $(BACKEND_DIR) && pnpm prisma generate
 prisma-studio: ## Open Prisma Studio
+	@set -a; [ -f .env ] && . .env; set +a; \
 	cd $(BACKEND_DIR) && pnpm prisma studio
 
 # Testing
