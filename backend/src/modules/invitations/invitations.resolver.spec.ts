@@ -222,4 +222,27 @@ describe('InvitationsResolver', () => {
       expect(service.leaveWorkspace).toHaveBeenCalledWith(workspaceId, mockUser.id);
     });
   });
+
+  describe('GraphQL Metadata', () => {
+    it('should be defined as a GraphQL resolver', () => {
+      expect(resolver).toBeDefined();
+      expect(resolver.constructor.name).toBe('InvitationsResolver');
+    });
+
+    it('should have all mutation methods', () => {
+      expect(resolver.inviteMember).toBeDefined();
+      expect(resolver.acceptInvitation).toBeDefined();
+      expect(resolver.rejectInvitation).toBeDefined();
+      expect(resolver.cancelInvitation).toBeDefined();
+      expect(resolver.updateMemberRole).toBeDefined();
+      expect(resolver.removeMember).toBeDefined();
+      expect(resolver.leaveWorkspace).toBeDefined();
+    });
+
+    it('should have all query methods', () => {
+      expect(resolver.getWorkspaceInvitations).toBeDefined();
+      expect(resolver.getMyInvitations).toBeDefined();
+      expect(resolver.getWorkspaceMembers).toBeDefined();
+    });
+  });
 });
