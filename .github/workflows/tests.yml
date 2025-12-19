@@ -167,7 +167,7 @@ jobs:
 
       - name: Run workspace tests
         working-directory: backend
-        run: pnpm test -- workspaces --coverage --coverageThreshold='{}'
+        run: pnpm test -- workspaces --coverage
 
       - name: Check workspace module coverage
         working-directory: backend
