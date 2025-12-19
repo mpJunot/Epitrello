@@ -1268,17 +1268,608 @@ mutation DeleteWorkspace($id: ID!) {
 - `NOT_FOUND` (404) - Workspace not found
 - `FORBIDDEN` (403) - User is not an ADMIN
 
-## Rate Limiting
+---
 
-Currently, there is no rate limiting implemented. Consider implementing rate limiting for production use.
+## Workspace Member Management
 
-## Best Practices
+### Invite Member to Workspace
 
-1. **Always use variables** instead of string interpolation in queries
-2. **Store tokens securely** (never in localStorage for sensitive apps)
-3. **Handle token expiration** - implement token refresh logic
-4. **Use error handling** - check for errors in responses
-5. **Validate inputs** - client-side validation before sending requests
+Invite a user to join a workspace by email. Only workspace ADMINs can send invitations.
+
+**Mutation**: `inviteMember`
+
+**GraphQL Query**:
+
+```graphql
+mutation InviteMember($input: InviteMemberInput!) {
+  inviteMember(input: $input) {
+    id
+    workspaceId
+    inviteeEmail
+    role
+    status
+    expiresAt
+    inviterName
+    workspaceName
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "workspaceId": "workspace-uuid",
+    "inviteeEmail": "user@example.com",
+    "role": "MEMBER"
+  }
+}
+```
+
+> **Note**: `role` is optional and defaults to `MEMBER`. Available roles: `ADMIN`, `MEMBER`, `OBSERVER`.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "inviteMember": {
+      "id": "invitation-uuid",
+      "workspaceId": "workspace-uuid",
+      "inviterId": "admin-uuid",
+      "inviteeEmail": "user@example.com",
+      "inviteeId": "user-uuid",
+      "role": "MEMBER",
+      "status": "PENDING",
+      "expiresAt": "2025-12-26T12:00:00Z",
+      "createdAt": "2025-12-19T12:00:00Z",
+      "updatedAt": "2025-12-19T12:00:00Z",
+      "inviterName": "Admin User",
+      "workspaceName": "My Workspace"
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation InviteMember($input: InviteMemberInput!) { inviteMember(input: $input) { id inviteeEmail role status workspaceName } }",
+    "variables": {
+      "input": {
+        "workspaceId": "workspace-uuid",
+        "inviteeEmail": "user@example.com",
+        "role": "MEMBER"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the workspace
+- `404 Not Found` - Workspace does not exist
+- `409 Conflict` - User is already a member or has a pending invitation
+
+---
+
+### Accept Invitation
+
+Accept a pending workspace invitation.
+
+**Mutation**: `acceptInvitation`
+
+**GraphQL Query**:
+
+```graphql
+mutation AcceptInvitation($input: RespondInvitationInput!) {
+  acceptInvitation(input: $input) {
+    id
+    status
+    workspaceName
+    role
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "invitationId": "invitation-uuid"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "acceptInvitation": {
+      "id": "invitation-uuid",
+      "status": "ACCEPTED",
+      "workspaceName": "My Workspace",
+      "role": "MEMBER"
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation AcceptInvitation($input: RespondInvitationInput!) { acceptInvitation(input: $input) { id status workspaceName role } }",
+    "variables": {
+      "input": {
+        "invitationId": "invitation-uuid"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - Invitation is not for the current user
+- `404 Not Found` - Invitation does not exist
+- `400 Bad Request` - Invitation has expired or is not pending
+- `409 Conflict` - User is already a member
+
+---
+
+### Reject Invitation
+
+Reject a pending workspace invitation.
+
+**Mutation**: `rejectInvitation`
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "invitationId": "invitation-uuid"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "rejectInvitation": {
+      "id": "invitation-uuid",
+      "status": "REJECTED"
+    }
+  }
+}
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - Invitation is not for the current user
+- `404 Not Found` - Invitation does not exist
+- `400 Bad Request` - Invitation is not pending
+
+---
+
+### Get My Invitations
+
+Get all pending invitations for the current user.
+
+**Query**: `myInvitations`
+
+**GraphQL Query**:
+
+```graphql
+query MyInvitations {
+  myInvitations {
+    id
+    workspaceId
+    inviteeEmail
+    role
+    status
+    expiresAt
+    inviterName
+    workspaceName
+  }
+}
+```
+
+**Variables**: None
+
+**Response**:
+
+```json
+{
+  "data": {
+    "myInvitations": [
+      {
+        "id": "invitation-uuid",
+        "workspaceId": "workspace-uuid",
+        "inviteeEmail": "user@example.com",
+        "role": "MEMBER",
+        "status": "PENDING",
+        "expiresAt": "2025-12-26T12:00:00Z",
+        "inviterName": "Admin User",
+        "workspaceName": "My Workspace"
+      }
+    ]
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "query MyInvitations { myInvitations { id workspaceId inviteeEmail role status expiresAt inviterName workspaceName } }"
+  }'
+```
+
+---
+
+### Get Workspace Members
+
+Get all members of a workspace. User must be a member to view.
+
+**Query**: `workspaceMembers`
+
+**GraphQL Query**:
+
+```graphql
+query WorkspaceMembers($workspaceId: ID!) {
+  workspaceMembers(workspaceId: $workspaceId) {
+    id
+    userId
+    workspaceId
+    role
+    joinedAt
+    user {
+      id
+      email
+      name
+      avatar
+    }
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "workspaceId": "workspace-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "workspaceMembers": [
+      {
+        "id": "member-uuid",
+        "userId": "user-uuid",
+        "workspaceId": "workspace-uuid",
+        "role": "ADMIN",
+        "joinedAt": "2025-12-01T12:00:00Z",
+        "user": {
+          "id": "user-uuid",
+          "email": "admin@example.com",
+          "name": "Admin User",
+          "avatar": "https://example.com/avatar.jpg"
+        }
+      }
+    ]
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "query WorkspaceMembers($workspaceId: ID!) { workspaceMembers(workspaceId: $workspaceId) { id userId role joinedAt user { id email name avatar } } }",
+    "variables": {
+      "workspaceId": "workspace-uuid"
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not a member of the workspace
+
+---
+
+### Get Workspace Invitations
+
+Get all pending invitations for a workspace. Only ADMINs can view.
+
+**Query**: `workspaceInvitations`
+
+**Variables**:
+
+```json
+{
+  "workspaceId": "workspace-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "workspaceInvitations": [
+      {
+        "id": "invitation-uuid",
+        "inviteeEmail": "user@example.com",
+        "role": "MEMBER",
+        "status": "PENDING",
+        "expiresAt": "2025-12-26T12:00:00Z",
+        "createdAt": "2025-12-19T12:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the workspace
+
+---
+
+### Update Member Role
+
+Update a member's role in a workspace. Only ADMINs can update roles.
+
+**Mutation**: `updateMemberRole`
+
+**GraphQL Query**:
+
+```graphql
+mutation UpdateMemberRole($input: UpdateMemberRoleInput!) {
+  updateMemberRole(input: $input)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "workspaceId": "workspace-uuid",
+    "userId": "member-uuid",
+    "role": "ADMIN"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "updateMemberRole": true
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation UpdateMemberRole($input: UpdateMemberRoleInput!) { updateMemberRole(input: $input) }",
+    "variables": {
+      "input": {
+        "workspaceId": "workspace-uuid",
+        "userId": "member-uuid",
+        "role": "ADMIN"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the workspace
+- `404 Not Found` - Target user is not a member
+- `400 Bad Request` - Cannot remove the last admin
+
+---
+
+### Remove Member
+
+Remove a member from a workspace. Only ADMINs can remove members.
+
+**Mutation**: `removeMember`
+
+**GraphQL Query**:
+
+```graphql
+mutation RemoveMember($input: RemoveMemberInput!) {
+  removeMember(input: $input)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "workspaceId": "workspace-uuid",
+    "userId": "member-uuid"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "removeMember": true
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation RemoveMember($input: RemoveMemberInput!) { removeMember(input: $input) }",
+    "variables": {
+      "input": {
+        "workspaceId": "workspace-uuid",
+        "userId": "member-uuid"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the workspace
+- `404 Not Found` - Target user is not a member
+- `400 Bad Request` - Cannot remove the last admin
+
+---
+
+### Leave Workspace
+
+Leave a workspace. Cannot leave if you are the last admin.
+
+**Mutation**: `leaveWorkspace`
+
+**GraphQL Query**:
+
+```graphql
+mutation LeaveWorkspace($workspaceId: ID!) {
+  leaveWorkspace(workspaceId: $workspaceId)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "workspaceId": "workspace-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "leaveWorkspace": true
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation LeaveWorkspace($workspaceId: ID!) { leaveWorkspace(workspaceId: $workspaceId) }",
+    "variables": {
+      "workspaceId": "workspace-uuid"
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - User is not a member of the workspace
+- `400 Bad Request` - User is the last admin (must assign another admin first)
+
+---
+
+### Cancel Invitation
+
+Cancel a pending invitation. Only the inviter or workspace admin can cancel.
+
+**Mutation**: `cancelInvitation`
+
+**Variables**:
+
+```json
+{
+  "invitationId": "invitation-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "cancelInvitation": true
+  }
+}
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not the inviter or an admin
+- `404 Not Found` - Invitation does not exist
+- `400 Bad Request` - Invitation is not pending
+
+---
+
+## Role-Based Access Control
+
+### Roles
+
+- **ADMIN**: Full control over workspace (invite, remove, update roles, delete workspace)
+- **MEMBER**: Can view and edit workspace content
+- **OBSERVER**: Read-only access to workspace
+
+### Permission Matrix
+
+| Action           | ADMIN | MEMBER | OBSERVER |
+| ---------------- | ----- | ------ | -------- |
+| View workspace   | ✓     | ✓      | ✓        |
+| Edit workspace   | ✓     | ✗      | ✗        |
+| Delete workspace | ✓     | ✗      | ✗        |
+| Invite members   | ✓     | ✗      | ✗        |
+| Remove members   | ✓     | ✗      | ✗        |
+| Update roles     | ✓     | ✗      | ✗        |
+| Leave workspace  | ✓\*   | ✓      | ✓        |
+
+> **Note**: \*ADMINs cannot leave if they are the last admin. They must assign another admin first.
+
+---
 
 ## Support
 
