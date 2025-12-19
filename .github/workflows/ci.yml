@@ -104,19 +104,19 @@ jobs:
             TOTAL_COV=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
             echo "  Total Project Coverage: ${TOTAL_COV}%"
 
-            # Check workspace module if it exists (try multiple paths)
+            # Check workspace module if it exists (search by key containing workspaces.service.ts)
             WORKSPACE_COV=$(cat coverage/coverage-summary.json | jq -r '
-              (."modules/workspaces/workspaces.service.ts" //
-               ."src/modules/workspaces/workspaces.service.ts" //
-               ."modules/workspaces").lines.pct // 0
+              to_entries |
+              map(select(.key | contains("workspaces.service.ts"))) |
+              .[0].value.lines.pct // 0
             ')
 
             if [ "$WORKSPACE_COV" != "0" ]; then
-              echo "  Workspace Module: ${WORKSPACE_COV}%"
+              echo "  Workspace Service: ${WORKSPACE_COV}%"
               if (( $(echo "$WORKSPACE_COV < 80" | bc -l) )); then
-                echo "WARNING: Workspace module coverage is below 80%"
+                echo "WARNING: Workspace service coverage is below 80%"
               else
-                echo "SUCCESS: Workspace module meets coverage requirements"
+                echo "SUCCESS: Workspace service meets coverage requirements"
               fi
             fi
           fi
