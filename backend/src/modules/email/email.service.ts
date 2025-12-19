@@ -2,6 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { PasswordResetEmailData } from './interfaces/email.interface';
 import { getPasswordResetTemplate } from './templates/password-reset.template';
+import {
+  generateWorkspaceInvitationEmail,
+  WorkspaceInvitationEmailData
+} from './templates/workspace-invitation.template';
 
 @Injectable()
 export class EmailService {
@@ -64,6 +68,46 @@ export class EmailService {
       this.logger.log(`Password reset email sent to ${email}`);
     } catch (error) {
       this.logger.error(`Failed to send password reset email to ${email}`, error);
+      throw error;
+    }
+  }
+
+  async sendWorkspaceInvitationEmail(data: WorkspaceInvitationEmailData): Promise<void> {
+    const { inviteeEmail, invitationId } = data;
+
+    const acceptUrl = `${this.frontendUrl}/invitations/accept?id=${invitationId}`;
+    const rejectUrl = `${this.frontendUrl}/invitations/reject?id=${invitationId}`;
+
+    if (!process.env.RESEND_API_KEY) {
+      this.logger.warn(
+        `Email sending disabled. Workspace invitation for ${inviteeEmail}`,
+      );
+      this.logger.warn(`Accept link: ${acceptUrl}`);
+      this.logger.warn(`Reject link: ${rejectUrl}`);
+      return;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `Email sending disabled. Workspace invitation for ${inviteeEmail}`,
+      );
+      return;
+    }
+
+    const { subject, html, text } = generateWorkspaceInvitationEmail(data);
+
+    try {
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to: inviteeEmail,
+        subject,
+        html,
+        text,
+      });
+
+      this.logger.log(`Workspace invitation email sent to ${inviteeEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send workspace invitation email to ${inviteeEmail}`, error);
       throw error;
     }
   }
