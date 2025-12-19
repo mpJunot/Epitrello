@@ -189,6 +189,84 @@ jobs:
             echo "SUCCESS: Workspace service meets 80% coverage threshold (${WORKSPACE_SERVICE_COV}%)"
           fi
 
+  invitations-tests:
+    name: Invitations Module Tests
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      PNPM_VERSION: 9
+      NODE_VERSION: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Run invitations tests
+        working-directory: backend
+        run: pnpm test -- invitations --coverage
+
+      - name: Check invitations module coverage
+        working-directory: backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            # Find invitations service coverage by searching for the key containing invitations.service.ts
+            INVITATIONS_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("invitations.service.ts"))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            echo "Invitations service coverage: ${INVITATIONS_SERVICE_COV}%"
+
+            if (( $(echo "$INVITATIONS_SERVICE_COV < 80" | bc -l) )); then
+              echo "ERROR: Invitations service coverage is below 80% threshold"
+              exit 1
+            fi
+            echo "SUCCESS: Invitations service meets 80% coverage threshold (${INVITATIONS_SERVICE_COV}%)"
+          fi
+
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
