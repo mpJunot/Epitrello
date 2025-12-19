@@ -142,6 +142,49 @@ describe('InvitationsService', () => {
 
       await expect(service.inviteMember(input, inviterId)).rejects.toThrow(ConflictException);
     });
+
+    it('should handle email sending failure gracefully', async () => {
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: '1',
+        role: Role.ADMIN,
+      });
+      mockPrismaService.workspace.findUnique.mockResolvedValue({
+        id: 'workspace-1',
+        name: 'Test Workspace',
+        logoUrl: null,
+      });
+      mockPrismaService.workspaceMember.findFirst.mockResolvedValue(null);
+      mockPrismaService.workspaceInvitation.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'invitee-1',
+        email: 'invitee@example.com',
+        name: 'Invitee User',
+      });
+      mockPrismaService.workspaceInvitation.create.mockResolvedValue({
+        id: 'invitation-1',
+        ...input,
+        inviterId,
+        inviteeId: 'invitee-1',
+        status: InvitationStatus.PENDING,
+        token: 'token-123',
+        expiresAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        inviter: { name: 'Admin User' },
+        workspace: { name: 'Test Workspace', logoUrl: null },
+      });
+
+      // Mock email service to throw error
+      mockEmailService.sendWorkspaceInvitationEmail.mockRejectedValue(
+        new Error('Email service unavailable'),
+      );
+
+      // Should not throw, just log warning
+      const result = await service.inviteMember(input, inviterId);
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe('invitation-1');
+    });
   });
 
   describe('acceptInvitation', () => {
@@ -446,6 +489,62 @@ describe('InvitationsService', () => {
 
       expect(result).toHaveLength(1);
       expect(mockPrismaService.workspaceInvitation.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('getWorkspaceInvitations', () => {
+    const workspaceId = 'workspace-1';
+    const userId = 'admin-1';
+
+    it('should return workspace invitations for admin', async () => {
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: 'member-1',
+        role: Role.ADMIN,
+      });
+      mockPrismaService.workspaceInvitation.findMany.mockResolvedValue([
+        {
+          id: 'invitation-1',
+          workspaceId,
+          inviteeEmail: 'user@example.com',
+          status: InvitationStatus.PENDING,
+          inviter: { name: 'Admin User', email: 'admin@example.com' },
+        },
+      ]);
+
+      const result = await service.getWorkspaceInvitations(workspaceId, userId);
+
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.workspaceInvitation.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            workspaceId,
+            status: InvitationStatus.PENDING,
+            expiresAt: expect.any(Object),
+          }),
+          include: {
+            inviter: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+      );
+    });
+
+    it('should throw ForbiddenException if user is not admin', async () => {
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: 'member-1',
+        role: Role.MEMBER,
+      });
+
+      await expect(
+        service.getWorkspaceInvitations(workspaceId, userId),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
