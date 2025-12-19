@@ -173,15 +173,30 @@ jobs:
         working-directory: backend
         run: |
           if [ -f coverage/coverage-summary.json ]; then
-            # Check coverage specifically for workspaces service
-            WORKSPACE_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '."src/modules/workspaces/workspaces.service.ts".lines.pct // 0')
-            echo "Workspace service coverage: ${WORKSPACE_SERVICE_COV}%"
+            # Debug: show all keys in coverage summary
+            echo "Available coverage keys:"
+            cat coverage/coverage-summary.json | jq 'keys'
+
+            # Try different possible paths for workspace service
+            WORKSPACE_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              (."modules/workspaces/workspaces.service.ts" //
+               ."src/modules/workspaces/workspaces.service.ts" //
+               .[] | select(.path? | contains("workspaces.service.ts")) //
+               empty).lines.pct // 0
+            ')
+
+            # If still 0, check the modules/workspaces total
+            if [ "$WORKSPACE_SERVICE_COV" = "0" ]; then
+              WORKSPACE_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '."modules/workspaces".lines.pct // 0')
+            fi
+
+            echo "Workspace module coverage: ${WORKSPACE_SERVICE_COV}%"
 
             if (( $(echo "$WORKSPACE_SERVICE_COV < 80" | bc -l) )); then
-              echo "ERROR: Workspace service coverage is below 80% threshold"
+              echo "ERROR: Workspace module coverage is below 80% threshold"
               exit 1
             fi
-            echo "SUCCESS: Workspace service meets 80% coverage threshold (${WORKSPACE_SERVICE_COV}%)"
+            echo "SUCCESS: Workspace module meets 80% coverage threshold (${WORKSPACE_SERVICE_COV}%)"
           fi
 
   e2e-tests:

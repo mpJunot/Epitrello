@@ -39,8 +39,6 @@ module.exports = {
       statements: 80,
     },
   },
-  // Only collect coverage from files with tests
-  collectCoverageOnlyFrom: undefined,
   coveragePathIgnorePatterns: [
     '/node_modules/',
     '/dist/',
