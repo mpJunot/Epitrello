@@ -135,6 +135,11 @@ type Mutation {
 
   """Update a workspace. Only ADMIN members can update."""
   updateWorkspace(id: ID!, input: UpdateWorkspaceInput!): Workspace!
+
+  """
+  Verify email address using the verification token received via email. A welcome email will be sent upon successful verification.
+  """
+  verifyEmail(token: String!): MessageResponse!
 }
 
 type Query {

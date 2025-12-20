@@ -1,0 +1,119 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Run backend tests
+        working-directory: backend
+        run: pnpm test:unit
+
+  deploy-backend:
+    name: Deploy Backend to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [test-backend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Build backend
+        working-directory: backend
+        run: pnpm build
+
+      # TODO: Add your staging deployment steps here
+      # Examples:
+      # - Deploy to Heroku
+      # - Deploy to AWS ECS
+      # - Deploy to Railway
+      # - Deploy to Render
+
+      - name: Placeholder for staging deployment
+        run: |
+          echo "Deploying backend to staging environment..."
+          echo "Backend version: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          # Add actual deployment commands here
+
+  deploy-frontend:
+    name: Deploy Frontend to Staging
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [deploy-backend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL }}
+
+      # TODO: Add your staging deployment steps here
+      # Examples:
+      # - Deploy to Vercel
+      # - Deploy to Netlify
+      # - Deploy to AWS S3 + CloudFront
+
+      - name: Placeholder for staging deployment
+        run: |
+          echo "Deploying frontend to staging environment..."
+          echo "Frontend version: ${{ github.sha }}"
+          echo "API URL: ${{ secrets.STAGING_API_URL }}"
+          # Add actual deployment commands here
+
+  notify:
+    name: Notify Deployment
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: always()
+
+    steps:
+      - name: Deployment status
+        run: |
+          echo "Staging deployment completed"
+          echo "Backend: ${{ needs.deploy-backend.result }}"
+          echo "Frontend: ${{ needs.deploy-frontend.result }}"
+          # Add Slack/Discord notification here if needed
