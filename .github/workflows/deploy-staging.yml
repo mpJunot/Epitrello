@@ -47,12 +47,32 @@ jobs:
     environment: staging
     needs: [test-backend]
 
+    env:
+      DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Backend
-        uses: ./.github/actions/setup-backend
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
 
       - name: Build backend
         working-directory: backend
