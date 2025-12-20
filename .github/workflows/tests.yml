@@ -344,30 +344,38 @@ jobs:
             fi
             echo "SUCCESS: Email service meets 80% coverage threshold (${EMAIL_SERVICE_COV}%)"
 
-            # Check email templates coverage
-            VERIFICATION_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
+            # Check email templates coverage (only if entries exist)
+            TEMPLATE_COUNT=$(cat coverage/coverage-summary.json | jq -r '
               to_entries |
-              map(select(.key | contains("email-verification.template.ts") and (.key | contains(".spec.ts") | not))) |
-              .[0].value.lines.pct // 0
+              map(select(.key | contains("template.ts") and (.key | contains(".spec.ts") | not))) |
+              length
             ')
 
-            WELCOME_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
-              to_entries |
-              map(select(.key | contains("welcome.template.ts") and (.key | contains(".spec.ts") | not))) |
-              .[0].value.lines.pct // 0
-            ')
+            if [ "$TEMPLATE_COUNT" != "0" ]; then
+              VERIFICATION_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
+                to_entries |
+                map(select(.key | contains("email-verification.template.ts") and (.key | contains(".spec.ts") | not))) |
+                if length > 0 then .[0].value.lines.pct else 0 end
+              ')
 
-            if [ "$VERIFICATION_TEMPLATE_COV" != "0" ]; then
-              echo "Email verification template coverage: ${VERIFICATION_TEMPLATE_COV}%"
-              if (( $(echo "$VERIFICATION_TEMPLATE_COV < 80" | bc -l) )); then
-                echo "WARNING: Email verification template coverage is below 80%"
+              WELCOME_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
+                to_entries |
+                map(select(.key | contains("welcome.template.ts") and (.key | contains(".spec.ts") | not))) |
+                if length > 0 then .[0].value.lines.pct else 0 end
+              ')
+
+              if [ "$VERIFICATION_TEMPLATE_COV" != "0" ] && [ "$VERIFICATION_TEMPLATE_COV" != "null" ]; then
+                echo "Email verification template coverage: ${VERIFICATION_TEMPLATE_COV}%"
+                if (( $(echo "$VERIFICATION_TEMPLATE_COV < 80" | bc -l) )); then
+                  echo "WARNING: Email verification template coverage is below 80%"
+                fi
               fi
-            fi
 
-            if [ "$WELCOME_TEMPLATE_COV" != "0" ]; then
-              echo "Welcome template coverage: ${WELCOME_TEMPLATE_COV}%"
-              if (( $(echo "$WELCOME_TEMPLATE_COV < 80" | bc -l) )); then
-                echo "WARNING: Welcome template coverage is below 80%"
+              if [ "$WELCOME_TEMPLATE_COV" != "0" ] && [ "$WELCOME_TEMPLATE_COV" != "null" ]; then
+                echo "Welcome template coverage: ${WELCOME_TEMPLATE_COV}%"
+                if (( $(echo "$WELCOME_TEMPLATE_COV < 80" | bc -l) )); then
+                  echo "WARNING: Welcome template coverage is below 80%"
+                fi
               fi
             fi
           fi
