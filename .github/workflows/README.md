@@ -18,7 +18,7 @@ Runs on every push and pull request to main branches.
 - Runs unit tests
 - Runs tests with coverage
 - Uploads coverage to Codecov
-- Checks coverage for tested modules (Workspaces, Invitations)
+- Checks coverage for tested modules (Workspaces, Invitations, Email)
 - Runs E2E tests
 
 **Frontend:**
@@ -36,6 +36,7 @@ Runs on every push and pull request to any branch.
 - **Unit Tests**: Runs all unit tests with coverage and uploads to Codecov
 - **Workspace Module Tests**: Dedicated tests for workspace module with 80% coverage threshold
 - **Invitations Module Tests**: Dedicated tests for invitations module with 80% coverage threshold
+- **Email Module Tests**: Dedicated tests for email module with 80% coverage threshold (service + templates)
 - **E2E Tests**: End-to-end integration tests
 
 ### 3. Docker Build (`docker-build.yml`)
@@ -88,6 +89,7 @@ The following modules have enforced coverage thresholds:
 
 - **Workspace Module**: 80% minimum coverage
 - **Invitations Module**: 80% minimum coverage
+- **Email Module**: 80% minimum coverage
 
 These thresholds are checked in both the `ci.yml` and `tests.yml` workflows.
 
