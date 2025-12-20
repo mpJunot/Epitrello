@@ -19,6 +19,9 @@ jobs:
     name: Lint and Build
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
