@@ -7,22 +7,22 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ```
 .github/
 ├── workflows/
-│   ├── backend-ci.yml           # Backend tests (unit + integration)
-│   ├── frontend-ci.yml          # Frontend tests
+│   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
+│   ├── frontend-ci.yml          # Frontend tests (lint, build)
 │   ├── e2e-tests.yml            # End-to-end tests
-│   ├── deploy-staging.yml       # Staging deployment
-│   ├── deploy-production.yml    # Production deployment
-│   ├── code-quality.yml         # Code quality checks
+│   ├── code-quality.yml         # Code formatting and Prisma validation
+│   ├── deploy-staging.yml       # Staging deployment (dev branch)
+│   ├── deploy-production.yml    # Production deployment (master branch)
 │   ├── docker-build.yml         # Docker image builds
 │   └── release.yml              # GitHub releases
 └── actions/
-    ├── setup-backend/           # Reusable: Backend setup
+    ├── setup-backend/           # Reusable: Backend setup with DB
     │   └── action.yml
     └── setup-frontend/          # Reusable: Frontend setup
         └── action.yml
 ```
 
-**Note:** The old `ci.yml` and `tests.yml` workflows have been replaced by the new modular architecture.
+**Note:** Old monolithic workflows (`ci.yml` and `tests.yml`) have been replaced.
 
 ## Workflows
 
@@ -32,31 +32,26 @@ Runs comprehensive backend testing suite.
 
 **Triggers:**
 
-- Push to `master`, `main`, `develop` branches
+- Push to `master`, `dev` branches
 - Pull requests to these branches
 - Changes in `backend/` or workflow/action files
 
 **Jobs:**
 
-#### `lint-and-build`
+#### `backend-tests`
 
-- ESLint code linting
-- NestJS build compilation
+Single job that runs sequentially:
 
-#### `unit-tests`
-
-- Unit tests with coverage analysis
-- 80% coverage threshold enforcement for critical modules:
-  - `workspaces.service.ts`
-  - `invitations.service.ts`
-  - `email.service.ts`
-- Codecov upload
+- Lint with ESLint
+- Build with NestJS
+- Unit tests with coverage (80% threshold for critical modules)
 - Coverage report generation
+- Codecov upload
 
 #### `integration-tests`
 
 - Integration test suite
-- Requires `unit-tests` success
+- Requires `backend-tests` success
 - PostgreSQL database service
 
 **Commands:**
@@ -68,6 +63,8 @@ pnpm test:unit:cov
 pnpm test:integration
 ```
 
+**Note:** Lint and build run in the same job as unit tests to share PostgreSQL service.
+
 ---
 
 ### 2. Frontend CI (`frontend-ci.yml`)
@@ -76,7 +73,7 @@ Validates frontend code quality and builds.
 
 **Triggers:**
 
-- Push to `master`, `main`, `develop` branches
+- Push to `master`, `dev` branches
 - Pull requests to these branches
 - Changes in `frontend/` or workflow/action files
 
@@ -111,7 +108,7 @@ End-to-end testing for complete application workflows.
 
 **Triggers:**
 
-- Push to `master`, `main`, `develop` branches
+- Push to `master`, `dev` branches
 - Pull requests
 - Manual workflow dispatch
 
@@ -134,20 +131,49 @@ pnpm test:e2e
 
 ---
 
-### 4. Deploy Staging (`deploy-staging.yml`)
+### 4. Code Quality (`code-quality.yml`)
+
+Checks code formatting and validates Prisma schema.
+
+**Triggers:**
+
+- Push to `master`, `dev` branches
+- Pull requests to these branches
+
+**Jobs:**
+
+#### `format-check`
+
+- Prettier format validation
+
+#### `prisma-validate`
+
+- Prisma schema validation
+
+**Commands:**
+
+```bash
+pnpm prettier --check .
+pnpm prisma validate
+```
+
+---
+
+### 5. Deploy Staging (`deploy-staging.yml`)
 
 Automated deployment to staging environment.
 
 **Triggers:**
 
-- Push to `develop` branch
+- Push to `dev` branch
 - Manual workflow dispatch
 
 **Jobs:**
 
-1. **`deploy-backend`** - Backend deployment to staging
-2. **`deploy-frontend`** - Frontend deployment to staging (depends on backend)
-3. **`notify`** - Deployment status notification
+1. **`test-backend`** - Run backend tests before deployment
+2. **`deploy-backend`** - Backend deployment to staging
+3. **`deploy-frontend`** - Frontend deployment to staging
+4. **`notify`** - Deployment status notification
 
 **Environment:** `staging`
 
@@ -155,11 +181,11 @@ Automated deployment to staging environment.
 
 - `STAGING_API_URL` - Staging API endpoint URL
 
-**Note:** Deployment steps require configuration for your specific infrastructure.
+**Note:** Deployment steps are placeholders. Configure for your infrastructure.
 
 ---
 
-### 5. Deploy Production (`deploy-production.yml`)
+### 6. Deploy Production (`deploy-production.yml`)
 
 Production deployment with full test verification.
 
