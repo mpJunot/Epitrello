@@ -1,0 +1,36 @@
+name: 'Setup Frontend'
+description: 'Setup Node.js, pnpm, and frontend dependencies'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '20'
+  pnpm-version:
+    description: 'pnpm version'
+    required: false
+    default: '9'
+  working-directory:
+    description: 'Frontend working directory'
+    required: false
+    default: 'frontend'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+        cache-dependency-path: './${{ inputs.working-directory }}/pnpm-lock.yaml'
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm install --frozen-lockfile
