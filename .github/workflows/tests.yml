@@ -267,6 +267,111 @@ jobs:
             echo "SUCCESS: Invitations service meets 80% coverage threshold (${INVITATIONS_SERVICE_COV}%)"
           fi
 
+  email-tests:
+    name: Email Module Tests
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      PNPM_VERSION: 9
+      NODE_VERSION: 20
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: './backend/pnpm-lock.yaml'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        working-directory: backend
+        run: pnpm prisma generate
+
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Run email service tests
+        working-directory: backend
+        run: pnpm test -- email --coverage
+
+      - name: Check email module coverage
+        working-directory: backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            # Find email service coverage
+            EMAIL_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("email.service.ts"))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            echo "Email service coverage: ${EMAIL_SERVICE_COV}%"
+
+            if (( $(echo "$EMAIL_SERVICE_COV < 80" | bc -l) )); then
+              echo "ERROR: Email service coverage is below 80% threshold"
+              exit 1
+            fi
+            echo "SUCCESS: Email service meets 80% coverage threshold (${EMAIL_SERVICE_COV}%)"
+
+            # Check email templates coverage
+            VERIFICATION_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("email-verification.template.ts") and (.key | contains(".spec.ts") | not))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            WELCOME_TEMPLATE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("welcome.template.ts") and (.key | contains(".spec.ts") | not))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            if [ "$VERIFICATION_TEMPLATE_COV" != "0" ]; then
+              echo "Email verification template coverage: ${VERIFICATION_TEMPLATE_COV}%"
+              if (( $(echo "$VERIFICATION_TEMPLATE_COV < 80" | bc -l) )); then
+                echo "WARNING: Email verification template coverage is below 80%"
+              fi
+            fi
+
+            if [ "$WELCOME_TEMPLATE_COV" != "0" ]; then
+              echo "Welcome template coverage: ${WELCOME_TEMPLATE_COV}%"
+              if (( $(echo "$WELCOME_TEMPLATE_COV < 80" | bc -l) )); then
+                echo "WARNING: Welcome template coverage is below 80%"
+              fi
+            fi
+          fi
+
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest

@@ -134,6 +134,22 @@ jobs:
                 echo "SUCCESS: Invitations service meets coverage requirements"
               fi
             fi
+
+            # Check email module if it exists (search by key containing email.service.ts)
+            EMAIL_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("email.service.ts"))) |
+              .[0].value.lines.pct // 0
+            ')
+
+            if [ "$EMAIL_COV" != "0" ]; then
+              echo "  Email Service: ${EMAIL_COV}%"
+              if (( $(echo "$EMAIL_COV < 80" | bc -l) )); then
+                echo "WARNING: Email service coverage is below 80%"
+              else
+                echo "SUCCESS: Email service meets coverage requirements"
+              fi
+            fi
           fi
 
       - name: Run e2e tests
