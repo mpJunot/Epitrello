@@ -333,7 +333,7 @@ jobs:
             EMAIL_SERVICE_COV=$(cat coverage/coverage-summary.json | jq -r '
               to_entries |
               map(select(.key | contains("email.service.ts"))) |
-              .[0].value.lines.pct // 0
+              if length > 0 then .[0].value.lines.pct else 0 end
             ')
 
             echo "Email service coverage: ${EMAIL_SERVICE_COV}%"
