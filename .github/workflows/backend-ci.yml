@@ -26,8 +26,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Backend
-        uses: ./.github/actions/setup-backend
+      - name: Setup Backend (No DB)
+        uses: ./.github/actions/setup-backend-no-db
 
       - name: Lint
         working-directory: backend
