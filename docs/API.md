@@ -39,6 +39,7 @@ The following endpoints are public (no authentication required):
 - `login` - User login
 - `forgotPassword` - Request password reset
 - `resetPassword` - Reset password with token
+- `verifyEmail` - Verify email address with token
 
 ## Mutations
 
@@ -46,7 +47,7 @@ The following endpoints are public (no authentication required):
 
 #### Register
 
-Create a new user account.
+Create a new user account. An email verification link will be sent to the provided email address.
 
 ```graphql
 mutation Register($input: RegisterInput!) {
@@ -78,6 +79,8 @@ mutation Register($input: RegisterInput!) {
 ```
 
 > **Note:** `companyName` is optional - automatically creates a workspace if provided
+
+> **Note:** An email verification link will be sent to the provided email address. The email must be verified before full account access is granted.
 
 **Response:**
 
@@ -301,6 +304,69 @@ mutation ResetPassword($input: ResetPasswordInput!) {
 
 - `BAD_USER_INPUT` (400) - Invalid or expired reset token
 - `BAD_USER_INPUT` (400) - Password too short (less than 6 characters)
+- `BAD_USER_INPUT` (400) - Token is required
+
+#### Verify Email
+
+Verify email address using the verification token received via email. A welcome email will be sent upon successful verification.
+
+```graphql
+mutation VerifyEmail($token: String!) {
+  verifyEmail(token: $token) {
+    message
+  }
+}
+```
+
+**Variables:**
+
+```json
+{
+  "token": "verification-token-received-via-email"
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "verifyEmail": {
+      "message": "Email verified successfully! Welcome to Epitrello."
+    }
+  }
+}
+```
+
+**cURL Example:**
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "mutation VerifyEmail($token: String!) { verifyEmail(token: $token) { message } }",
+    "variables": {
+      "token": "verification-token-received-via-email"
+    }
+  }'
+```
+
+**Email Flow:**
+
+1. User registers → Receives verification email
+2. User clicks verification link → Email is verified
+3. System sends welcome email with onboarding information
+
+**Notes:**
+
+- Token must be valid and not expired (expires after 24 hours)
+- Email verification is recommended but not strictly enforced
+- Welcome email is automatically sent after successful verification
+- Already verified emails will return a success message
+
+**Error Cases:**
+
+- `BAD_USER_INPUT` (400) - Invalid or expired verification token
 - `BAD_USER_INPUT` (400) - Token is required
 
 ### Users
