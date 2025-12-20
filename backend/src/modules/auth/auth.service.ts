@@ -46,24 +46,44 @@ export class AuthService {
 
     const hashedPassword = await bcryptjs.hash(input.password, 10);
 
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     try {
       const user = await this.prisma.user.create({
         data: {
           email: input.email,
           name: input.name,
           password: hashedPassword,
+          emailVerificationToken: verificationToken,
+          emailVerificationExpires: verificationExpires,
         },
         select: {
           id: true,
           email: true,
           name: true,
           avatar: true,
+          emailVerified: true,
           createdAt: true,
           updatedAt: true,
         },
       });
 
       this.logger.log(`User registered successfully: ${user.email} (ID: ${user.id})`);
+
+      // Send email verification email
+      try {
+        await this.emailService.sendEmailVerificationEmail({
+          email: user.email,
+          name: user.name,
+          verificationToken,
+        });
+        this.logger.log(`Email verification sent to: ${user.email}`);
+      } catch (error) {
+        this.logger.warn(`Failed to send verification email to ${user.email}: ${error.message}`);
+        // Don't fail registration if email fails
+      }
 
       // we create a workspace if companyName is provided
       if (input.companyName) {
@@ -238,6 +258,60 @@ export class AuthService {
 
     return {
       message: 'Password has been successfully reset. You can now login with your new password.',
+    };
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    this.logger.log(`Email verification attempt with token`);
+
+    // Find user with this verification token
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: token,
+        emailVerificationExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      this.logger.warn(`Email verification failed: Invalid or expired token`);
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    if (user.emailVerified) {
+      this.logger.debug(`Email already verified for user: ${user.email}`);
+      return {
+        message: 'Email is already verified. You can login now.',
+      };
+    }
+
+    // Update user to mark email as verified
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    this.logger.log(`Email verified successfully for user: ${user.email}`);
+
+    // Send welcome email
+    try {
+      await this.emailService.sendWelcomeEmail({
+        email: user.email,
+        name: user.name,
+      });
+      this.logger.log(`Welcome email sent to: ${user.email}`);
+    } catch (error) {
+      this.logger.warn(`Failed to send welcome email to ${user.email}: ${error.message}`);
+      // Don't fail verification if welcome email fails
+    }
+
+    return {
+      message: 'Email verified successfully! Welcome to Epitrello.',
     };
   }
 
