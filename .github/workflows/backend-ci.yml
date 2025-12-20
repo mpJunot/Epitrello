@@ -15,30 +15,8 @@ on:
       - '.github/actions/setup-backend/**'
 
 jobs:
-  lint-and-build:
-    name: Lint and Build
-    runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Backend (No DB)
-        uses: ./.github/actions/setup-backend-no-db
-
-      - name: Lint
-        working-directory: backend
-        run: pnpm lint
-
-      - name: Build
-        working-directory: backend
-        run: pnpm build
-
-  unit-tests:
-    name: Unit Tests
+  backend-tests:
+    name: Backend Lint, Build and Tests
     runs-on: ubuntu-latest
 
     env:
@@ -68,6 +46,14 @@ jobs:
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
 
+      - name: Lint
+        working-directory: backend
+        run: pnpm lint
+
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+
       - name: Run unit tests with coverage
         working-directory: backend
         run: pnpm test:unit:cov
@@ -93,9 +79,9 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
 
             if (( $(echo "$TOTAL_LINES < 80" | bc -l) )); then
-              echo "⚠️ **Warning**: Coverage is below 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+              echo "**Warning**: Coverage is below 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
             else
-              echo "✅ **Success**: Coverage meets 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+              echo "**Success**: Coverage meets 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
@@ -172,7 +158,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests]
+    needs: [backend-tests]
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
