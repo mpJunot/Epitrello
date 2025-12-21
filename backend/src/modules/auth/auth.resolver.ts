@@ -43,4 +43,12 @@ export class AuthResolver {
   async resetPassword(@Args('input') input: ResetPasswordInput): Promise<MessageResponse> {
     return this.authService.resetPassword(input);
   }
+
+  @Public()
+  @Mutation(() => MessageResponse, {
+    description: 'Verify email address using the verification token received via email. A welcome email will be sent upon successful verification.',
+  })
+  async verifyEmail(@Args('token') token: string): Promise<MessageResponse> {
+    return this.authService.verifyEmail(token);
+  }
 }

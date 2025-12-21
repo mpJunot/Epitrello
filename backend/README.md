@@ -1,170 +1,245 @@
 # Epitrello Backend
 
-NestJS-based GraphQL API with PostgreSQL database and Prisma ORM.
+Backend API pour Epitrello, construit avec NestJS, GraphQL et Prisma.
 
-## Architecture
-
-| Component      | Technology              |
-| -------------- | ----------------------- |
-| Framework      | NestJS                  |
-| API            | GraphQL (Apollo Server) |
-| Database       | PostgreSQL              |
-| ORM            | Prisma                  |
-| Authentication | JWT (Passport.js)       |
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 20 or higher
-- pnpm package manager
-- PostgreSQL database (via Docker or local installation)
-
-### Installation
-
-1. Install dependencies:
-
-   ```bash
-   cd backend
-   pnpm install
-   ```
-
-2. Set up the database:
-
-   ```bash
-   # Using Docker (recommended)
-   docker-compose -f ../docker-compose.dev.yml up -d postgres
-   ```
-
-3. Configure environment variables:
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. Initialize the database:
-
-   ```bash
-   pnpm prisma generate
-   pnpm prisma migrate dev --name init
-   ```
-
-5. Start the development server:
-   ```bash
-   pnpm start:dev
-   ```
-
-The GraphQL API will be available at `http://localhost:4000/graphql`
-
-## Available Commands
-
-### Development
-
-| Command          | Description                              |
-| ---------------- | ---------------------------------------- |
-| `pnpm start:dev` | Start development server with hot reload |
-| `pnpm start`     | Start production server                  |
-| `pnpm build`     | Build the application for production     |
-
-### Testing
-
-| Command           | Description                    |
-| ----------------- | ------------------------------ |
-| `pnpm test`       | Run unit tests                 |
-| `pnpm test:watch` | Run tests in watch mode        |
-| `pnpm test:cov`   | Run tests with coverage report |
-| `pnpm test:e2e`   | Run end-to-end tests           |
-
-### Database
-
-| Command                      | Description                       |
-| ---------------------------- | --------------------------------- |
-| `pnpm prisma generate`       | Generate Prisma Client            |
-| `pnpm prisma migrate dev`    | Create and apply migrations       |
-| `pnpm prisma migrate deploy` | Apply migrations in production    |
-| `pnpm prisma studio`         | Open Prisma Studio (database GUI) |
-
-### Code Quality
-
-| Command       | Description               |
-| ------------- | ------------------------- |
-| `pnpm lint`   | Run ESLint and fix issues |
-| `pnpm format` | Format code with Prettier |
-
-## Environment Variables
-
-| Variable         | Description                                 | Example                                                   |
-| ---------------- | ------------------------------------------- | --------------------------------------------------------- |
-| `DATABASE_URL`   | PostgreSQL connection string                | `postgresql://postgres:postgres@localhost:5432/epitrello` |
-| `PORT`           | Server port                                 | `4000`                                                    |
-| `NODE_ENV`       | Environment mode                            | `development` or `production`                             |
-| `JWT_SECRET`     | Secret key for JWT tokens                   | `your-secret-key`                                         |
-| `JWT_EXPIRES_IN` | Token expiration time                       | `7d`                                                      |
-| `FRONTEND_URL`   | Frontend URL for CORS                       | `http://localhost:3000`                                   |
-| `RESEND_API_KEY` | Resend API key for email sending (optional) | `re_your_api_key_here`                                    |
-| `EMAIL_FROM`     | Email sender address (optional)             | `noreply@yourdomain.com`                                  |
-
-**Email Configuration:**
-
-- `RESEND_API_KEY`: Get your API key from [resend.com](https://resend.com)
-- `EMAIL_FROM`: Email address to send from (must be verified in Resend)
-- If `RESEND_API_KEY` is not set, emails will be logged to console in development
-
-See `.env.example` in this directory for the complete list of environment variables.
-
-## Troubleshooting
-
-### Database Connection Issues
-
-If you encounter database connection errors:
+## 🚀 Installation
 
 ```bash
-# Restart PostgreSQL container
-docker-compose -f ../docker-compose.dev.yml restart postgres
+# Installer les dépendances
+pnpm install
 
-# Reset database (WARNING: deletes all data)
-pnpm prisma migrate reset
+# Générer le client Prisma
+pnpm prisma:generate
 
-# Regenerate Prisma Client
-pnpm prisma generate
+# Lancer les migrations
+pnpm prisma:migrate
 ```
 
-### Port Already in Use
+## 🧪 Tests
 
-If port 4000 is already in use:
+### Tests Unitaires
+
+Teste les services, resolvers et utilitaires de manière isolée :
 
 ```bash
-# Find and kill the process
-lsof -ti:4000 | xargs kill -9
+# Lancer les tests unitaires
+pnpm test:unit
 
-# Or change the PORT in .env file
+# Avec couverture
+pnpm test:unit:cov
 ```
 
-### Prisma Client Not Generated
+### Tests d'Intégration
 
-If you see "PrismaClient is not generated" errors:
+Teste les interactions entre modules (E2E spécifiques) :
 
 ```bash
-pnpm prisma generate
+pnpm test:integration
 ```
 
-## API Documentation
+### Tests E2E (End-to-End)
 
-- **GraphQL Playground**: http://localhost:4000/graphql (development only)
-- **API Reference**: [../docs/API.md](../docs/API.md)
-- **Schema Definition**: [prisma/schema.prisma](./prisma/schema.prisma)
+Teste l'application complète avec base de données :
 
-## Architecture
+```bash
+pnpm test:e2e
+```
 
-For detailed architecture information, see [ARCHITECTURE.md](./ARCHITECTURE.md).
+### Tous les Tests
 
-## Current Implementation Status
+Lancer tous les types de tests séquentiellement avec rapport détaillé :
 
-- NestJS framework with GraphQL API
-- User authentication with JWT
-- User management (CRUD operations)
-- PostgreSQL database with Prisma ORM
-- GraphQL schema generation
-- Testing framework configured
-- Code quality tools (ESLint, Prettier)
+```bash
+# Version simple
+pnpm test:all
+
+# Version avec rapport formaté
+pnpm test:all:report
+```
+
+### Autres Commandes de Test
+
+```bash
+# Tous les tests (unitaires + E2E)
+pnpm test
+
+# Tests avec couverture
+pnpm test:cov
+
+# Mode watch
+pnpm test:watch
+
+# Mode debug
+pnpm test:debug
+```
+
+## 📊 Couverture des Tests
+
+Les modules suivants ont un seuil de couverture minimum de **80%** :
+
+- **Workspaces** (`workspaces.service.ts`)
+- **Invitations** (`invitations.service.ts`)
+- **Email** (`email.service.ts`)
+
+La couverture est automatiquement vérifiée dans les pipelines CI/CD.
+
+## 🏗️ Développement
+
+```bash
+# Mode développement (watch)
+pnpm start:dev
+
+# Mode debug
+pnpm start:debug
+
+# Lint et format
+pnpm lint
+pnpm format
+
+# Build
+pnpm build
+
+# Production
+pnpm start:prod
+```
+
+## 🗄️ Base de Données
+
+```bash
+# Générer le client Prisma
+pnpm prisma:generate
+
+# Créer une migration
+pnpm prisma:migrate
+
+# Ouvrir Prisma Studio
+pnpm prisma:studio
+```
+
+## 📚 Documentation
+
+- [Architecture](./ARCHITECTURE.md) - Structure du projet
+- [API Documentation](../docs/API.md) - Documentation GraphQL complète
+- [Strategies Analysis](./src/modules/auth/STRATEGIES_ANALYSIS.md) - Analyse des stratégies OAuth
+
+## 🔐 Variables d'Environnement
+
+Copiez `.env.example` vers `.env` et configurez :
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/epitrello"
+
+# JWT
+JWT_SECRET="your-secret-key"
+
+# Email (Resend)
+RESEND_API_KEY="re_xxxxx"
+EMAIL_FROM="noreply@epitrello.com"
+
+# Frontend
+FRONTEND_URL="http://localhost:3000"
+
+# OAuth (optionnel)
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+```
+
+## 🐳 Docker
+
+```bash
+# Démarrer la base de données
+docker-compose up -d postgres
+
+# Démarrer tous les services
+docker-compose up -d
+```
+
+## 📝 Scripts Disponibles
+
+| Script | Description |
+|--------|-------------|
+| `pnpm start:dev` | Lancer en mode développement |
+| `pnpm build` | Build l'application |
+| `pnpm test` | Lancer tous les tests |
+| `pnpm test:unit` | Tests unitaires uniquement |
+| `pnpm test:unit:cov` | Tests unitaires avec couverture |
+| `pnpm test:integration` | Tests d'intégration |
+| `pnpm test:e2e` | Tests E2E |
+| `pnpm test:all:report` | Tous les tests avec rapport |
+| `pnpm lint` | Lint le code |
+| `pnpm format` | Format le code |
+| `pnpm prisma:generate` | Générer le client Prisma |
+| `pnpm prisma:migrate` | Lancer les migrations |
+| `pnpm prisma:studio` | Ouvrir Prisma Studio |
+
+## 🏗️ Architecture
+
+```
+backend/
+├── prisma/              # Schéma et migrations Prisma
+├── scripts/             # Scripts utilitaires
+├── src/
+│   ├── common/          # Décorateurs, guards, filtres
+│   ├── config/          # Configuration (JWT, DB, etc.)
+│   ├── modules/
+│   │   ├── auth/        # Authentification & OAuth
+│   │   ├── email/       # Service d'email
+│   │   ├── invitations/ # Invitations workspace
+│   │   ├── users/       # Gestion utilisateurs
+│   │   └── workspaces/  # Gestion workspaces
+│   ├── prisma/          # Module Prisma
+│   └── graphql/         # Schéma GraphQL généré
+└── test/                # Tests E2E
+```
+
+## 🔧 Technologies
+
+- **Framework** : NestJS
+- **API** : GraphQL (Apollo)
+- **ORM** : Prisma
+- **Base de données** : PostgreSQL
+- **Authentication** : JWT + Passport
+- **Email** : Resend
+- **Tests** : Jest
+- **Validation** : class-validator
+- **TypeScript** : Full TypeScript support
+
+## 📦 Modules Principaux
+
+### Auth
+- Inscription/Connexion
+- JWT Authentication
+- OAuth (Google, Microsoft, Apple, Slack)
+- Réinitialisation mot de passe
+- Vérification email
+
+### Workspaces
+- CRUD complet
+- Gestion des rôles (ADMIN, MEMBER, OBSERVER)
+- Permissions basées sur les rôles
+
+### Invitations
+- Inviter des membres
+- Accepter/Rejeter invitations
+- Gestion des rôles
+- Emails d'invitation
+
+### Email
+- Templates HTML professionnels
+- Email de vérification
+- Email de bienvenue
+- Email d'invitation workspace
+- Email de réinitialisation mot de passe
+
+## 🤝 Contribution
+
+1. Fork le projet
+2. Créer une branche (`git checkout -b feature/AmazingFeature`)
+3. Commit les changements (`git commit -m 'feat: add amazing feature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
+
+## 📄 License
+
+[MIT](../LICENSE)
