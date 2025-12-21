@@ -1,0 +1,46 @@
+name: 'Setup Backend'
+description: 'Setup Node.js, pnpm, and backend dependencies with Prisma'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '20'
+  pnpm-version:
+    description: 'pnpm version'
+    required: false
+    default: '9'
+  working-directory:
+    description: 'Backend working directory'
+    required: false
+    default: 'backend'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ inputs.pnpm-version }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+        cache-dependency-path: './${{ inputs.working-directory }}/pnpm-lock.yaml'
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm install --frozen-lockfile
+
+    - name: Generate Prisma Client
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm prisma generate
+
+    - name: Run database migrations
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: pnpm prisma migrate deploy

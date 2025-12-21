@@ -219,4 +219,125 @@ describe('EmailService', () => {
       expect(Logger.prototype.error).toHaveBeenCalled();
     });
   });
+
+  describe('sendEmailVerificationEmail', () => {
+    it('should send email verification email successfully', async () => {
+      const emailData = {
+        email: 'newuser@example.com',
+        name: 'New User',
+        verificationToken: 'verification-token-123',
+      };
+
+      (mockResend.emails.send as jest.Mock).mockResolvedValue({ id: 'email-id-verify' });
+
+      await service.sendEmailVerificationEmail(emailData);
+
+      expect(mockResend.emails.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@example.com',
+          to: emailData.email,
+          subject: expect.stringContaining('Confirm your email'),
+        }),
+      );
+    });
+
+    it('should log warning if RESEND_API_KEY is not set', async () => {
+      process.env.RESEND_API_KEY = '';
+      const testModule = await Test.createTestingModule({
+        providers: [
+          EmailService,
+          {
+            provide: ConfigService,
+            useValue: mockConfigService,
+          },
+        ],
+      }).compile();
+
+      const testService = testModule.get<EmailService>(EmailService);
+
+      const emailData = {
+        email: 'newuser@example.com',
+        name: 'New User',
+        verificationToken: 'verification-token-123',
+      };
+
+      await testService.sendEmailVerificationEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+
+      process.env.RESEND_API_KEY = 'test-api-key';
+    });
+
+    it('should handle errors when sending verification email', async () => {
+      const emailData = {
+        email: 'newuser@example.com',
+        name: 'New User',
+        verificationToken: 'verification-token-123',
+      };
+
+      (mockResend.emails.send as jest.Mock).mockRejectedValue(new Error('Send failed'));
+
+      await expect(service.sendEmailVerificationEmail(emailData)).rejects.toThrow('Send failed');
+      expect(Logger.prototype.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('sendWelcomeEmail', () => {
+    it('should send welcome email successfully', async () => {
+      const emailData = {
+        email: 'welcomeuser@example.com',
+        name: 'Welcome User',
+      };
+
+      (mockResend.emails.send as jest.Mock).mockResolvedValue({ id: 'email-id-welcome' });
+
+      await service.sendWelcomeEmail(emailData);
+
+      expect(mockResend.emails.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          from: 'test@example.com',
+          to: emailData.email,
+          subject: expect.stringContaining('Welcome to Epitrello'),
+        }),
+      );
+    });
+
+    it('should log warning if RESEND_API_KEY is not set', async () => {
+      process.env.RESEND_API_KEY = '';
+      const testModule = await Test.createTestingModule({
+        providers: [
+          EmailService,
+          {
+            provide: ConfigService,
+            useValue: mockConfigService,
+          },
+        ],
+      }).compile();
+
+      const testService = testModule.get<EmailService>(EmailService);
+
+      const emailData = {
+        email: 'welcomeuser@example.com',
+        name: 'Welcome User',
+      };
+
+      await testService.sendWelcomeEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+
+      process.env.RESEND_API_KEY = 'test-api-key';
+    });
+
+    it('should handle errors when sending welcome email', async () => {
+      const emailData = {
+        email: 'welcomeuser@example.com',
+        name: 'Welcome User',
+      };
+
+      (mockResend.emails.send as jest.Mock).mockRejectedValue(new Error('Send failed'));
+
+      await expect(service.sendWelcomeEmail(emailData)).rejects.toThrow('Send failed');
+      expect(Logger.prototype.error).toHaveBeenCalled();
+    });
+  });
 });
