@@ -137,6 +137,7 @@ model Board {
   description String?
   visibility  Visibility @default(PRIVATE)
   background  String?
+  isArchived  Boolean    @default(false)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -405,7 +406,7 @@ model OAuthAccount {
   id           String        @id @default(uuid())
   userId       String
   provider     OAuthProvider
-  providerId   String // ID de l'utilisateur chez le provider
+  providerId   String
   accessToken  String?       @db.Text
   refreshToken String?       @db.Text
   expiresAt    DateTime?
