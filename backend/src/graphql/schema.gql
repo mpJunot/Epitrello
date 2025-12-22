@@ -2,6 +2,12 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input AddBoardMemberInput {
+  boardId: ID!
+  role: String
+  userId: ID!
+}
+
 """Authentication response containing JWT token and user data"""
 type AuthPayload {
   """JWT token to use in Authorization header for authenticated requests"""
@@ -9,6 +15,37 @@ type AuthPayload {
 
   """Authenticated user information"""
   user: User!
+}
+
+type Board {
+  background: String
+  createdAt: DateTime!
+  creatorId: ID!
+  description: String
+  id: ID!
+  isArchived: Boolean!
+  members: [BoardMemberWithUser!]
+  title: String!
+  updatedAt: DateTime!
+  visibility: Visibility!
+  workspaceId: ID
+}
+
+type BoardMemberWithUser {
+  boardId: ID!
+  id: ID!
+  joinedAt: DateTime!
+  role: String!
+  user: MemberUser!
+  userId: ID!
+}
+
+input CreateBoardInput {
+  background: String
+  description: String
+  title: String!
+  visibility: Visibility
+  workspaceId: ID
 }
 
 input CreateUserInput {
@@ -78,16 +115,30 @@ type Mutation {
   """Accept a workspace invitation."""
   acceptInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
 
+  """Add a member to a board. Only board ADMIN can add members."""
+  addBoardMember(input: AddBoardMemberInput!): BoardMemberWithUser!
+
+  """Archive a board. User must be ADMIN or MEMBER."""
+  archiveBoard(id: ID!): Board!
+
   """
   Cancel a pending invitation. Only the inviter or workspace admin can cancel.
   """
   cancelInvitation(invitationId: ID!): Boolean!
+
+  """
+  Create a new board. User must be ADMIN or MEMBER of the workspace (if provided).
+  """
+  createBoard(input: CreateBoardInput!): Board!
 
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
 
   """Create a new workspace. The creator becomes an ADMIN automatically."""
   createWorkspace(input: CreateWorkspaceInput!): Workspace!
+
+  """Delete a board. Only board ADMIN can delete."""
+  deleteBoard(id: ID!): Boolean!
 
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
@@ -119,6 +170,9 @@ type Mutation {
   """Reject a workspace invitation."""
   rejectInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
 
+  """Remove a member from a board. Only board ADMIN can remove members."""
+  removeBoardMember(boardId: ID!, userId: ID!): Boolean!
+
   """Remove a member from a workspace. Only ADMIN can remove members."""
   removeMember(input: RemoveMemberInput!): Boolean!
 
@@ -126,6 +180,15 @@ type Mutation {
   Reset password using a valid reset token. The token is received via email after requesting a password reset.
   """
   resetPassword(input: ResetPasswordInput!): MessageResponse!
+
+  """Unarchive a board. User must be ADMIN or MEMBER."""
+  unarchiveBoard(id: ID!): Board!
+
+  """Update a board. User must be ADMIN or MEMBER of the board."""
+  updateBoard(input: UpdateBoardInput!): Board!
+
+  """Update a member role in a board. Only board ADMIN can update roles."""
+  updateBoardMemberRole(input: UpdateBoardMemberRoleInput!): Boolean!
 
   """Update a member role in a workspace. Only ADMIN can update roles."""
   updateMemberRole(input: UpdateMemberRoleInput!): Boolean!
@@ -143,6 +206,9 @@ type Mutation {
 }
 
 type Query {
+  """Get a board by ID. Access based on visibility and membership."""
+  board(id: ID!): Board!
+
   """Get the currently authenticated user information"""
   me: User
 
@@ -160,6 +226,9 @@ type Query {
 
   """Get a workspace by ID. User must be a member to access."""
   workspace(id: ID!): Workspace!
+
+  """List all boards in a workspace. User must be a workspace member."""
+  workspaceBoards(workspaceId: ID!): [Board!]!
 
   """Get pending invitations for a workspace. Only ADMIN can view."""
   workspaceInvitations(workspaceId: ID!): [WorkspaceInvitation!]!
@@ -201,6 +270,20 @@ input RespondInvitationInput {
   invitationId: String!
 }
 
+input UpdateBoardInput {
+  background: String
+  description: String
+  id: ID!
+  title: String
+  visibility: Visibility
+}
+
+input UpdateBoardMemberRoleInput {
+  boardId: ID!
+  role: String!
+  userId: ID!
+}
+
 input UpdateMemberRoleInput {
   role: String!
   userId: String!
@@ -229,7 +312,7 @@ type User {
   updatedAt: DateTime!
 }
 
-"""Workspace visibility level"""
+"""Board visibility settings"""
 enum Visibility {
   PRIVATE
   PUBLIC
