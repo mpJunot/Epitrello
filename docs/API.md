@@ -1913,15 +1913,809 @@ Cancel a pending invitation. Only the inviter or workspace admin can cancel.
 
 ---
 
+---
+
+## Boards
+
+### Create Board
+
+Create a new board within a workspace or as a personal board.
+
+**Mutation**: `createBoard`
+
+**Permissions**: User must be ADMIN or MEMBER of the workspace (OBSERVER cannot create boards)
+
+**GraphQL Query**:
+
+```graphql
+mutation CreateBoard($input: CreateBoardInput!) {
+  createBoard(input: $input) {
+    id
+    title
+    description
+    workspaceId
+    visibility
+    background
+    isArchived
+    creatorId
+    members {
+      id
+      userId
+      role
+      joinedAt
+      user {
+        id
+        email
+        name
+        avatar
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "title": "Sprint Planning Q1 2024",
+    "description": "Planning board for Q1 sprint",
+    "workspaceId": "workspace-uuid",
+    "visibility": "WORKSPACE",
+    "background": "#0079BF"
+  }
+}
+```
+
+> **Note**: All fields except `title` are optional
+
+**Response**:
+
+```json
+{
+  "data": {
+    "createBoard": {
+      "id": "board-uuid",
+      "title": "Sprint Planning Q1 2024",
+      "description": "Planning board for Q1 sprint",
+      "workspaceId": "workspace-uuid",
+      "visibility": "WORKSPACE",
+      "background": "#0079BF",
+      "isArchived": false,
+      "creatorId": "user-uuid",
+      "members": [
+        {
+          "id": "member-uuid",
+          "userId": "user-uuid",
+          "role": "ADMIN",
+          "joinedAt": "2024-01-01T00:00:00.000Z",
+          "user": {
+            "id": "user-uuid",
+            "email": "creator@example.com",
+            "name": "Creator User",
+            "avatar": null
+          }
+        }
+      ],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Creator automatically becomes ADMIN of the board
+- If `workspaceId` is not provided, creates a personal board
+- Default visibility is `PRIVATE`
+- OBSERVER role cannot create boards
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not a member of the workspace
+- `403 Forbidden` - User is an OBSERVER (cannot create boards)
+- `404 Not Found` - Workspace not found
+
+---
+
+### Get Board by ID
+
+Get a specific board by ID.
+
+**Query**: `board`
+
+**Permissions**: Based on board visibility
+
+- **PUBLIC**: Anyone can view
+- **WORKSPACE**: Workspace members can view
+- **PRIVATE**: Only board members can view
+
+**GraphQL Query**:
+
+```graphql
+query Board($id: ID!) {
+  board(id: $id) {
+    id
+    title
+    description
+    workspaceId
+    visibility
+    background
+    isArchived
+    creatorId
+    members {
+      id
+      userId
+      role
+      joinedAt
+      user {
+        id
+        email
+        name
+        avatar
+      }
+    }
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "board-uuid"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "query Board($id: ID!) { board(id: $id) { id title visibility isArchived members { id userId role user { id email name } } } }",
+    "variables": {
+      "id": "board-uuid"
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Board does not exist
+- `403 Forbidden` - User does not have access to this board
+
+---
+
+### List Workspace Boards
+
+Get all non-archived boards in a workspace.
+
+**Query**: `workspaceBoards`
+
+**Permissions**: User must be a member of the workspace
+
+**GraphQL Query**:
+
+```graphql
+query WorkspaceBoards($workspaceId: ID!) {
+  workspaceBoards(workspaceId: $workspaceId) {
+    id
+    title
+    description
+    visibility
+    background
+    isArchived
+    creatorId
+    members {
+      id
+      userId
+      role
+      joinedAt
+      user {
+        id
+        email
+        name
+        avatar
+      }
+    }
+    createdAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "workspaceId": "workspace-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "workspaceBoards": [
+      {
+        "id": "board-uuid-1",
+        "title": "Sprint Planning",
+        "description": "Q1 2024",
+        "visibility": "WORKSPACE",
+        "background": "#0079BF",
+        "isArchived": false,
+        "creatorId": "user-uuid",
+        "members": [
+          {
+            "id": "member-uuid-1",
+            "userId": "user-uuid",
+            "role": "ADMIN",
+            "joinedAt": "2024-01-01T00:00:00.000Z",
+            "user": {
+              "id": "user-uuid",
+              "email": "creator@example.com",
+              "name": "Creator User",
+              "avatar": null
+            }
+          }
+        ],
+        "createdAt": "2024-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+**Notes**:
+
+- Only returns non-archived boards
+- Results ordered by creation date (newest first)
+- Requires workspace membership
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not a member of the workspace
+
+---
+
+### Update Board
+
+Update board properties.
+
+**Mutation**: `updateBoard`
+
+**Permissions**: User must be ADMIN or MEMBER of the board (OBSERVER cannot edit)
+
+**GraphQL Query**:
+
+```graphql
+mutation UpdateBoard($input: UpdateBoardInput!) {
+  updateBoard(input: $input) {
+    id
+    title
+    description
+    visibility
+    background
+    members {
+      id
+      userId
+      role
+      user {
+        id
+        email
+        name
+      }
+    }
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "id": "board-uuid",
+    "title": "Updated Sprint Planning",
+    "description": "Q1 2024 - Updated",
+    "visibility": "PUBLIC",
+    "background": "#00C2E0"
+  }
+}
+```
+
+> **Note**: All fields except `id` are optional
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation UpdateBoard($input: UpdateBoardInput!) { updateBoard(input: $input) { id title visibility } }",
+    "variables": {
+      "input": {
+        "id": "board-uuid",
+        "title": "Updated Title"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Board does not exist
+- `403 Forbidden` - User is not a member of the board
+- `403 Forbidden` - User is an OBSERVER (cannot edit)
+
+---
+
+### Delete Board
+
+Permanently delete a board.
+
+**Mutation**: `deleteBoard`
+
+**Permissions**: Only board ADMIN can delete
+
+**GraphQL Query**:
+
+```graphql
+mutation DeleteBoard($id: ID!) {
+  deleteBoard(id: $id)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "board-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "deleteBoard": true
+  }
+}
+```
+
+**Notes**:
+
+- Permanently deletes the board and all associated data (lists, cards, comments, etc.)
+- This action is irreversible
+- Only ADMIN role can delete boards
+
+**Error Cases**:
+
+- `404 Not Found` - Board does not exist
+- `403 Forbidden` - User is not an ADMIN of the board
+
+---
+
+### Archive Board
+
+Archive a board (soft delete).
+
+**Mutation**: `archiveBoard`
+
+**Permissions**: User must be ADMIN or MEMBER of the board
+
+**GraphQL Query**:
+
+```graphql
+mutation ArchiveBoard($id: ID!) {
+  archiveBoard(id: $id) {
+    id
+    title
+    isArchived
+    members {
+      id
+      userId
+      role
+      user {
+        id
+        email
+        name
+      }
+    }
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "board-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "archiveBoard": {
+      "id": "board-uuid",
+      "title": "Sprint Planning",
+      "isArchived": true,
+      "updatedAt": "2024-01-10T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Archived boards are hidden from workspace board lists
+- Board data is preserved and can be unarchived
+- OBSERVER cannot archive boards
+
+**Error Cases**:
+
+- `404 Not Found` - Board does not exist
+- `403 Forbidden` - User does not have edit permission
+
+---
+
+### Unarchive Board
+
+Restore an archived board.
+
+**Mutation**: `unarchiveBoard`
+
+**Permissions**: User must be ADMIN or MEMBER of the board
+
+**GraphQL Query**:
+
+```graphql
+mutation UnarchiveBoard($id: ID!) {
+  unarchiveBoard(id: $id) {
+    id
+    title
+    isArchived
+    members {
+      id
+      userId
+      role
+      user {
+        id
+        email
+        name
+      }
+    }
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "board-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "unarchiveBoard": {
+      "id": "board-uuid",
+      "title": "Sprint Planning",
+      "isArchived": false,
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Board does not exist
+- `403 Forbidden` - User does not have edit permission
+
+---
+
+### Add Board Member
+
+Add a member to a board.
+
+**Mutation**: `addBoardMember`
+
+**Permissions**: Only board ADMIN can add members
+
+**GraphQL Query**:
+
+```graphql
+mutation AddBoardMember($input: AddBoardMemberInput!) {
+  addBoardMember(input: $input) {
+    id
+    boardId
+    userId
+    role
+    joinedAt
+    user {
+      id
+      email
+      name
+      avatar
+    }
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "boardId": "board-uuid",
+    "userId": "user-uuid",
+    "role": "MEMBER"
+  }
+}
+```
+
+> **Note**: `role` is optional, defaults to `MEMBER`. Available roles: `ADMIN`, `MEMBER`, `OBSERVER`
+
+**Response**:
+
+```json
+{
+  "data": {
+    "addBoardMember": {
+      "id": "member-uuid",
+      "boardId": "board-uuid",
+      "userId": "user-uuid",
+      "role": "MEMBER",
+      "joinedAt": "2024-01-01T00:00:00.000Z",
+      "user": {
+        "id": "user-uuid",
+        "email": "user@example.com",
+        "name": "John Doe",
+        "avatar": "https://example.com/avatar.jpg"
+      }
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation AddBoardMember($input: AddBoardMemberInput!) { addBoardMember(input: $input) { id userId role user { id email name } } }",
+    "variables": {
+      "input": {
+        "boardId": "board-uuid",
+        "userId": "user-uuid",
+        "role": "MEMBER"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the board
+- `404 Not Found` - Board or user not found
+- `409 Conflict` - User is already a member of the board
+
+---
+
+### Remove Board Member
+
+Remove a member from a board.
+
+**Mutation**: `removeBoardMember`
+
+**Permissions**: Only board ADMIN can remove members
+
+**GraphQL Query**:
+
+```graphql
+mutation RemoveBoardMember($boardId: ID!, $userId: ID!) {
+  removeBoardMember(boardId: $boardId, userId: $userId)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "boardId": "board-uuid",
+  "userId": "user-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "removeBoardMember": true
+  }
+}
+```
+
+**Notes**:
+
+- Cannot remove the last ADMIN (must assign another admin first)
+- Removed member loses all access to the board
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the board
+- `404 Not Found` - Board or member not found
+- `403 Forbidden` - Cannot remove the last administrator
+
+---
+
+### Update Board Member Role
+
+Update a member's role in a board.
+
+**Mutation**: `updateBoardMemberRole`
+
+**Permissions**: Only board ADMIN can update roles
+
+**GraphQL Query**:
+
+```graphql
+mutation UpdateBoardMemberRole($input: UpdateBoardMemberRoleInput!) {
+  updateBoardMemberRole(input: $input)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "boardId": "board-uuid",
+    "userId": "user-uuid",
+    "role": "ADMIN"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "updateBoardMemberRole": true
+  }
+}
+```
+
+**Notes**:
+
+- Cannot change the last ADMIN to another role
+- Available roles: `ADMIN`, `MEMBER`, `OBSERVER`
+
+**Error Cases**:
+
+- `403 Forbidden` - User is not an ADMIN of the board
+- `404 Not Found` - Board or member not found
+- `403 Forbidden` - Cannot change the last administrator role
+
+---
+
+## Board Types
+
+### Board
+
+```graphql
+type Board {
+  id: ID!
+  workspaceId: ID
+  title: String!
+  description: String
+  visibility: Visibility!
+  background: String
+  isArchived: Boolean!
+  creatorId: ID!
+  members: [BoardMemberWithUser!]
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+```
+
+> **Note**: `members` field contains all board members with their user information and roles
+
+### CreateBoardInput
+
+```graphql
+input CreateBoardInput {
+  title: String!
+  description: String
+  workspaceId: ID
+  visibility: Visibility
+  background: String
+}
+```
+
+### UpdateBoardInput
+
+```graphql
+input UpdateBoardInput {
+  id: ID!
+  title: String
+  description: String
+  visibility: Visibility
+  background: String
+}
+```
+
+### AddBoardMemberInput
+
+```graphql
+input AddBoardMemberInput {
+  boardId: ID!
+  userId: ID!
+  role: String
+}
+```
+
+> **Note**: `role` is optional, defaults to `MEMBER`
+
+### UpdateBoardMemberRoleInput
+
+```graphql
+input UpdateBoardMemberRoleInput {
+  boardId: ID!
+  userId: ID!
+  role: String!
+}
+```
+
+### BoardMemberWithUser
+
+```graphql
+type BoardMemberWithUser {
+  id: ID!
+  boardId: ID!
+  userId: ID!
+  role: String!
+  joinedAt: DateTime!
+  user: MemberUser!
+}
+```
+
+---
+
 ## Role-Based Access Control
 
 ### Roles
 
-- **ADMIN**: Full control over workspace (invite, remove, update roles, delete workspace)
-- **MEMBER**: Can view and edit workspace content
-- **OBSERVER**: Read-only access to workspace
+- **ADMIN**: Full control over workspace/board (invite, remove, update roles, delete)
+- **MEMBER**: Can view and edit content, create boards
+- **OBSERVER**: Read-only access (cannot create or edit)
 
-### Permission Matrix
+### Permission Matrix - Workspaces
 
 | Action           | ADMIN | MEMBER | OBSERVER |
 | ---------------- | ----- | ------ | -------- |
@@ -1931,9 +2725,144 @@ Cancel a pending invitation. Only the inviter or workspace admin can cancel.
 | Invite members   | ✓     | ✗      | ✗        |
 | Remove members   | ✓     | ✗      | ✗        |
 | Update roles     | ✓     | ✗      | ✗        |
+| Create boards    | ✓     | ✓      | ✗        |
 | Leave workspace  | ✓\*   | ✓      | ✓        |
 
 > **Note**: \*ADMINs cannot leave if they are the last admin. They must assign another admin first.
+
+### Permission Matrix - Boards
+
+| Action             | ADMIN | MEMBER | OBSERVER |
+| ------------------ | ----- | ------ | -------- |
+| View board         | ✓     | ✓      | ✓        |
+| Edit board         | ✓     | ✓      | ✗        |
+| Delete board       | ✓     | ✗      | ✗        |
+| Archive            | ✓     | ✓      | ✗        |
+| Unarchive          | ✓     | ✓      | ✗        |
+| Add members        | ✓     | ✗      | ✗        |
+| Remove members     | ✓     | ✗      | ✗        |
+| Update member role | ✓     | ✗      | ✗        |
+
+### Board Visibility
+
+- **PRIVATE**: Only board members can view
+- **WORKSPACE**: All workspace members can view
+- **PUBLIC**: Anyone can view (even without authentication)
+
+---
+
+## Board Management Examples
+
+### Complete Board Workflow with Members
+
+1. **Create a board:**
+
+```graphql
+mutation {
+  createBoard(
+    input: {
+      title: "Sprint Planning"
+      workspaceId: "workspace-uuid"
+      visibility: WORKSPACE
+    }
+  ) {
+    id
+    title
+    members {
+      id
+      userId
+      role
+      user {
+        id
+        email
+        name
+      }
+    }
+  }
+}
+```
+
+2. **Get board with all members:**
+
+```graphql
+query {
+  board(id: "board-uuid") {
+    id
+    title
+    visibility
+    members {
+      id
+      userId
+      role
+      joinedAt
+      user {
+        id
+        email
+        name
+        avatar
+      }
+    }
+  }
+}
+```
+
+3. **Add a member to the board:**
+
+```graphql
+mutation {
+  addBoardMember(
+    input: {
+      boardId: "board-uuid"
+      userId: "user-uuid-2"
+      role: MEMBER
+    }
+  ) {
+    id
+    userId
+    role
+    user {
+      id
+      email
+      name
+    }
+  }
+}
+```
+
+4. **Update a member's role:**
+
+```graphql
+mutation {
+  updateBoardMemberRole(
+    input: {
+      boardId: "board-uuid"
+      userId: "user-uuid-2"
+      role: ADMIN
+    }
+  )
+}
+```
+
+5. **List all boards in workspace with members:**
+
+```graphql
+query {
+  workspaceBoards(workspaceId: "workspace-uuid") {
+    id
+    title
+    members {
+      id
+      userId
+      role
+      user {
+        id
+        email
+        name
+      }
+    }
+  }
+}
+```
 
 ---
 
