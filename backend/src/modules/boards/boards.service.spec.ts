@@ -185,6 +185,49 @@ describe('BoardsService', () => {
       await expect(service.create(input, mockUser.id)).rejects.toThrow(NotFoundException);
       await expect(service.create(input, mockUser.id)).rejects.toThrow('Workspace not found');
     });
+
+    it('should create a public board without workspace', async () => {
+      const input = {
+        title: 'New Public Board',
+        visibility: Visibility.PUBLIC,
+      };
+
+      mockPrismaService.board.create.mockResolvedValue({ ...mockBoard, ...input, workspaceId: null });
+
+      const result = await service.create(input, mockUser.id);
+
+      expect(result).toEqual(expect.objectContaining({ ...input, workspaceId: null }));
+      expect(prismaService.board.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: input.title,
+            visibility: input.visibility,
+            workspaceId: undefined, // ensure no workspaceId is passed if not provided
+          }),
+        }),
+      );
+    });
+
+    it('should create a board with a specified background', async () => {
+      const input = {
+        title: 'Board with Background',
+        background: '#FFFFFF',
+      };
+
+      mockPrismaService.board.create.mockResolvedValue({ ...mockBoard, ...input, workspaceId: null });
+
+      const result = await service.create(input, mockUser.id);
+
+      expect(result).toEqual(expect.objectContaining({ ...input, workspaceId: null }));
+      expect(prismaService.board.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: input.title,
+            background: input.background,
+          }),
+        }),
+      );
+    });
   });
 
   describe('findOne', () => {
@@ -253,6 +296,48 @@ describe('BoardsService', () => {
       const result = await service.findOne(mockBoard.id, 'other-user');
 
       expect(result).toEqual(workspaceBoard);
+    });
+
+    it('should throw ForbiddenException for WORKSPACE visibility if user is not workspace member', async () => {
+      const workspaceBoard = {
+        ...mockBoard,
+        visibility: Visibility.WORKSPACE,
+        members: [],
+        workspace: {
+          id: 'workspace-1',
+          memberships: [], // No members in workspace
+        },
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(workspaceBoard);
+
+      await expect(service.findOne(mockBoard.id, 'other-user')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.findOne(mockBoard.id, 'other-user')).rejects.toThrow(
+        'You do not have access to this board',
+      );
+    });
+
+    it('should throw ForbiddenException if user is not board member, not workspace member for WORKSPACE visibility, and board is PRIVATE', async () => {
+      const privateBoard = {
+        ...mockBoard,
+        visibility: Visibility.PRIVATE,
+        members: [], // Not a board member
+        workspace: {
+          id: 'workspace-1',
+          memberships: [], // Not a workspace member
+        },
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(privateBoard);
+
+      await expect(service.findOne(mockBoard.id, 'other-user')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.findOne(mockBoard.id, 'other-user')).rejects.toThrow(
+        'You do not have access to this board',
+      );
     });
   });
 
@@ -377,6 +462,58 @@ describe('BoardsService', () => {
 
       await expect(service.update(input, mockUser.id)).rejects.toThrow(ForbiddenException);
     });
+
+    it('should update board with new visibility', async () => {
+      const input = {
+        id: mockBoard.id,
+        visibility: Visibility.PUBLIC,
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.board.update.mockResolvedValue({
+        ...mockBoard,
+        visibility: Visibility.PUBLIC,
+      });
+
+      const result = await service.update(input, mockUser.id);
+
+      expect(result.visibility).toBe(Visibility.PUBLIC);
+      expect(prismaService.board.update).toHaveBeenCalledWith({
+        where: { id: mockBoard.id },
+        data: {
+          title: undefined,
+          description: undefined,
+          visibility: input.visibility,
+          background: undefined,
+        },
+      });
+    });
+
+    it('should update board with new background', async () => {
+      const input = {
+        id: mockBoard.id,
+        background: '#000000',
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.board.update.mockResolvedValue({
+        ...mockBoard,
+        background: '#000000',
+      });
+
+      const result = await service.update(input, mockUser.id);
+
+      expect(result.background).toBe('#000000');
+      expect(prismaService.board.update).toHaveBeenCalledWith({
+        where: { id: mockBoard.id },
+        data: {
+          title: undefined,
+          description: undefined,
+          visibility: undefined,
+          background: input.background,
+        },
+      });
+    });
   });
 
   describe('delete', () => {
@@ -471,6 +608,40 @@ describe('BoardsService', () => {
         NotFoundException,
       );
     });
+
+    it('should throw ForbiddenException if user is OBSERVER', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          {
+            id: 'member-1',
+            userId: mockUser.id,
+            role: Role.OBSERVER,
+          },
+        ],
+      });
+
+      await expect(service.archive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.archive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        'Observers do not have edit permission',
+      );
+    });
+
+    it('should throw ForbiddenException if user is not a board member', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [],
+      });
+
+      await expect(service.archive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.archive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        'You are not a member of this board',
+      );
+    });
   });
 
   describe('unarchive', () => {
@@ -491,6 +662,48 @@ describe('BoardsService', () => {
         where: { id: mockBoard.id },
         data: { isArchived: false },
       });
+    });
+
+    it('should throw NotFoundException if board not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.unarchive('invalid-id', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw ForbiddenException if user is OBSERVER', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          {
+            id: 'member-1',
+            userId: mockUser.id,
+            role: Role.OBSERVER,
+          },
+        ],
+      });
+
+      await expect(service.unarchive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.unarchive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        'Observers do not have edit permission',
+      );
+    });
+
+    it('should throw ForbiddenException if user is not a board member', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [],
+      });
+
+      await expect(service.unarchive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.unarchive(mockBoard.id, mockUser.id)).rejects.toThrow(
+        'You are not a member of this board',
+      );
     });
   });
 
@@ -573,6 +786,31 @@ describe('BoardsService', () => {
         'already a member',
       );
     });
+
+    it('should throw NotFoundException if board not found', async () => {
+      const input = {
+        boardId: 'invalid-id',
+        userId: 'user-2',
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.addMember(input, mockUser.id)).rejects.toThrow(NotFoundException);
+      await expect(service.addMember(input, mockUser.id)).rejects.toThrow('Board not found');
+    });
+
+    it('should throw NotFoundException if user not found', async () => {
+      const input = {
+        boardId: mockBoard.id,
+        userId: 'invalid-user',
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.addMember(input, mockUser.id)).rejects.toThrow(NotFoundException);
+      await expect(service.addMember(input, mockUser.id)).rejects.toThrow('User not found');
+    });
   });
 
   describe('removeMember', () => {
@@ -634,6 +872,35 @@ describe('BoardsService', () => {
         'Cannot remove the last administrator',
       );
     });
+
+    it('should throw NotFoundException if board not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.removeMember('invalid-id', 'user-2', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.removeMember('invalid-id', 'user-2', mockUser.id)).rejects.toThrow(
+        'Board not found',
+      );
+    });
+
+    it('should throw NotFoundException if member to remove not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard); // Board found
+      // Mock that memberToRemove is not in the board.members array
+      const boardWithoutMemberToRemove = {
+        ...mockBoard,
+        members: [{ userId: mockUser.id, role: Role.ADMIN }], // Only mockUser is a member
+      };
+      mockPrismaService.board.findUnique.mockResolvedValue(boardWithoutMemberToRemove);
+
+
+      await expect(service.removeMember(mockBoard.id, 'non-existent-user', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.removeMember(mockBoard.id, 'non-existent-user', mockUser.id)).rejects.toThrow(
+        'Member not found in this board',
+      );
+    });
   });
 
   describe('updateMemberRole', () => {
@@ -685,6 +952,59 @@ describe('BoardsService', () => {
       await expect(
         service.updateMemberRole(mockBoard.id, mockUser.id, Role.MEMBER, mockUser.id),
       ).rejects.toThrow('Cannot change the last administrator role');
+    });
+
+    it('should throw NotFoundException if board not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.updateMemberRole('invalid-id', 'user-2', Role.MEMBER, mockUser.id),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateMemberRole('invalid-id', 'user-2', Role.MEMBER, mockUser.id),
+      ).rejects.toThrow('Board not found');
+    });
+
+    it('should throw NotFoundException if member to update not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard); // Board found
+      // Mock that memberToUpdate is not in the board.members array
+      const boardWithoutMemberToUpdate = {
+        ...mockBoard,
+        members: [{ userId: mockUser.id, role: Role.ADMIN }], // Only mockUser is a member
+      };
+      mockPrismaService.board.findUnique.mockResolvedValue(boardWithoutMemberToUpdate);
+
+      await expect(
+        service.updateMemberRole(mockBoard.id, 'non-existent-user', Role.MEMBER, mockUser.id),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.updateMemberRole(mockBoard.id, 'non-existent-user', Role.MEMBER, mockUser.id),
+      ).rejects.toThrow('Member not found in this board');
+    });
+
+    it('should throw ForbiddenException if requester is not ADMIN', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          {
+            id: 'member-1',
+            userId: mockUser.id,
+            role: Role.MEMBER,
+          },
+          {
+            id: 'member-2',
+            userId: 'user-2',
+            role: Role.MEMBER,
+          },
+        ],
+      });
+
+      await expect(
+        service.updateMemberRole(mockBoard.id, 'user-2', Role.ADMIN, mockUser.id),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.updateMemberRole(mockBoard.id, 'user-2', Role.ADMIN, mockUser.id),
+      ).rejects.toThrow('Only board administrators can update member roles');
     });
   });
 });
