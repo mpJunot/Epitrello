@@ -2,6 +2,18 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { PasswordResetEmailData } from './interfaces/email.interface';
 import { getPasswordResetTemplate } from './templates/password-reset.template';
+import {
+  generateWorkspaceInvitationEmail,
+  WorkspaceInvitationEmailData
+} from './templates/workspace-invitation.template';
+import {
+  generateEmailVerificationEmail,
+  EmailVerificationEmailData,
+} from './templates/email-verification.template';
+import {
+  generateWelcomeEmail,
+  WelcomeEmailData,
+} from './templates/welcome.template';
 
 @Injectable()
 export class EmailService {
@@ -67,5 +79,113 @@ export class EmailService {
       throw error;
     }
   }
-}
 
+  async sendWorkspaceInvitationEmail(data: WorkspaceInvitationEmailData): Promise<void> {
+    const { inviteeEmail, invitationId } = data;
+
+    const acceptUrl = `${this.frontendUrl}/invitations/accept?id=${invitationId}`;
+    const rejectUrl = `${this.frontendUrl}/invitations/reject?id=${invitationId}`;
+
+    if (!process.env.RESEND_API_KEY) {
+      this.logger.warn(
+        `Email sending disabled. Workspace invitation for ${inviteeEmail}`,
+      );
+      this.logger.warn(`Accept link: ${acceptUrl}`);
+      this.logger.warn(`Reject link: ${rejectUrl}`);
+      return;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `Email sending disabled. Workspace invitation for ${inviteeEmail}`,
+      );
+      return;
+    }
+
+    const { subject, html, text } = generateWorkspaceInvitationEmail(data);
+
+    try {
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to: inviteeEmail,
+        subject,
+        html,
+        text,
+      });
+
+      this.logger.log(`Workspace invitation email sent to ${inviteeEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send workspace invitation email to ${inviteeEmail}`, error);
+      throw error;
+    }
+  }
+
+  async sendEmailVerificationEmail(data: EmailVerificationEmailData): Promise<void> {
+    const { email, verificationToken } = data;
+
+    const verifyUrl = `${this.frontendUrl}/auth/verify-email?token=${verificationToken}`;
+
+    if (!process.env.RESEND_API_KEY) {
+      this.logger.warn(
+        `Email sending disabled. Email verification for ${email}`,
+      );
+      this.logger.warn(`Verification link: ${verifyUrl}`);
+      return;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(
+        `Email sending disabled. Email verification for ${email}`,
+      );
+      return;
+    }
+
+    const { subject, html, text } = generateEmailVerificationEmail(data);
+
+    try {
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to: email,
+        subject,
+        html,
+        text,
+      });
+
+      this.logger.log(`Email verification sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send email verification to ${email}`, error);
+      throw error;
+    }
+  }
+
+  async sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
+    const { email } = data;
+
+    if (!process.env.RESEND_API_KEY) {
+      this.logger.warn(`Email sending disabled. Welcome email for ${email}`);
+      return;
+    }
+
+    if (!this.resend) {
+      this.logger.warn(`Email sending disabled. Welcome email for ${email}`);
+      return;
+    }
+
+    const { subject, html, text } = generateWelcomeEmail(data);
+
+    try {
+      await this.resend.emails.send({
+        from: this.fromEmail,
+        to: email,
+        subject,
+        html,
+        text,
+      });
+
+      this.logger.log(`Welcome email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send welcome email to ${email}`, error);
+      throw error;
+    }
+  }
+}

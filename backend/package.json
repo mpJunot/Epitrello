@@ -17,7 +17,12 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:unit": "jest --testPathPattern=src/.*\\.spec\\.ts$",
+    "test:unit:cov": "jest --testPathPattern=src/.*\\.spec\\.ts$ --coverage",
+    "test:integration": "jest --testPathPattern=test/.*\\.e2e-spec\\.ts$ --config ./test/jest-e2e.json --testPathIgnorePatterns=app.e2e-spec",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:all": "pnpm test:unit:cov && pnpm test:integration && pnpm test:e2e",
+    "test:all:report": "node scripts/run-all-tests.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
