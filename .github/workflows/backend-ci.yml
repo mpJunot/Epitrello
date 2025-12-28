@@ -1,0 +1,200 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+      - '.github/actions/setup-backend/**'
+  pull_request:
+    branches: [master, dev]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+      - '.github/actions/setup-backend/**'
+
+jobs:
+  backend-tests:
+    name: Backend Lint, Build and Tests
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Lint
+        working-directory: backend
+        run: pnpm lint
+
+      - name: Build
+        working-directory: backend
+        run: pnpm build
+
+      - name: Run unit tests with coverage
+        working-directory: backend
+        run: pnpm test:unit:cov
+
+      - name: Generate coverage summary
+        working-directory: backend
+        run: |
+          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|----------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f coverage/coverage-summary.json ]; then
+            TOTAL_STMTS=$(cat coverage/coverage-summary.json | jq -r '.total.statements.pct')
+            TOTAL_BRANCH=$(cat coverage/coverage-summary.json | jq -r '.total.branches.pct')
+            TOTAL_FUNCS=$(cat coverage/coverage-summary.json | jq -r '.total.functions.pct')
+            TOTAL_LINES=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct')
+
+            echo "| Statements | ${TOTAL_STMTS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${TOTAL_BRANCH}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${TOTAL_FUNCS}% |" >> $GITHUB_STEP_SUMMARY
+            echo "| Lines | ${TOTAL_LINES}% |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if (( $(echo "$TOTAL_LINES < 80" | bc -l) )); then
+              echo "**Warning**: Coverage is below 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "**Success**: Coverage meets 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Check module coverage thresholds
+        working-directory: backend
+        run: |
+          echo "Checking module coverage..."
+          if [ -f coverage/coverage-summary.json ]; then
+            # Check workspace module
+            WORKSPACE_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("workspaces.service.ts"))) |
+              if length > 0 then .[0].value.lines.pct else 0 end
+            ')
+
+            if [ "$WORKSPACE_COV" != "0" ]; then
+              echo "Workspace Service: ${WORKSPACE_COV}%"
+              if (( $(echo "$WORKSPACE_COV < 80" | bc -l) )); then
+                echo "WARNING: Workspace service coverage is below 80%"
+              else
+                echo "SUCCESS: Workspace service meets coverage requirements"
+              fi
+            fi
+
+            # Check invitations module
+            INVITATIONS_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("invitations.service.ts"))) |
+              if length > 0 then .[0].value.lines.pct else 0 end
+            ')
+
+            if [ "$INVITATIONS_COV" != "0" ]; then
+              echo "Invitations Service: ${INVITATIONS_COV}%"
+              if (( $(echo "$INVITATIONS_COV < 80" | bc -l) )); then
+                echo "WARNING: Invitations service coverage is below 80%"
+              else
+                echo "SUCCESS: Invitations service meets coverage requirements"
+              fi
+            fi
+
+            # Check email module
+            EMAIL_COV=$(cat coverage/coverage-summary.json | jq -r '
+              to_entries |
+              map(select(.key | contains("email.service.ts"))) |
+              if length > 0 then .[0].value.lines.pct else 0 end
+            ')
+
+            if [ "$EMAIL_COV" != "0" ]; then
+              echo "Email Service: ${EMAIL_COV}%"
+              if (( $(echo "$EMAIL_COV < 80" | bc -l) )); then
+                echo "WARNING: Email service coverage is below 80%"
+              else
+                echo "SUCCESS: Email service meets coverage requirements"
+              fi
+            fi
+          fi
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend/coverage/lcov.info
+          flags: backend,unittests
+          name: backend-unit-tests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Archive coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-unit
+          path: backend/coverage/
+          retention-days: 30
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [backend-tests]
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Run integration tests
+        working-directory: backend
+        run: pnpm test:integration
+
+      - name: Archive integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-integration-results
+          path: backend/test-results/
+          retention-days: 30
