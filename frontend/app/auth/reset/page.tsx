@@ -32,12 +32,13 @@ export default function ResetPasswordPage() {
     const query = `mutation ResetPassword($input: ResetPasswordInput!) { resetPassword(input: $input) { message } }`;
 
     try {
+      console.log("GraphQL Endpoint:", graphqlEndpoint);
       const res = await fetch(graphqlEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, variables: { input: { newPassword: data.password, token } } }),
       });
-
+      
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Erreur serveur: ${res.status}`);

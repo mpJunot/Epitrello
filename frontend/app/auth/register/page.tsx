@@ -33,9 +33,10 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    const url = "http://localhost:4000/graphql";
+    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
     try {
       setError(null);
+      console.log("API URL:", url);
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
