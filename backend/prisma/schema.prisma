@@ -47,6 +47,13 @@ enum NotificationType {
   WORKSPACE_INVITATION
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 enum OAuthProvider {
   GOOGLE
   APPLE
@@ -74,6 +81,7 @@ model Workspace {
 
   boards      Board[]
   memberships WorkspaceMember[]
+  invitations WorkspaceInvitation[]
 
   @@map("workspaces")
 }
@@ -85,24 +93,29 @@ model Workspace {
 // Users can create boards, be assigned to cards, and participate in workspaces.
 
 model User {
-  id                   String    @id @default(uuid())
-  email                String    @unique
-  name                 String
-  password             String
-  avatar               String?
-  resetPasswordToken   String?
-  resetPasswordExpires DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  name                   String
+  password               String
+  avatar                 String?
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?   @unique
+  emailVerificationExpires DateTime?
+  resetPasswordToken     String?
+  resetPasswordExpires   DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  createdBoards        Board[]           @relation("BoardCreator")
-  boardMembers         BoardMember[]
-  cardAssignees        CardAssignee[]
-  comments             Comment[]
-  attachments          Attachment[]
-  workspaceMemberships WorkspaceMember[]
-  notifications        Notification[]
-  oauthAccounts        OAuthAccount[]
+  createdBoards          Board[]                 @relation("BoardCreator")
+  boardMembers           BoardMember[]
+  cardAssignees          CardAssignee[]
+  comments               Comment[]
+  attachments            Attachment[]
+  workspaceMemberships   WorkspaceMember[]
+  notifications          Notification[]
+  oauthAccounts          OAuthAccount[]
+  sentInvitations        WorkspaceInvitation[]   @relation("InvitationInviter")
+  receivedInvitations    WorkspaceInvitation[]   @relation("InvitationInvitee")
 
   @@map("users")
 }
@@ -124,6 +137,7 @@ model Board {
   description String?
   visibility  Visibility @default(PRIVATE)
   background  String?
+  isArchived  Boolean    @default(false)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
@@ -392,7 +406,7 @@ model OAuthAccount {
   id           String        @id @default(uuid())
   userId       String
   provider     OAuthProvider
-  providerId   String // ID de l'utilisateur chez le provider
+  providerId   String
   accessToken  String?       @db.Text
   refreshToken String?       @db.Text
   expiresAt    DateTime?
@@ -407,4 +421,34 @@ model OAuthAccount {
   @@unique([provider, providerId])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+// ----------------------------------------------------------------------------
+// WorkspaceInvitation
+// ----------------------------------------------------------------------------
+// Represents an invitation to join a workspace.
+// Invitations can be sent to existing users or email addresses.
+
+model WorkspaceInvitation {
+  id           String           @id @default(uuid())
+  workspaceId  String
+  inviterId    String
+  inviteeEmail String
+  inviteeId    String?
+  role         Role             @default(MEMBER)
+  status       InvitationStatus @default(PENDING)
+  token        String           @unique
+  expiresAt    DateTime
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  inviter   User      @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee   User?     @relation("InvitationInvitee", fields: [inviteeId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId])
+  @@index([inviteeEmail])
+  @@index([inviteeId])
+  @@index([status])
+  @@map("workspace_invitations")
 }
