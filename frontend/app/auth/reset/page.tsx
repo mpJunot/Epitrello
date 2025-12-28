@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
 
             <p className='text-sm text-gray-500 text-center'>
               Back to{' '}
-              <a href='/login' className='text-indigo-600'>
+              <a href='/auth/login' className='text-indigo-600'>
                 login
               </a>
             </p>

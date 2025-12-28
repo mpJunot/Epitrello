@@ -59,7 +59,6 @@ export default function LoginPage() {
         throw new Error(json.errors[0].message || "Erreur GraphQL");
       }
 
-      // Optionally store token from json.data.login.token
       // Redirect to dashboard
       window.location.href = '/dashboard';
     } catch (err) {
@@ -232,12 +231,38 @@ export default function LoginPage() {
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Microsoft.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/microsoft`;
+                      try {
+                        console.log("[auth] redirecting to Microsoft OAuth:", target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   <span className='text-sm text-gray-700'>Microsoft</span>
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Apple.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/apple`;
+                      try {
+                        console.log("[auth] redirecting to Apple OAuth:", target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   {/* Placeholder icons using text */}
