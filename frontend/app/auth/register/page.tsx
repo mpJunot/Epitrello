@@ -85,10 +85,10 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
       <div className="max-w-md w-full">
         <div className="bg-white shadow rounded-2xl p-6">
-          <h2 className="text-black text-lg font-semibold mb-4">Créer un compte</h2>
+          <h2 className="text-black text-lg font-semibold mb-4">Create an account</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-600">Nom complet</label>
+              <label className="block text-sm text-gray-600">Full name</label>
               <input {...register("name")}
                 className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.name ? "border-red-500" : ""}`}
                 placeholder="Jean Dupont" />
@@ -96,7 +96,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-600">Nom de la boutique (optionnel)</label>
+              <label className="block text-sm text-gray-600">Shop name (optional)</label>
               <input {...register("company")} className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="Ma boutique" />
             </div>
 
