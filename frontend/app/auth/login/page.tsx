@@ -112,7 +112,7 @@ export default function LoginPage() {
             <div className='mx-auto h-12 w-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-bold'>
               E
             </div>
-            <h1 className='mt-3 text-xl font-semibold'>Epitrello</h1>
+            <h1 className='mt-3 text-xl font-semibold text-gray-900'>Epitrello</h1>
             <p className='text-sm text-gray-600'>Sign in to your account</p>
           </div>
 
