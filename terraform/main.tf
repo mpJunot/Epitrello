@@ -122,13 +122,16 @@ module "cloud_run" {
 # ===================================
 # Cloud Storage Module
 # ===================================
+# Note: We construct the Cloud Run service account email directly to avoid circular dependency
+# The service account email format is: ${app_name}-backend-sa@${project_id}.iam.gserviceaccount.com
 module "cloud_storage" {
   source = "./modules/cloud-storage"
 
-  project_id            = var.project_id
-  app_name              = local.app_name
-  location              = var.storage_location
-  service_account_email = google_service_account.default.email
+  project_id                      = var.project_id
+  app_name                        = local.app_name
+  location                        = var.storage_location
+  service_account_email           = google_service_account.default.email
+  cloud_run_service_account_email = "${local.app_name}-backend-sa@${var.project_id}.iam.gserviceaccount.com"
 
   # CORS configuration for frontend
   cors_origins = [
@@ -138,20 +141,6 @@ module "cloud_storage" {
   ]
 
   labels = local.common_labels
-}
-
-# ===================================
-# IAM: Grant Cloud Run service account access to Storage bucket
-# ===================================
-resource "google_storage_bucket_iam_member" "cloud_run_storage_access" {
-  bucket = module.cloud_storage.bucket_name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${module.cloud_run.service_account_email}"
-
-  depends_on = [
-    module.cloud_storage,
-    module.cloud_run
-  ]
 }
 
 # ===================================

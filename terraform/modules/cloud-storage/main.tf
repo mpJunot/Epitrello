@@ -63,6 +63,19 @@ resource "google_storage_bucket_iam_member" "backend_admin" {
 }
 
 # ===================================
+# IAM: Cloud Run service account access (optional)
+# ===================================
+resource "google_storage_bucket_iam_member" "cloud_run_admin" {
+  count = var.cloud_run_service_account_email != null ? 1 : 0
+
+  bucket = google_storage_bucket.uploads.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${var.cloud_run_service_account_email}"
+
+  depends_on = [google_storage_bucket.uploads]
+}
+
+# ===================================
 # IAM: Public read access (optional, for signed URLs)
 # ===================================
 resource "google_storage_bucket_iam_member" "public_read" {
