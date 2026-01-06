@@ -7,14 +7,14 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ```
 .github/
 ├── workflows/
+│   ├── deploy.yml               # Unified deployment (staging/production) with Terraform
 │   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
 │   ├── frontend-ci.yml          # Frontend tests (lint, build)
 │   ├── e2e-tests.yml            # End-to-end tests
-│   ├── code-quality.yml         # Code formatting and Prisma validation
-│   ├── deploy-staging.yml       # Staging deployment (dev branch)
-│   ├── deploy-production.yml    # Production deployment (master branch)
-│   ├── docker-build.yml         # Docker image builds
-│   └── release.yml              # GitHub releases
+│   ├── code-quality.yml        # Code quality (lint, CodeQL, Prisma validation)
+│   ├── terraform-plan.yml       # Terraform plan on PRs
+│   ├── database-migrations.yml  # Database migrations management
+│   └── cleanup-cost-management.yml # Cost optimization and cleanup
 └── actions/
     ├── setup-backend/           # Reusable: Backend setup with DB
     │   └── action.yml
@@ -133,7 +133,7 @@ pnpm test:e2e
 
 ### 4. Code Quality (`code-quality.yml`)
 
-Checks code formatting and validates Prisma schema.
+Comprehensive code quality checks including linting, security analysis, and dependency review.
 
 **Triggers:**
 
@@ -142,74 +142,123 @@ Checks code formatting and validates Prisma schema.
 
 **Jobs:**
 
-#### `format-check`
-
-- Prettier format validation
-
-#### `prisma-validate`
-
-- Prisma schema validation
+1. **`lint-backend`** - ESLint validation for backend
+2. **`lint-frontend`** - ESLint validation for frontend
+3. **`prisma-validate`** - Prisma schema validation
+4. **`codeql-analysis`** - CodeQL security analysis (JavaScript/TypeScript)
+5. **`dependency-review`** - Dependency vulnerability review
 
 **Commands:**
 
 ```bash
-pnpm prettier --check .
+pnpm lint
 pnpm prisma validate
 ```
 
 ---
 
-### 5. Deploy Staging (`deploy-staging.yml`)
+### 5. Deploy to GCP (`deploy.yml`)
 
-Automated deployment to staging environment.
+Unified deployment workflow for staging and production with automatic change detection.
 
 **Triggers:**
 
-- Push to `dev` branch
+- Push to `master` (production) or `dev` (staging) branches
+- Pull requests
+- Manual workflow dispatch with environment selection
+
+**Features:**
+
+- Automatic change detection (backend/frontend/terraform)
+- Comprehensive testing before deployment
+- Security scanning with Trivy
+- Terraform validation and deployment
+- Docker image build and push to GCR
+- Cloud Run (backend) and App Engine (frontend) deployment
+- Smoke tests after deployment
+
+**Jobs:**
+
+1. **`detect-changes`** - Detect what changed (backend/frontend/terraform)
+2. **`test-backend`** - Run backend tests
+3. **`test-frontend`** - Run frontend tests
+4. **`security-scan`** - Trivy vulnerability scanner
+5. **`terraform-validate`** - Validate Terraform configuration
+6. **`build-backend`** - Build and push Docker image to GCR
+7. **`build-frontend`** - Build frontend application
+8. **`terraform-plan`** - Generate Terraform plan
+9. **`terraform-apply`** - Apply Terraform changes
+10. **`deploy-backend`** - Deploy to Cloud Run
+11. **`deploy-frontend`** - Deploy to App Engine
+12. **`smoke-tests`** - Run smoke tests
+13. **`notify`** - Deployment status notification
+
+**Environments:**
+
+- `staging` - Automatic on `dev` branch
+- `production` - Automatic on `master` branch
+
+**Required Secrets:**
+
+- `GCP_SA_KEY` - GCP Service Account JSON key
+- `GCP_PROJECT_ID` - GCP Project ID
+- `STAGING_API_URL` / `PRODUCTION_API_URL` - API URLs
+
+---
+
+### 6. Terraform Plan (`terraform-plan.yml`)
+
+Automated Terraform plan on pull requests with PR comments.
+
+**Triggers:**
+
+- Pull requests modifying Terraform files
+
+**Jobs:**
+
+1. **`terraform-plan`** - Format check, validation, and plan
+2. Comments PR with Terraform plan output
+
+---
+
+### 7. Database Migrations (`database-migrations.yml`)
+
+Automated Prisma database migration management.
+
+**Triggers:**
+
+- Push of migrations to `master` branch
+- Manual workflow dispatch
+
+**Actions:**
+
+- `status` - Check migration status
+- `deploy` - Apply migrations
+- `reset` - Reset database (staging only)
+
+**Environments:**
+
+- `staging` - Automatic on push
+- `production` - Manual only
+
+---
+
+### 8. Cleanup & Cost Management (`cleanup-cost-management.yml`)
+
+Automated cost optimization and resource cleanup.
+
+**Triggers:**
+
+- Daily at 2 AM UTC
 - Manual workflow dispatch
 
 **Jobs:**
 
-1. **`test-backend`** - Run backend tests before deployment
-2. **`deploy-backend`** - Backend deployment to staging
-3. **`deploy-frontend`** - Frontend deployment to staging
-4. **`notify`** - Deployment status notification
-
-**Environment:** `staging`
-
-**Required Secrets:**
-
-- `STAGING_API_URL` - Staging API endpoint URL
-
-**Note:** Deployment steps are placeholders. Configure for your infrastructure.
-
----
-
-### 6. Deploy Production (`deploy-production.yml`)
-
-Production deployment with full test verification.
-
-**Triggers:**
-
-- Push to `master`/`main` branches
-- Version tags (`v*.*.*`)
-- Manual dispatch with version input
-
-**Jobs:**
-
-1. **`verify-tests`** - Complete test suite validation
-2. **`deploy-backend`** - Production backend deployment
-3. **`deploy-frontend`** - Production frontend deployment
-4. **`create-release`** - GitHub release creation (tag-triggered only)
-5. **`notify`** - Deployment status notification
-
-**Environment:** `production`
-
-**Required Secrets:**
-
-- `PRODUCTION_API_URL` - Production API endpoint URL
-
-**Note:** Deployment steps require configuration for your specific infrastructure.
+1. **`cleanup-app-engine`** - Delete old App Engine versions
+2. **`cleanup-storage`** - Delete old Cloud Storage objects
+3. **`cost-report`** - Generate cost report
+4. **`identify-unused-resources`** - Identify unused resources
+5. **`notify`** - Send notification
 
 ---
 
@@ -303,11 +352,13 @@ Configure the following secrets in repository settings:
 - `CODECOV_TOKEN` - Codecov upload token
 - `RESEND_API_KEY` - Resend API key for email service (E2E tests)
 
-**Deployment:**
+**Deployment (GCP):**
 
+- `GCP_SA_KEY` - GCP Service Account JSON key (for authentication)
+- `GCP_PROJECT_ID` - GCP Project ID
 - `STAGING_API_URL` - Staging environment API URL
 - `PRODUCTION_API_URL` - Production environment API URL
-- Additional secrets depending on infrastructure (Docker Hub, AWS, GCP, etc.)
+- `DATABASE_URL` - Database connection string (for migrations)
 
 **Location:** `Settings > Secrets and variables > Actions`
 
@@ -345,20 +396,28 @@ pnpm test:all:report       # Run all tests with formatted report
 
 ---
 
-## Migration from Legacy Workflows
+## Workflow Architecture
 
-### Deprecated Workflows
+### Unified Deployment
 
-The following workflows are maintained for compatibility but can be removed after complete migration:
+The `deploy.yml` workflow replaces the following legacy workflows:
 
-- `ci.yml` - Replaced by `backend-ci.yml` + `frontend-ci.yml`
-- `tests.yml` - Replaced by `backend-ci.yml`
+- `deploy-staging.yml` - Merged into `deploy.yml`
+- `deploy-production.yml` - Merged into `deploy.yml`
+- `terraform-staging.yml` - Merged into `deploy.yml`
+- `terraform-production.yml` - Merged into `deploy.yml`
+- `docker-build.yml` - Merged into `deploy.yml` (GCR only)
+- `release.yml` - Can be added to `deploy.yml` if needed
 
-**Still Active:**
+### Current Workflow Structure
 
-- `code-quality.yml` - Code formatting and Prisma validation
-- `docker-build.yml` - Docker image builds
-- `release.yml` - GitHub releases (note: `deploy-production.yml` also creates releases)
+All workflows are now modular and focused on specific responsibilities:
+
+- **Testing**: `backend-ci.yml`, `frontend-ci.yml`, `e2e-tests.yml`
+- **Quality**: `code-quality.yml`
+- **Infrastructure**: `deploy.yml`, `terraform-plan.yml`
+- **Database**: `database-migrations.yml`
+- **Maintenance**: `cleanup-cost-management.yml`
 
 ### Migration Steps
 
