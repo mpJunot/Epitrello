@@ -79,63 +79,42 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
 
             if (( $(echo "$TOTAL_LINES < 80" | bc -l) )); then
-              echo "**Warning**: Coverage is below 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "**Success**: Coverage meets 80% threshold (${TOTAL_LINES}%)" >> $GITHUB_STEP_SUMMARY
+              echo "Coverage is below 80% threshold: ${TOTAL_LINES}%" >> $GITHUB_STEP_SUMMARY
             fi
           fi
 
       - name: Check module coverage thresholds
         working-directory: backend
         run: |
-          echo "Checking module coverage..."
           if [ -f coverage/coverage-summary.json ]; then
-            # Check workspace module
             WORKSPACE_COV=$(cat coverage/coverage-summary.json | jq -r '
               to_entries |
               map(select(.key | contains("workspaces.service.ts"))) |
               if length > 0 then .[0].value.lines.pct else 0 end
             ')
-
-            if [ "$WORKSPACE_COV" != "0" ]; then
-              echo "Workspace Service: ${WORKSPACE_COV}%"
-              if (( $(echo "$WORKSPACE_COV < 80" | bc -l) )); then
-                echo "WARNING: Workspace service coverage is below 80%"
-              else
-                echo "SUCCESS: Workspace service meets coverage requirements"
-              fi
+            if [ "$WORKSPACE_COV" != "0" ] && (( $(echo "$WORKSPACE_COV < 80" | bc -l) )); then
+              echo "Workspace service coverage is below 80%: ${WORKSPACE_COV}%"
+              exit 1
             fi
 
-            # Check invitations module
             INVITATIONS_COV=$(cat coverage/coverage-summary.json | jq -r '
               to_entries |
               map(select(.key | contains("invitations.service.ts"))) |
               if length > 0 then .[0].value.lines.pct else 0 end
             ')
-
-            if [ "$INVITATIONS_COV" != "0" ]; then
-              echo "Invitations Service: ${INVITATIONS_COV}%"
-              if (( $(echo "$INVITATIONS_COV < 80" | bc -l) )); then
-                echo "WARNING: Invitations service coverage is below 80%"
-              else
-                echo "SUCCESS: Invitations service meets coverage requirements"
-              fi
+            if [ "$INVITATIONS_COV" != "0" ] && (( $(echo "$INVITATIONS_COV < 80" | bc -l) )); then
+              echo "Invitations service coverage is below 80%: ${INVITATIONS_COV}%"
+              exit 1
             fi
 
-            # Check email module
             EMAIL_COV=$(cat coverage/coverage-summary.json | jq -r '
               to_entries |
               map(select(.key | contains("email.service.ts"))) |
               if length > 0 then .[0].value.lines.pct else 0 end
             ')
-
-            if [ "$EMAIL_COV" != "0" ]; then
-              echo "Email Service: ${EMAIL_COV}%"
-              if (( $(echo "$EMAIL_COV < 80" | bc -l) )); then
-                echo "WARNING: Email service coverage is below 80%"
-              else
-                echo "SUCCESS: Email service meets coverage requirements"
-              fi
+            if [ "$EMAIL_COV" != "0" ] && (( $(echo "$EMAIL_COV < 80" | bc -l) )); then
+              echo "Email service coverage is below 80%: ${EMAIL_COV}%"
+              exit 1
             fi
           fi
 
