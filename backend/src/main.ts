@@ -28,8 +28,11 @@ async function bootstrap() {
   // so the Access-Control-Allow-Origin header is set dynamically. In
   // production, restrict to configured frontends.
   const isProduction = process.env.NODE_ENV === 'production';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const backendPort = process.env.PORT || '4000';
+
   const allowedOrigins = isProduction
-    ? [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://postgres:3000', 'http://localhost:4000']
+    ? [frontendUrl, `http://localhost:${backendPort}`]
     : true; // reflect request origin in dev
 
   app.enableCors({
@@ -59,4 +62,5 @@ async function bootstrap() {
   logger.log(`📝 Log levels: ${logLevels.join(', ')}`);
 }
 bootstrap();
+
 

@@ -12,8 +12,9 @@ export interface WorkspaceInvitationEmailData {
 export function generateWorkspaceInvitationEmail(
   data: WorkspaceInvitationEmailData,
 ): { subject: string; html: string; text: string } {
-  const acceptUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invitations/accept?id=${data.invitationId}`;
-  const rejectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invitations/reject?id=${data.invitationId}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const acceptUrl = `${frontendUrl}/invitations/accept?id=${data.invitationId}`;
+  const rejectUrl = `${frontendUrl}/invitations/reject?id=${data.invitationId}`;
 
   const expiryDate = new Date(data.expiresAt).toLocaleDateString('fr-FR', {
     year: 'numeric',
