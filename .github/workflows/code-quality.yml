@@ -7,33 +7,35 @@ on:
     branches: [master, dev]
 
 jobs:
-  format-check:
-    name: Format Check
+  lint-backend:
+    name: Lint Backend
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: './backend/pnpm-lock.yaml'
+      - name: Lint backend
+        working-directory: backend
+        run: pnpm lint
 
-      - name: Install dependencies
-        working-directory: ./backend
-        run: pnpm install --frozen-lockfile
+  lint-frontend:
+    name: Lint Frontend
+    runs-on: ubuntu-latest
 
-      - name: Check formatting
-        working-directory: ./backend
-        run: pnpm format --check || true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: pnpm lint
 
   prisma-validate:
     name: Prisma Schema Validation
@@ -46,22 +48,52 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-          cache-dependency-path: './backend/pnpm-lock.yaml'
-
-      - name: Install dependencies
-        working-directory: ./backend
-        run: pnpm install --frozen-lockfile
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
 
       - name: Validate Prisma schema
-        working-directory: ./backend
+        working-directory: backend
         run: pnpm prisma validate
+
+  codeql-analysis:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript', 'typescript']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4

@@ -63,7 +63,7 @@ jobs:
 
       - name: Run unit tests
         working-directory: frontend
-        run: pnpm test --passWithNoTests || echo "No tests found"
+        run: pnpm test --passWithNoTests
 
       - name: Upload coverage
         if: hashFiles('frontend/coverage/lcov.info') != ''
