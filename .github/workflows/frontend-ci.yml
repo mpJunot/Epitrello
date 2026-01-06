@@ -61,9 +61,20 @@ jobs:
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
 
-      - name: Run unit tests
+      - name: Check for test script
+        id: check-test
         working-directory: frontend
-        run: pnpm test --passWithNoTests
+        run: |
+          if grep -q '"test"' package.json; then
+            echo "has_test=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_test=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run unit tests
+        if: steps.check-test.outputs.has_test == 'true'
+        working-directory: frontend
+        run: pnpm test
 
       - name: Upload coverage
         if: hashFiles('frontend/coverage/lcov.info') != ''

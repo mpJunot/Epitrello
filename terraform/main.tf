@@ -114,6 +114,7 @@ module "cloud_run" {
     module.cloud_sql,
     module.secrets,
     module.networking,
+    module.cloud_storage,
     google_service_account.default
   ]
 }
@@ -127,7 +128,7 @@ module "cloud_storage" {
   project_id            = var.project_id
   app_name              = local.app_name
   location              = var.storage_location
-  service_account_email = module.cloud_run.service_account_email
+  service_account_email = google_service_account.default.email
 
   # CORS configuration for frontend
   cors_origins = [
@@ -137,8 +138,20 @@ module "cloud_storage" {
   ]
 
   labels = local.common_labels
+}
 
-  depends_on = [module.cloud_run]
+# ===================================
+# IAM: Grant Cloud Run service account access to Storage bucket
+# ===================================
+resource "google_storage_bucket_iam_member" "cloud_run_storage_access" {
+  bucket = module.cloud_storage.bucket_name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${module.cloud_run.service_account_email}"
+
+  depends_on = [
+    module.cloud_storage,
+    module.cloud_run
+  ]
 }
 
 # ===================================
