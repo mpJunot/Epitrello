@@ -59,6 +59,12 @@ variable "service_account_email" {
   type        = string
 }
 
+variable "cloud_run_service_account_email" {
+  description = "Cloud Run service account email for additional IAM binding (optional)"
+  type        = string
+  default     = null
+}
+
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
