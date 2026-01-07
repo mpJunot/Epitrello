@@ -35,7 +35,7 @@ export default function DashboardPage() {
           <div className='h-10 w-10 rounded bg-indigo-600 flex items-center justify-center text-white font-bold'>
             E
           </div>
-          <h1 className='text-2xl font-semibold'>Epitrello — Boards</h1>
+          <h1 className='text-2xl font-semibold text-gray-900'>Epitrello — Boards</h1>
         </div>
         <div className='flex items-center gap-3'>
           <button
@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
       <main>
         <section>
-          <h2 className='text-lg font-medium mb-4'>Your boards</h2>
+          <h2 className='text-lg font-medium mb-4 text-gray-900'>Your boards</h2>
           {boards.length === 0 ? (
             <div className='text-sm text-gray-500'>
               You do not have any boards yet. Create one to get started.
@@ -70,14 +70,14 @@ export default function DashboardPage() {
                         {board.name.charAt(0)}
                       </div>
                       <div>
-                        <div className='font-medium'>{board.name}</div>
+                        <div className='font-medium text-gray-900'>{board.name}</div>
                         <div className='text-xs text-gray-500'>
                           {board.members} member
                           {board.members && board.members > 1 ? 's' : ''}
                         </div>
                       </div>
                     </div>
-                    <div className='text-sm text-gray-400'>→</div>
+                    <div className='text-sm text-gray-600'>→</div>
                   </div>
                 </Link>
               ))}

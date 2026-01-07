@@ -13,12 +13,31 @@ export default function ForgotPasswordPage() {
     setMessage(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/forgot', {
+      const graphqlEndpoint =
+        (process.env.NEXT_PUBLIC_BACKEND_URL as string) ||
+        'http://localhost:4000/graphql';
+
+      const query = `mutation ForgotPassword($input: ForgotPasswordInput!) {\n        forgotPassword(input: $input) { message }\n      }`;
+
+      const res = await fetch(graphqlEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ query, variables: { input: { email } } }),
       });
-      if (!res.ok) throw new Error('Unable to send reset email.');
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Server error: ${res.status}`);
+      }
+
+      const json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || 'GraphQL error');
+      }
+
+      const messageText = json.data?.forgotPassword?.message ||
+        'If an account exists for this email, you will receive a reset link.';
+      setMessage(messageText);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Error while sending reset email';
@@ -68,7 +87,7 @@ export default function ForgotPasswordPage() {
 
             <p className='text-sm text-gray-500 text-center'>
               Back to{' '}
-              <a href='/login' className='text-indigo-600'>
+              <a href='/auth/login' className='text-indigo-600'>
                 login
               </a>
             </p>
