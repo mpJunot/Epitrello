@@ -124,6 +124,14 @@ output "connection_info" {
 }
 
 # ===================================
+# Service Account Outputs
+# ===================================
+output "deployer_service_account_email" {
+  description = "CI/CD Deployer service account email"
+  value       = google_service_account.epitrello_deployer.email
+}
+
+# ===================================
 # Next Steps
 # ===================================
 output "next_steps" {
