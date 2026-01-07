@@ -452,16 +452,39 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Verify service account permissions
+      - name: Verify service account and initialize App Engine
         run: |
-          echo "Checking service account permissions..."
-          SA_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | head -1)
-          echo "Active service account: $SA_EMAIL"
-          echo "Checking App Engine permissions..."
-          gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} \
-            --flatten="bindings[].members" \
-            --filter="bindings.members:serviceAccount:$SA_EMAIL AND bindings.role:roles/appengine.*" \
-            --format="table(bindings.role)" || echo "WARNING: Could not verify permissions"
+          SA_EMAIL=$(gcloud auth list --format="value(account)" | head -1)
+          EXPECTED_SA="epitrello-deployer@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+          if [ "$SA_EMAIL" != "$EXPECTED_SA" ]; then
+            echo "WARNING: Service account mismatch. Expected: $EXPECTED_SA, Got: $SA_EMAIL"
+          fi
+
+          if ! gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+            ENV=${{ needs.detect-changes.outputs.environment }}
+            LOCATION="europe-west"
+
+            if [ -d "terraform" ]; then
+              cd terraform
+              TERRAFORM_LOCATION=$(terraform output -raw app_location 2>/dev/null || echo "")
+              if [ -n "$TERRAFORM_LOCATION" ] && [ "$TERRAFORM_LOCATION" != "null" ]; then
+                LOCATION="$TERRAFORM_LOCATION"
+              fi
+              cd ..
+            fi
+
+            CREATE_OUTPUT=$(gcloud app create --project=${{ secrets.GCP_PROJECT_ID }} --region=$LOCATION 2>&1) || {
+              if ! echo "$CREATE_OUTPUT" | grep -qi "already exists\|already been created"; then
+                echo "ERROR: Failed to create App Engine application: $CREATE_OUTPUT"
+                exit 1
+              fi
+            }
+
+            if ! gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
+              echo "ERROR: App Engine application not accessible after creation"
+              exit 1
+            fi
+          fi
 
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
@@ -492,14 +515,9 @@ jobs:
           fi
 
           if [ "$ARTIFACT_EXISTS" = "false" ]; then
-            echo "WARNING: Frontend build artifacts not found, building locally..."
-            echo "This can happen if build-frontend job was skipped or failed"
             cd frontend
             pnpm build
             cd ..
-            echo "Frontend build completed successfully"
-          else
-            echo "Frontend build artifacts found and ready"
           fi
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
@@ -513,8 +531,6 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --format="value(status.url)" 2>/dev/null || echo "")
           if [ -z "$URL" ]; then
-            echo "WARNING: Could not retrieve backend URL from Cloud Run service: $SERVICE_NAME"
-            echo "Falling back to secrets..."
             if [ "$ENV" == "production" ]; then
               URL="${{ secrets.PRODUCTION_API_URL }}"
             else
@@ -524,9 +540,6 @@ jobs:
               echo "ERROR: Backend URL is not available from Cloud Run or secrets"
               exit 1
             fi
-            echo "Using backend URL from secrets: $URL"
-          else
-            echo "Backend URL from Cloud Run: $URL"
           fi
           echo "url=$URL" >> $GITHUB_OUTPUT
 
@@ -539,16 +552,12 @@ jobs:
             echo "ERROR: Backend URL is not set"
             exit 1
           fi
-          echo "Updating app.yaml with API URL: $API_URL"
-          # Create app.yaml with the API URL using printf
           printf 'runtime: nodejs20\n\nenv: standard\n\ninstance_class: F2\n\nautomatic_scaling:\n  min_instances: 0\n  max_instances: 10\n  target_cpu_utilization: 0.6\n  target_throughput_utilization: 0.6\n\nenv_variables:\n  NODE_ENV: production\n  NEXT_PUBLIC_API_URL: '\''%s'\''\n\nhandlers:\n  - url: /.*\n    script: auto\n    secure: always\n' "$API_URL" > app.yaml
-          echo "app.yaml updated successfully"
 
       - name: Deploy to App Engine
         working-directory: frontend
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          echo "Deploying frontend to App Engine..."
           gcloud app deploy app.yaml \
             --version=${ENV}-${{ github.sha }} \
             --no-promote
@@ -626,8 +635,5 @@ jobs:
 
       - name: Deployment status
         run: |
-          echo "Deployment completed"
           echo "Backend: ${{ needs.deploy-backend.result }}"
           echo "Frontend: ${{ needs.deploy-frontend.result }}"
-          echo "Backend URL: ${{ steps.backend-url.outputs.url }}"
-          echo "Frontend URL: ${{ steps.frontend-url.outputs.url }}"
