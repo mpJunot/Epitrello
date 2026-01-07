@@ -558,9 +558,34 @@ jobs:
           ENV=${{ needs.detect-changes.outputs.environment }}
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           VERSION="${ENV}-${SHORT_SHA}"
-          gcloud app deploy app.yaml \
-            --version=${VERSION} \
-            --no-promote
+
+          echo "Deploying version: ${VERSION}"
+          echo "App Engine application status:"
+          gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} || echo "App Engine application not found"
+
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if gcloud app deploy app.yaml \
+              --version=${VERSION} \
+              --no-promote \
+              --verbosity=info 2>&1 | tee /tmp/app-deploy.log; then
+              echo "Deployment successful"
+              exit 0
+            else
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "Deployment failed, retrying (${RETRY_COUNT}/${MAX_RETRIES})..."
+                sleep 10
+              else
+                echo "Deployment failed after ${MAX_RETRIES} attempts"
+                echo "Last deployment log:"
+                tail -100 /tmp/app-deploy.log
+                exit 1
+              fi
+            fi
+          done
 
   smoke-tests:
     name: Smoke Tests
