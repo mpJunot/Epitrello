@@ -284,6 +284,31 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
 
+      - name: Apply service account permissions first
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform init -upgrade
+          terraform apply -target=google_service_account.epitrello_deployer -target=google_project_iam_member.deployer_roles -auto-approve \
+            -var="environment=${{ needs.detect-changes.outputs.environment }}" \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="db_name=${{ secrets.DB_NAME }}" \
+            -var="db_user=${{ secrets.DB_USER }}" \
+            -var="database_password=${{ secrets.DB_PASSWORD }}" \
+            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
+            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
+            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
+            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
+            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
+            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
+            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
+            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}" \
+            2>&1 | grep -v "No changes" || true
+          sleep 10
+
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
@@ -291,7 +316,7 @@ jobs:
           export TF_LOG_PATH=/tmp/terraform.log
           terraform plan -out=tfplan \
             -parallelism=10 \
-            -refresh=true \
+            -refresh=false \
             -var="environment=${{ needs.detect-changes.outputs.environment }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}" \
@@ -353,13 +378,12 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          # Try to apply the plan, if it's stale, regenerate it
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
               echo "Plan is stale, regenerating..."
               terraform plan -out=tfplan \
                 -parallelism=10 \
-                -refresh=true \
+                -refresh=false \
                 -var="environment=${{ needs.detect-changes.outputs.environment }}" \
                 -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
                 -var="region=${{ env.GCP_REGION }}" \
