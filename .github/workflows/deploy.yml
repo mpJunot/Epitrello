@@ -493,10 +493,21 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --format="value(status.url)" 2>/dev/null || echo "")
           if [ -z "$URL" ]; then
-            echo "ERROR: Could not retrieve backend URL for service: $SERVICE_NAME"
-            exit 1
+            echo "WARNING: Could not retrieve backend URL from Cloud Run service: $SERVICE_NAME"
+            echo "Falling back to secrets..."
+            if [ "$ENV" == "production" ]; then
+              URL="${{ secrets.PRODUCTION_API_URL }}"
+            else
+              URL="${{ secrets.STAGING_API_URL }}"
+            fi
+            if [ -z "$URL" ]; then
+              echo "ERROR: Backend URL is not available from Cloud Run or secrets"
+              exit 1
+            fi
+            echo "Using backend URL from secrets: $URL"
+          else
+            echo "Backend URL from Cloud Run: $URL"
           fi
-          echo "Backend URL: $URL"
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Deploy to App Engine
