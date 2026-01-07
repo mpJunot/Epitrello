@@ -37,10 +37,10 @@ resource "google_cloud_run_v2_service" "backend" {
         startup_cpu_boost = false
       }
 
-      # Container port
+      # Container port (Cloud Run standard is 8080)
       ports {
         name           = "http1"
-        container_port = 4000
+        container_port = 8080
       }
 
       # ===================================
@@ -55,7 +55,7 @@ resource "google_cloud_run_v2_service" "backend" {
 
       env {
         name  = "PORT"
-        value = "4000"
+        value = "8080"
       }
 
       # Database connection (direct via public IP + SSL)
@@ -232,21 +232,21 @@ resource "google_cloud_run_v2_service" "backend" {
       startup_probe {
         http_get {
           path = "/health"
-          port = 4000
+          port = 8080
         }
-        initial_delay_seconds = 10
-        timeout_seconds       = 3
-        period_seconds        = 10
-        failure_threshold     = 3
+        initial_delay_seconds = 0
+        timeout_seconds       = 10
+        period_seconds        = 5
+        failure_threshold     = 6
       }
 
       liveness_probe {
         http_get {
           path = "/health"
-          port = 4000
+          port = 8080
         }
         initial_delay_seconds = 30
-        timeout_seconds       = 3
+        timeout_seconds       = 10
         period_seconds        = 30
         failure_threshold     = 3
       }
