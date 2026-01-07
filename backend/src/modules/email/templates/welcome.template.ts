@@ -6,8 +6,9 @@ export interface WelcomeEmailData {
 export function generateWelcomeEmail(
   data: WelcomeEmailData,
 ): { subject: string; html: string; text: string } {
-  const dashboardUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`;
-  const docsUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/docs`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const dashboardUrl = `${frontendUrl}/dashboard`;
+  const docsUrl = `${frontendUrl}/docs`;
 
   const subject = 'Welcome to Epitrello - Get Started!';
 
