@@ -29,7 +29,7 @@ async function bootstrap() {
   // production, restrict to configured frontends.
   const isProduction = process.env.NODE_ENV === 'production';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const backendPort = process.env.PORT || '4000';
+  const backendPort = process.env.PORT || '8080';
 
   const allowedOrigins = isProduction
     ? [frontendUrl, `http://localhost:${backendPort}`]
@@ -54,7 +54,7 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 4000;
+  const port = process.env.PORT || 8080;
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}/graphql`);
