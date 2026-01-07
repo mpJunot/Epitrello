@@ -21,6 +21,7 @@ locals {
     "roles/serviceusage.serviceUsageConsumer",
     "roles/appengine.admin",
     "roles/appengine.deployer",
+    "roles/appengine.creator",
   ]
 }
 
