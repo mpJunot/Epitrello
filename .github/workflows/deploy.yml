@@ -556,8 +556,10 @@ jobs:
         working-directory: frontend
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          VERSION="${ENV}-${SHORT_SHA}"
           gcloud app deploy app.yaml \
-            --version=${ENV}-${{ github.sha }} \
+            --version=${VERSION} \
             --no-promote
 
   smoke-tests:
