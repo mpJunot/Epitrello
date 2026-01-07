@@ -23,6 +23,9 @@ describe('PrismaService', () => {
 
   describe('lifecycle hooks', () => {
     it('should call $connect on module init', async () => {
+      const originalEnv = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/test';
+
       const connectSpy = jest.spyOn(service, '$connect').mockResolvedValue(undefined);
 
       await service.onModuleInit();
@@ -30,19 +33,43 @@ describe('PrismaService', () => {
       expect(connectSpy).toHaveBeenCalled();
 
       connectSpy.mockRestore();
+      process.env.DATABASE_URL = originalEnv;
     });
 
-    it('should handle connection error', async () => {
-      const connectSpy = jest.spyOn(service, '$connect').mockRejectedValue(new Error('Connection failed'));
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    it('should skip connection if DATABASE_URL is not set', async () => {
+      const originalEnv = process.env.DATABASE_URL;
+      delete process.env.DATABASE_URL;
 
-      await expect(service.onModuleInit()).rejects.toThrow('Connection failed');
+      const connectSpy = jest.spyOn(service, '$connect');
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
-      expect(connectSpy).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error connecting to database:', expect.any(Error));
+      await service.onModuleInit();
+
+      expect(connectSpy).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith('PrismaService: DATABASE_URL is not set or empty');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('PrismaService: Application will start, but database operations will fail');
 
       connectSpy.mockRestore();
-      consoleErrorSpy.mockRestore();
+      consoleWarnSpy.mockRestore();
+      process.env.DATABASE_URL = originalEnv;
+    });
+
+    it('should handle connection error without blocking startup', async () => {
+      const originalEnv = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/test';
+
+      const connectSpy = jest.spyOn(service, '$connect').mockRejectedValue(new Error('Connection failed'));
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      await expect(service.onModuleInit()).resolves.toBeUndefined();
+
+      expect(connectSpy).toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith('PrismaService: Failed to connect to database on startup:', 'Connection failed');
+      expect(consoleWarnSpy).toHaveBeenCalledWith('PrismaService: Application will start, but database operations may fail until connection is established');
+
+      connectSpy.mockRestore();
+      consoleWarnSpy.mockRestore();
+      process.env.DATABASE_URL = originalEnv;
     });
 
     it('should call $disconnect on module destroy', async () => {
