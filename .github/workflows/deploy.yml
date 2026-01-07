@@ -218,8 +218,9 @@ jobs:
         with:
           images: gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend
           tags: |
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long
+            type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=true
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
