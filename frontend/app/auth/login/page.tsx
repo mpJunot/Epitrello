@@ -1,39 +1,62 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const LoginSchema = z.object({
+  email: z.string().min(1, "Email requis").email("Email invalide"),
+  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  rememberMe: z.boolean().optional(),
+});
+
+type LoginForm = z.infer<typeof LoginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginForm>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: { rememberMe: false },
+  });
+
+  const onSubmit = async (data: LoginForm) => {
     setError(null);
     setLoading(true);
+    const url = "http://localhost:4000/graphql";
     try {
-      // Call frontend proxy route which forwards to backend GraphQL and sets httpOnly cookie
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }),
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query: `mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    token\n    user { id email name avatar createdAt updatedAt }\n  }\n}\n`,
+          variables: {
+            input: {
+              email: data.email,
+              password: data.password,
+              rememberMe: data.rememberMe || false,
+            },
+          },
+        }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        throw new Error(data?.error || 'Invalid credentials');
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Erreur réseau");
       }
 
-      // Save token locally so client-side code can call backend with Authorization header if needed.
-      try {
-        if (data.token && typeof window !== 'undefined') {
-          localStorage.setItem('token', data.token);
-        }
-      } catch {
-        // ignore storage errors
+      const json = await res.json();
+      if (json.errors && json.errors.length) {
+        throw new Error(json.errors[0].message || "Erreur GraphQL");
       }
 
       // Redirect to dashboard
@@ -89,12 +112,12 @@ export default function LoginPage() {
             <div className='mx-auto h-12 w-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-bold'>
               E
             </div>
-            <h1 className='mt-3 text-xl font-semibold'>Epitrello</h1>
+            <h1 className='mt-3 text-xl font-semibold text-gray-900'>Epitrello</h1>
             <p className='text-sm text-gray-600'>Sign in to your account</p>
           </div>
 
-          <div className='bg-white shadow-lg rounded-2xl p-6'>
-            <form onSubmit={handleSubmit} className='space-y-4'>
+          <div className="bg-white shadow-lg rounded-2xl p-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label
                   htmlFor='email'
@@ -103,14 +126,13 @@ export default function LoginPage() {
                   Email address
                 </label>
                 <input
-                  id='email'
-                  type='email'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className='text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2'
-                  placeholder='you@example.com'
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  className={`text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 ${errors.email ? "border-red-500" : ""}`}
+                  placeholder="vous@exemple.com"
                 />
+                {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
               </div>
 
               <div>
@@ -122,15 +144,14 @@ export default function LoginPage() {
                 </label>
                 <div className='relative'>
                   <input
-                    id='password'
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className='text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20'
-                    placeholder='••••••••'
-                    aria-label='Password'
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
+                    className={`text-black mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-20 ${errors.password ? "border-red-500" : ""}`}
+                    placeholder="••••••••"
+                    aria-label="Mot de passe"
                   />
+                  {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
                   <button
                     type='button'
                     onClick={() => setShowPassword((s) => !s)}
@@ -150,10 +171,9 @@ export default function LoginPage() {
               <div className='flex items-center justify-between text-sm'>
                 <label className='flex items-center gap-2'>
                   <input
-                    type='checkbox'
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className='h-4 w-4 text-indigo-600 border-gray-300 rounded'
+                    type="checkbox"
+                    {...register("rememberMe")}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                   />
                   <span className='block text-sm font-medium text-gray-700 '>
                     Remember me
@@ -189,10 +209,20 @@ export default function LoginPage() {
                 <button
                   type='button'
                   onClick={() => {
-                    // Redirect to backend OAuth start endpoint. Backend is expected to
-                    // handle the Google OAuth handshake and callback.
+                    console.log('Google OAuth login');
+                    // Redirect to backend OAuth start endpoint for Google.
+                    // Use NEXT_PUBLIC_BACKEND_URL if available (strip /graphql),
+                    // otherwise fallback to http://localhost:4000
                     if (typeof window !== 'undefined') {
-                      window.location.href = '/api/auth/google';
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      console.log("url backend:", backend);
+                      const target = `${backend}/auth/google`;
+                      console.log("auth] redirecting to Google OAuth:", target);
+                      try {
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
                     }
                   }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
@@ -201,12 +231,38 @@ export default function LoginPage() {
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Microsoft.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/microsoft`;
+                      try {
+                        console.log("[auth] redirecting to Microsoft OAuth:", target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   <span className='text-sm text-gray-700'>Microsoft</span>
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Apple.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/apple`;
+                      try {
+                        console.log("[auth] redirecting to Apple OAuth:", target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   {/* Placeholder icons using text */}
@@ -214,6 +270,19 @@ export default function LoginPage() {
                 </button>
                 <button
                   type='button'
+                  onClick={() => {
+                    // Redirect to backend OAuth start endpoint for Slack.
+                    if (typeof window !== 'undefined') {
+                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const target = `${backend}/auth/slack`;
+                      try {
+                        console.log('[auth] redirecting to Slack OAuth:', target);
+                        window.location.assign(target);
+                      } catch (e) {
+                        window.open(target, '_self');
+                      }
+                    }
+                  }}
                   className='inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm'
                 >
                   <span className='text-sm text-gray-700'>Slack</span>
