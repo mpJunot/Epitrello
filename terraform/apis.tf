@@ -6,6 +6,7 @@ locals {
     "sqladmin.googleapis.com",
     "storage-api.googleapis.com",
     "artifactregistry.googleapis.com",
+    "containerregistry.googleapis.com",
     "secretmanager.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
