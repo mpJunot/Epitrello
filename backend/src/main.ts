@@ -55,11 +55,12 @@ async function bootstrap() {
   );
 
   const port = process.env.PORT || 8080;
-  await app.listen(port);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
 
-  logger.log(`🚀 Application is running on: http://localhost:${port}/graphql`);
-  logger.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.log(`📝 Log levels: ${logLevels.join(', ')}`);
+  logger.log(`Application is running on: http://${host}:${port}/graphql`);
+  logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.log(`Log levels: ${logLevels.join(', ')}`);
 }
 bootstrap();
 
