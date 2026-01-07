@@ -15,6 +15,10 @@ resource "google_secret_manager_secret" "jwt_secret" {
 resource "google_secret_manager_secret_version" "jwt_secret_version" {
   secret      = google_secret_manager_secret.jwt_secret.id
   secret_data = var.jwt_secret
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 # ===================================
@@ -34,6 +38,10 @@ resource "google_secret_manager_secret" "db_password" {
 resource "google_secret_manager_secret_version" "db_password_version" {
   secret      = google_secret_manager_secret.db_password.id
   secret_data = var.database_password
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 # ===================================
@@ -74,6 +82,10 @@ resource "google_secret_manager_secret_version" "resend_api_key_version" {
   secret_data = var.resend_api_key
 
   depends_on = [google_secret_manager_secret.resend_api_key]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "resend_api_key_access" {
@@ -109,6 +121,10 @@ resource "google_secret_manager_secret_version" "google_client_id_version" {
   secret_data = var.google_client_id
 
   depends_on = [google_secret_manager_secret.google_client_id]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "google_client_id_access" {
@@ -141,6 +157,10 @@ resource "google_secret_manager_secret_version" "google_client_secret_version" {
   secret_data = var.google_client_secret
 
   depends_on = [google_secret_manager_secret.google_client_secret]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "google_client_secret_access" {
@@ -176,6 +196,10 @@ resource "google_secret_manager_secret_version" "microsoft_client_id_version" {
   secret_data = var.microsoft_client_id
 
   depends_on = [google_secret_manager_secret.microsoft_client_id]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "microsoft_client_id_access" {
@@ -208,6 +232,10 @@ resource "google_secret_manager_secret_version" "microsoft_client_secret_version
   secret_data = var.microsoft_client_secret
 
   depends_on = [google_secret_manager_secret.microsoft_client_secret]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "microsoft_client_secret_access" {
@@ -243,6 +271,10 @@ resource "google_secret_manager_secret_version" "apple_client_id_version" {
   secret_data = var.apple_client_id
 
   depends_on = [google_secret_manager_secret.apple_client_id]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "apple_client_id_access" {
@@ -275,6 +307,10 @@ resource "google_secret_manager_secret_version" "apple_client_secret_version" {
   secret_data = var.apple_client_secret
 
   depends_on = [google_secret_manager_secret.apple_client_secret]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "apple_client_secret_access" {
@@ -310,6 +346,10 @@ resource "google_secret_manager_secret_version" "slack_client_id_version" {
   secret_data = var.slack_client_id
 
   depends_on = [google_secret_manager_secret.slack_client_id]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "slack_client_id_access" {
@@ -342,6 +382,10 @@ resource "google_secret_manager_secret_version" "slack_client_secret_version" {
   secret_data = var.slack_client_secret
 
   depends_on = [google_secret_manager_secret.slack_client_secret]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
 }
 
 resource "google_secret_manager_secret_iam_member" "slack_client_secret_access" {
