@@ -14,6 +14,7 @@ locals {
     "roles/cloudsql.admin",
     "roles/iam.serviceAccountUser",
     "roles/artifactregistry.admin",
+    "roles/artifactregistry.writer",
     "roles/secretmanager.admin",
     "roles/serviceusage.serviceUsageConsumer",
   ]
