@@ -13,6 +13,7 @@ locals {
     "compute.googleapis.com",
     "vpcaccess.googleapis.com",
     "servicenetworking.googleapis.com",
+    "appengine.googleapis.com",
   ]
 }
 
