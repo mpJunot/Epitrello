@@ -261,6 +261,7 @@ jobs:
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [detect-changes, terraform-validate]
     if: needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
@@ -281,15 +282,20 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform init
+        run: terraform init -upgrade
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          export TF_LOG=INFO
+          export TF_LOG_PATH=/tmp/terraform.log
           terraform plan -out=tfplan \
+            -parallelism=10 \
+            -refresh=true \
             -var="environment=${{ needs.detect-changes.outputs.environment }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
             -var="region=${{ env.GCP_REGION }}"
+        timeout-minutes: 10
 
       - name: Save plan
         uses: actions/upload-artifact@v4
@@ -301,6 +307,7 @@ jobs:
   terraform-apply:
     name: Apply Terraform
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [detect-changes, terraform-plan]
     if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true'
     environment: ${{ needs.detect-changes.outputs.environment }}
