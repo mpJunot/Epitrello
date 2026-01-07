@@ -19,6 +19,7 @@ locals {
     "roles/secretmanager.admin",
     "roles/serviceusage.serviceUsageConsumer",
     "roles/appengine.admin",
+    "roles/appengine.deployer",
   ]
 }
 
