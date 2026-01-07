@@ -14,6 +14,8 @@ export default function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const [userName, setUserName] = useState<string>('Benjamin Maillot');
+  const [userEmail, setUserEmail] = useState<string>('maillotbenjamin1@gmail.com');
 
   useEffect(() => {
     try {
@@ -37,6 +39,20 @@ export default function Topbar() {
     }
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  // try to load user info from localStorage if available
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('epitrello_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.name) setUserName(u.name);
+        if (u?.email) setUserEmail(u.email);
+      }
+    } catch (e) {
+      // ignore and keep defaults
+    }
   }, []);
 
   const onSearch = (e?: React.FormEvent) => {
@@ -149,10 +165,42 @@ export default function Topbar() {
             </button>
 
             {openProfile && (
-              <div role="menu" aria-label="Menu profil" className="absolute right-0 mt-2 w-56 bg-white border rounded shadow p-2 z-10">
-                <a role="menuitem" href="/auth/me" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Profile and settings</a>
-                <a role="menuitem" href="/settings" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Account settings</a>
-                <a role="menuitem" href="/auth/logout" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Sign out</a>
+              <div role="menu" aria-label="Menu profil" className="absolute right-0 mt-2 w-64 bg-white border rounded shadow p-3 z-10 text-sm">
+                <div className="mb-2">
+                  <div className="text-xs text-gray-500 font-medium">Account</div>
+                  <div className="mt-2">
+                    <div className="font-semibold text-gray-900">{userName}</div>
+                    <div className="text-xs text-gray-600">{userEmail}</div>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Switch accounts</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Manage account</a>
+                  </div>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div className="mb-2">
+                  <div className="text-xs text-gray-500 font-medium">Trello</div>
+                  <div className="mt-2 space-y-1">
+                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Profile and visibility</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Activity</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Cards</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Settings</a>
+                  </div>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div className="mb-2">
+                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Help</a>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div>
+                  <a role="menuitem" href="/auth/logout" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Log out</a>
+                </div>
               </div>
             )}
           </div>
