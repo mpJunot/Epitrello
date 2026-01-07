@@ -25,7 +25,7 @@ output "database_name" {
 
 output "connection_string" {
   description = "PostgreSQL connection string"
-  value       = var.enable_private_ip && google_sql_database_instance.main.private_ip_address != null ? "postgresql://${var.db_user}:${var.db_password}@${google_sql_database_instance.main.private_ip_address}:5432/${var.db_name}?sslmode=require" : "postgresql://${var.db_user}:${var.db_password}@${google_sql_database_instance.main.public_ip_address}:5432/${var.db_name}?sslmode=require"
+  value       = var.enable_private_ip && google_sql_database_instance.main.private_ip_address != null ? "postgresql://${var.db_user}:${nonsensitive(var.db_password)}@${google_sql_database_instance.main.private_ip_address}:5432/${var.db_name}?sslmode=require" : "postgresql://${var.db_user}:${nonsensitive(var.db_password)}@${google_sql_database_instance.main.public_ip_address}:5432/${var.db_name}?sslmode=require"
   sensitive   = true
 }
 

@@ -7,7 +7,8 @@ export interface EmailVerificationEmailData {
 export function generateEmailVerificationEmail(
   data: EmailVerificationEmailData,
 ): { subject: string; html: string; text: string } {
-  const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/verify-email?token=${data.verificationToken}`;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const verifyUrl = `${frontendUrl}/auth/verify-email?token=${data.verificationToken}`;
 
   const subject = 'Confirm your email address - Epitrello';
 
