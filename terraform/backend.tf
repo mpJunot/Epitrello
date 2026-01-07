@@ -41,6 +41,11 @@ resource "google_storage_bucket" "terraform_state" {
       type = "Delete"
     }
   }
+
+  lifecycle {
+    # Bucket already exists, ignore changes if it was created manually
+    ignore_changes = []
+  }
 }
 
 output "terraform_state_bucket" {

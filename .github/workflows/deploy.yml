@@ -352,7 +352,38 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -auto-approve tfplan
+        run: |
+          # Try to apply the plan, if it's stale, regenerate it
+          terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
+            if grep -q "Saved plan is stale" /tmp/apply.log; then
+              echo "Plan is stale, regenerating..."
+              terraform plan -out=tfplan \
+                -parallelism=10 \
+                -refresh=true \
+                -var="environment=${{ needs.detect-changes.outputs.environment }}" \
+                -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+                -var="region=${{ env.GCP_REGION }}" \
+                -var="db_name=${{ secrets.DB_NAME }}" \
+                -var="db_user=${{ secrets.DB_USER }}" \
+                -var="database_password=${{ secrets.DB_PASSWORD }}" \
+                -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
+                -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+                -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
+                -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
+                -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+                -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
+                -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
+                -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
+                -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
+                -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
+                -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+              echo "Applying regenerated plan..."
+              terraform apply -auto-approve tfplan
+            else
+              echo "Apply failed with different error, see logs above"
+              exit 1
+            fi
+          }
 
   deploy-backend:
     name: Deploy Backend to Cloud Run
