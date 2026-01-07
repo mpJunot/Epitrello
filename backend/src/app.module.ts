@@ -13,6 +13,7 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 import { BoardsModule } from './modules/boards/boards.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { HealthController } from './common/controllers/health.controller';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     InvitationsModule,
     BoardsModule,
   ],
+  controllers: [HealthController],
   providers: [
     {
       provide: APP_GUARD,

@@ -484,11 +484,35 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
 
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          ENV=${{ needs.detect-changes.outputs.environment }}
+          SERVICE_NAME="${ENV}-epitrello-backend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+          if [ -z "$URL" ]; then
+            echo "ERROR: Could not retrieve backend URL for service: $SERVICE_NAME"
+            exit 1
+          fi
+          echo "Backend URL: $URL"
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
       - name: Deploy to App Engine
         working-directory: frontend
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          gcloud app deploy --version=${ENV}-${{ github.sha }} --no-promote
+          API_URL="${{ steps.backend-url.outputs.url }}"
+          if [ -z "$API_URL" ]; then
+            echo "ERROR: Backend URL is not set"
+            exit 1
+          fi
+          echo "Deploying frontend with API URL: $API_URL"
+          gcloud app deploy app.yaml \
+            --version=${ENV}-${{ github.sha }} \
+            --no-promote \
+            --set-env-vars="NEXT_PUBLIC_API_URL=${API_URL}"
 
   smoke-tests:
     name: Smoke Tests
