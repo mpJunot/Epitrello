@@ -140,31 +140,7 @@ export default function DashboardPage() {
           </div>
           <h1 className='text-2xl font-semibold text-gray-900'>Epitrello — Boards</h1>
         </div>
-        <div className='flex items-center gap-3'>
-          <div className='flex gap-2'>
-            <input
-              type='text'
-              placeholder='Board name'
-              value={newBoardName}
-              onChange={(e) => setNewBoardName(e.target.value)}
-              className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-            />
-            <input
-              type='text'
-              placeholder='Description (optional)'
-              value={newBoardDescription}
-              onChange={(e) => setNewBoardDescription(e.target.value)}
-              className='px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
-            />
-          </div>
-          <button
-            onClick={() => createBoard()}
-            disabled={!newBoardName.trim()}
-            className='inline-flex items-center gap-2 rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed'
-          >
-            Create board
-          </button>
-        </div>
+        
       </header>
 
       <main>
