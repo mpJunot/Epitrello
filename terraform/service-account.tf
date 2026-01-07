@@ -34,8 +34,9 @@ resource "google_project_iam_member" "deployer_roles" {
   depends_on = [google_service_account.epitrello_deployer]
 }
 
-# Create a service account key ONLY if requested
-# This should be created once and then managed outside Terraform
+# Create a service account key automatically
+# The key is created once and stored in Terraform state
+# If create_service_account_key is false, the key won't be recreated but existing key in state is preserved
 resource "google_service_account_key" "epitrello_deployer_key" {
   count = var.create_service_account_key ? 1 : 0
 
@@ -46,8 +47,9 @@ resource "google_service_account_key" "epitrello_deployer_key" {
 
   lifecycle {
     create_before_destroy = false
-    # Prevent accidental key recreation
-    ignore_changes = []
+    # Prevent accidental key recreation - once created, keep it even if variable changes
+    # This allows setting create_service_account_key=false after first creation
+    prevent_destroy = true
   }
 }
 
