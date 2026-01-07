@@ -15,6 +15,7 @@ locals {
     "roles/iam.serviceAccountUser",
     "roles/artifactregistry.admin",
     "roles/artifactregistry.writer",
+    "roles/artifactregistry.createOnPushWriter",
     "roles/secretmanager.admin",
     "roles/serviceusage.serviceUsageConsumer",
   ]
