@@ -294,8 +294,22 @@ jobs:
             -refresh=true \
             -var="environment=${{ needs.detect-changes.outputs.environment }}" \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}"
-        timeout-minutes: 10
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="db_name=${{ secrets.DB_NAME }}" \
+            -var="db_user=${{ secrets.DB_USER }}" \
+            -var="database_password=${{ secrets.DB_PASSWORD }}" \
+            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
+            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
+            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
+            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
+            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
+            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
+            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
+            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
+            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+        timeout-minutes: 25
 
       - name: Save plan
         uses: actions/upload-artifact@v4
