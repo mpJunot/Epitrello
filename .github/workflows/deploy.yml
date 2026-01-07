@@ -580,8 +580,15 @@ jobs:
   notify:
     name: Notify Deployment
     runs-on: ubuntu-latest
-    needs: [detect-changes, deploy-backend, deploy-frontend, smoke-tests]
-    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
+    needs:
+      [
+        detect-changes,
+        terraform-apply,
+        deploy-backend,
+        deploy-frontend,
+        smoke-tests,
+      ]
+    if: always() && (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
     environment: ${{ needs.detect-changes.outputs.environment }}
 
     steps:
@@ -630,10 +637,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Terraform | ${{ needs.terraform-apply.result }} | - |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ needs.deploy-backend.result }} | ${{ steps.backend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ needs.deploy-frontend.result }} | ${{ steps.frontend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Deployment status
         run: |
+          echo "Terraform: ${{ needs.terraform-apply.result }}"
           echo "Backend: ${{ needs.deploy-backend.result }}"
           echo "Frontend: ${{ needs.deploy-frontend.result }}"
