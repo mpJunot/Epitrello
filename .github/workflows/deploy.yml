@@ -452,6 +452,9 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -459,17 +462,27 @@ jobs:
           path: frontend/.next/
         continue-on-error: true
 
-      - name: Check if build artifacts exist
+      - name: Check if build artifacts exist and build if missing
         run: |
+          # Ensure pnpm is in PATH
+          export PATH="$PNPM_HOME:$PATH"
+          if ! command -v pnpm &> /dev/null; then
+            echo "ERROR: pnpm is not available in PATH"
+            echo "PNPM_HOME: $PNPM_HOME"
+            echo "PATH: $PATH"
+            exit 1
+          fi
+
           if [ ! -d "frontend/.next" ] || [ -z "$(ls -A frontend/.next 2>/dev/null)" ]; then
             echo "WARNING: Frontend build artifacts not found, building locally..."
             cd frontend
-            pnpm install
             pnpm build
             cd ..
           else
             echo "Frontend build artifacts found"
           fi
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
 
       - name: Deploy to App Engine
         working-directory: frontend
