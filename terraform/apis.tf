@@ -14,6 +14,7 @@ locals {
     "vpcaccess.googleapis.com",
     "servicenetworking.googleapis.com",
     "appengine.googleapis.com",
+    "cloudbuild.googleapis.com",
   ]
 }
 
