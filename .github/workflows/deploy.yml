@@ -414,8 +414,12 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${{ github.sha }}"
+          IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
+
+          echo "Deploying image: $IMAGE"
+          echo "Service: $SERVICE_NAME"
 
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
@@ -426,7 +430,7 @@ jobs:
     name: Deploy Frontend to App Engine
     runs-on: ubuntu-latest
     needs: [detect-changes, build-frontend, terraform-apply]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true'
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped')
     environment: ${{ needs.detect-changes.outputs.environment }}
 
     steps:
@@ -453,6 +457,19 @@ jobs:
         with:
           name: frontend-build
           path: frontend/.next/
+        continue-on-error: true
+
+      - name: Check if build artifacts exist
+        run: |
+          if [ ! -d "frontend/.next" ] || [ -z "$(ls -A frontend/.next 2>/dev/null)" ]; then
+            echo "WARNING: Frontend build artifacts not found, building locally..."
+            cd frontend
+            pnpm install
+            pnpm build
+            cd ..
+          else
+            echo "Frontend build artifacts found"
+          fi
 
       - name: Deploy to App Engine
         working-directory: frontend
