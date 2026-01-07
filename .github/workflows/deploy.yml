@@ -476,38 +476,12 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Verify service account and initialize App Engine
+      - name: Verify App Engine application exists
         run: |
-          SA_EMAIL=$(gcloud auth list --format="value(account)" | head -1)
-          EXPECTED_SA="epitrello-deployer@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
-          if [ "$SA_EMAIL" != "$EXPECTED_SA" ]; then
-            echo "WARNING: Service account mismatch. Expected: $EXPECTED_SA, Got: $SA_EMAIL"
-          fi
-
           if ! gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
-            ENV=${{ needs.detect-changes.outputs.environment }}
-            LOCATION="europe-west"
-
-            if [ -d "terraform" ]; then
-              cd terraform
-              TERRAFORM_LOCATION=$(terraform output -raw app_location 2>/dev/null || echo "")
-              if [ -n "$TERRAFORM_LOCATION" ] && [ "$TERRAFORM_LOCATION" != "null" ]; then
-                LOCATION="$TERRAFORM_LOCATION"
-              fi
-              cd ..
-            fi
-
-            CREATE_OUTPUT=$(gcloud app create --project=${{ secrets.GCP_PROJECT_ID }} --region=$LOCATION 2>&1) || {
-              if ! echo "$CREATE_OUTPUT" | grep -qi "already exists\|already been created"; then
-                echo "ERROR: Failed to create App Engine application: $CREATE_OUTPUT"
-                exit 1
-              fi
-            }
-
-            if ! gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
-              echo "ERROR: App Engine application not accessible after creation"
-              exit 1
-            fi
+            echo "ERROR: App Engine application does not exist. It should be created by Terraform."
+            echo "Please ensure terraform-apply job completed successfully and created the App Engine application."
+            exit 1
           fi
 
       - name: Setup Frontend
