@@ -17,6 +17,7 @@ locals {
     "roles/artifactregistry.writer",
     "roles/artifactregistry.createOnPushWriter",
     "roles/secretmanager.admin",
+    "roles/secretmanager.secretAccessor",
     "roles/serviceusage.serviceUsageConsumer",
     "roles/appengine.admin",
     "roles/appengine.deployer",
