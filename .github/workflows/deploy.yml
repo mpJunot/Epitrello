@@ -456,6 +456,7 @@ jobs:
         uses: ./.github/actions/setup-frontend
 
       - name: Download build artifacts
+        id: download-artifacts
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
@@ -473,13 +474,21 @@ jobs:
             exit 1
           fi
 
-          if [ ! -d "frontend/.next" ] || [ -z "$(ls -A frontend/.next 2>/dev/null)" ]; then
+          # Check if artifacts were downloaded successfully
+          ARTIFACT_EXISTS=false
+          if [ -d "frontend/.next" ] && [ -n "$(ls -A frontend/.next 2>/dev/null)" ]; then
+            ARTIFACT_EXISTS=true
+          fi
+
+          if [ "$ARTIFACT_EXISTS" = "false" ]; then
             echo "WARNING: Frontend build artifacts not found, building locally..."
+            echo "This can happen if build-frontend job was skipped or failed"
             cd frontend
             pnpm build
             cd ..
+            echo "Frontend build completed successfully"
           else
-            echo "Frontend build artifacts found"
+            echo "Frontend build artifacts found and ready"
           fi
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
@@ -510,7 +519,7 @@ jobs:
           fi
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Deploy to App Engine
+      - name: Update app.yaml with API URL
         working-directory: frontend
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
@@ -519,11 +528,19 @@ jobs:
             echo "ERROR: Backend URL is not set"
             exit 1
           fi
-          echo "Deploying frontend with API URL: $API_URL"
+          echo "Updating app.yaml with API URL: $API_URL"
+          # Create app.yaml with the API URL using printf
+          printf 'runtime: nodejs20\n\nenv: standard\n\ninstance_class: F2\n\nautomatic_scaling:\n  min_instances: 0\n  max_instances: 10\n  target_cpu_utilization: 0.6\n  target_throughput_utilization: 0.6\n\nenv_variables:\n  NODE_ENV: production\n  NEXT_PUBLIC_API_URL: '\''%s'\''\n\nhandlers:\n  - url: /.*\n    script: auto\n    secure: always\n' "$API_URL" > app.yaml
+          echo "app.yaml updated successfully"
+
+      - name: Deploy to App Engine
+        working-directory: frontend
+        run: |
+          ENV=${{ needs.detect-changes.outputs.environment }}
+          echo "Deploying frontend to App Engine..."
           gcloud app deploy app.yaml \
             --version=${ENV}-${{ github.sha }} \
-            --no-promote \
-            --set-env-vars="NEXT_PUBLIC_API_URL=${API_URL}"
+            --no-promote
 
   smoke-tests:
     name: Smoke Tests
