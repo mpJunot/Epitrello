@@ -430,7 +430,7 @@ jobs:
     name: Deploy Frontend to App Engine
     runs-on: ubuntu-latest
     needs: [detect-changes, build-frontend, terraform-apply]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped') && needs.terraform-apply.result == 'success'
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && needs.build-frontend.result == 'success' && needs.terraform-apply.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
 
     steps:
@@ -451,6 +451,17 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Verify service account permissions
+        run: |
+          echo "Checking service account permissions..."
+          SA_EMAIL=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | head -1)
+          echo "Active service account: $SA_EMAIL"
+          echo "Checking App Engine permissions..."
+          gcloud projects get-iam-policy ${{ secrets.GCP_PROJECT_ID }} \
+            --flatten="bindings[].members" \
+            --filter="bindings.members:serviceAccount:$SA_EMAIL AND bindings.role:roles/appengine.*" \
+            --format="table(bindings.role)" || echo "WARNING: Could not verify permissions"
 
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
