@@ -5,9 +5,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 
 type Board = { id: string; title: string; color?: string };
+type Workspace = { id: string; title: string };
 
 const STORAGE_KEY = "epitrello_boards";
 const ACTIVE_KEY = "epitrello_active_board";
+const WORKSPACES_KEY = "epitrello_workspaces";
+const EXPANDED_KEY = "epitrello_expanded_workspaces";
 
 function loadBoards(): Board[] {
   try {
@@ -24,37 +27,62 @@ function saveBoards(boards: Board[]) {
   window.dispatchEvent(new Event("epitrello:boards-updated"));
 }
 
+function loadWorkspaces(): Workspace[] {
+  try {
+    const raw = localStorage.getItem(WORKSPACES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as Workspace[];
+  } catch {
+    return [];
+  }
+}
+
+function saveWorkspaces(ws: Workspace[]) {
+  localStorage.setItem(WORKSPACES_KEY, JSON.stringify(ws));
+}
+
+function loadExpanded(): string[] {
+  try {
+    const raw = localStorage.getItem(EXPANDED_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+function saveExpanded(ids: string[]) {
+  localStorage.setItem(EXPANDED_KEY, JSON.stringify(ids));
+}
+
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
+  
 
   if (pathname && pathname.startsWith("/auth")) return null;
 
   useEffect(() => {
-    let loaded = [] as Board[];
-    try {
-      loaded = loadBoards();
-    } catch {}
-    if (!loaded || loaded.length === 0) {
-      loaded = [
-        { id: uuidv4(), title: "Personal", color: "bg-sky-500" },
-        { id: uuidv4(), title: "Work", color: "bg-emerald-500" },
-        { id: uuidv4(), title: "Side project", color: "bg-indigo-500" },
-      ];
-      saveBoards(loaded);
-    }
-    setBoards(loaded);
-
     // set active board from storage or url
     try {
       const active = localStorage.getItem(ACTIVE_KEY);
       if (active) setActiveId(active);
+
+      // Check if we're on a board page
+      if (pathname && pathname.startsWith('/boards/')) {
+        const boardId = pathname.split('/boards/')[1];
+        if (boardId) {
+          setActiveId(boardId);
+          localStorage.setItem(ACTIVE_KEY, boardId);
+        }
+      }
+
       const params = new URLSearchParams(window.location.search);
       const q = params.get("board");
       if (q) {
@@ -62,46 +90,72 @@ export default function Sidebar() {
         localStorage.setItem(ACTIVE_KEY, q);
       }
     } catch {}
-
-    const onUpdate = () => setBoards(loadBoards());
-    window.addEventListener("epitrello:boards-updated", onUpdate);
-    return () => window.removeEventListener("epitrello:boards-updated", onUpdate);
   }, []);
+
+  // load workspaces and expanded state
+  useEffect(() => {
+    try {
+      const ws = loadWorkspaces();
+      if (!ws || ws.length === 0) {
+        const defaults = [
+          { id: uuidv4(), title: "Personal" },
+          { id: uuidv4(), title: "Acme Corp" },
+        ];
+        saveWorkspaces(defaults);
+        setWorkspaces(defaults);
+      } else {
+        setWorkspaces(ws);
+      }
+
+      setExpandedWorkspaces(loadExpanded());
+    } catch {}
+  }, []);
+
+  // persist expandedWorkspaces to storage when it changes
+  useEffect(() => {
+    saveExpanded(expandedWorkspaces);
+  }, [expandedWorkspaces]);
 
   const openBoard = (id: string) => {
     try {
       localStorage.setItem(ACTIVE_KEY, id);
       setActiveId(id);
     } catch {}
-    router.push(`/dashboard?board=${id}`);
+    router.push(`/boards/${id}`);
   };
 
-  const createBoard = () => {
-    if (!newName.trim()) return;
-    const b: Board = { id: uuidv4(), title: newName.trim(), color: "bg-indigo-400" };
-    const next = [b, ...boards];
-    saveBoards(next);
-    setBoards(next);
-    setNewName("");
-    setCreating(false);
-    openBoard(b.id);
-    setFeedback(`Board "${b.title}" created`);
-    window.setTimeout(() => setFeedback(null), 3000);
+  
+
+  const toggleWorkspace = (id: string) => {
+    setExpandedWorkspaces((prev) => {
+      const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
+      saveExpanded(next);
+      return next;
+    });
   };
 
-  const removeBoard = (id: string) => {
-    const next = boards.filter((b) => b.id !== id);
-    saveBoards(next);
-    setBoards(next);
-    const active = localStorage.getItem(ACTIVE_KEY);
-    if (active === id) {
-      localStorage.removeItem(ACTIVE_KEY);
-      if (next[0]) openBoard(next[0].id);
-      else router.push("/");
-    }
-    setFeedback("Board deleted");
-    window.setTimeout(() => setFeedback(null), 3000);
+  const onBoards = (wid: string) => {
+    router.push(`/workspaces/${wid}/boards`);
   };
+
+  const onMembers = (wid: string) => {
+    router.push(`/workspaces/${wid}/members`);
+  };
+
+  const onSettings = (wid: string) => {
+    router.push(`/workspaces/${wid}/settings`);
+  };
+
+  const onSignOut = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    router.push("/auth/login");
+  };
+
+  
+
+  
 
   // adapt initial collapsed on small screens
   useEffect(() => {
@@ -134,62 +188,98 @@ export default function Sidebar() {
       <div className="p-3 flex-1 overflow-auto">
         {!collapsed && (
           <div className="mb-3">
-            <button
-              onClick={() => setCreating((s) => !s)}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 text-white px-3 py-2 text-sm"
-            >
-              + Create board
-            </button>
-            {creating && (
-              <div className="mt-2">
-                <input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Board name"
-                  className="w-full rounded border p-2 text-sm"
-                />
-                <div className="mt-2 flex gap-2">
-                  <button onClick={createBoard} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Create</button>
-                  <button onClick={() => setCreating(false)} className="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm">Cancel</button>
-                </div>
-              </div>
-            )}
+            <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => router.push("/dashboard")}
+                  className={`w-full flex items-center gap-3 p-2 rounded text-sm ${
+                    (pathname === "/" || pathname === "/dashboard") ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path d="M10 2L2 8v8a1 1 0 001 1h4v-6h6v6h4a1 1 0 001-1V8l-8-6z" />
+                  </svg>
+                  <span>Home</span>
+                </button>
+              </li>
+
+              <li>
+                <button
+                  onClick={() => (activeId ? router.push(`/boards/${activeId}`) : router.push('/dashboard'))}
+                  className={`w-full flex items-center gap-3 p-2 rounded text-sm ${
+                    pathname?.startsWith("/boards/") ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
+                  </svg>
+                  <span>Boards</span>
+                </button>
+              </li>
+            </ul>
           </div>
         )}
 
         <nav>
-          <div className="text-xs text-gray-500 uppercase mb-2">Boards</div>
-          <ul className="space-y-2">
-            {boards.map((b) => (
-              <li key={b.id} className="flex items-center justify-between">
-                <button
-                  onClick={() => openBoard(b.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") openBoard(b.id);
-                  }}
-                  aria-current={activeId === b.id ? "page" : undefined}
-                  className={`flex items-center gap-3 w-full text-left p-2 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200 transition-colors ${
-                    activeId === b.id ? "bg-indigo-50 font-semibold" : "hover:bg-gray-50"
-                  }`}
-                >
-                  <div className={`${b.color || "bg-gray-300"} h-3 w-3 rounded-sm flex-shrink-0`} />
-                  {!collapsed && <span className="truncate text-gray-900">{b.title}</span>}
-                </button>
-                {!collapsed && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      title={`Delete ${b.title}`}
-                      onClick={() => removeBoard(b.id)}
-                      className="text-xs text-red-500 px-2"
-                      aria-label={`Delete board ${b.title}`}
-                    >
-                      Suppr
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          {/* Workspaces section */}
+          {!collapsed && (
+            <div className="mb-3">
+              <div className="text-xs text-gray-500 uppercase mb-2">Workspaces</div>
+              <ul className="space-y-2">
+                {workspaces.map((w) => {
+                  const expanded = expandedWorkspaces.includes(w.id);
+                  // derive active states for items inside this workspace
+                  const boardsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/boards`);
+                  const membersActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/members`);
+                  const settingsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/settings`);
+                  return (
+                    <li key={w.id}>
+                      <div className="flex items-center justify-between">
+                        <button onClick={() => toggleWorkspace(w.id)} className="w-full text-left p-2 rounded flex items-center gap-2 hover:bg-gray-50">
+                          <span className="font-medium text-gray-900">{w.title}</span>
+                          <span className="ml-auto text-gray-400">{expanded ? "▾" : "▸"}</span>
+                        </button>
+                      </div>
+
+                      {expanded && (
+                        <div className="mt-1 ml-4">
+                          <ul className="space-y-1">
+                            <li>
+                              <button onClick={() => onBoards(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${boardsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                  <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
+                                </svg>
+                                <span>Boards</span>
+                              </button>
+                            </li>
+
+                            <li>
+                              <button onClick={() => onMembers(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${membersActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                  <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM4 14a4 4 0 018 0v1H4v-1z" />
+                                </svg>
+                                <span>Members</span>
+                              </button>
+                            </li>
+
+                            <li>
+                              <button onClick={() => onSettings(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${settingsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                  <path fillRule="evenodd" d="M11.3 1.046a1 1 0 00-2.6 0l-.2.6a1 1 0 01-.95.69H5.1a1 1 0 00-.98.8l-.2.98a1 1 0 01-.54.72L2.1 6.9a1 1 0 000 1.2l1 1a1 1 0 01.27.9l-.2.98a1 1 0 00.98 1.2h2.55a1 1 0 01.95.69l.2.6a1 1 0 002.6 0l.2-.6a1 1 0 01.95-.69h2.55a1 1 0 00.98-1.2l-.2-.98a1 1 0 01.27-.9l1-1a1 1 0 000-1.2l-1.36-1.36a1 1 0 01-.54-.72l-.2-.98a1 1 0 00-.98-.8h-2.55a1 1 0 01-.95-.69l-.2-.6z" clipRule="evenodd" />
+                                </svg>
+                                <span>Settings</span>
+                              </button>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          
         </nav>
       </div>
 
