@@ -21,9 +21,9 @@
 # 2. Uncomment the backend block above
 # 3. Run: terraform init -migrate-state
 
-# To create the state bucket (run once):
 resource "google_storage_bucket" "terraform_state" {
-  name          = "${var.project_id}-terraform-state"
+  # Must match the backend configuration in versions.tf
+  name          = "epitrello-terraform-state"
   location      = "EU"
   force_destroy = false
 
