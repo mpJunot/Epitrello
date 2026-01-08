@@ -63,26 +63,15 @@ resource "google_storage_bucket_iam_member" "backend_admin" {
 }
 
 # ===================================
-# IAM: Cloud Run service account access (optional)
-# ===================================
 # IAM: Cloud Run Service Account Access
 # ===================================
-# Note: The service account may not exist yet when this is applied
-# Terraform will handle the dependency, but if the service account doesn't exist,
-# this will fail. Ensure cloud_run module is applied first.
+# Note: The service account must exist before this resource is created
 resource "google_storage_bucket_iam_member" "cloud_run_admin" {
-  count = var.cloud_run_service_account_email != null ? 1 : 0
-
   bucket = google_storage_bucket.uploads.name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${var.cloud_run_service_account_email}"
 
   depends_on = [google_storage_bucket.uploads]
-
-  # Add a lifecycle block to handle the case where the service account doesn't exist yet
-  lifecycle {
-    create_before_destroy = false
-  }
 }
 
 # ===================================
