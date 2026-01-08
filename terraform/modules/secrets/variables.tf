@@ -25,8 +25,8 @@ variable "database_password" {
   }
 }
 
-variable "service_account_email" {
-  description = "Service account email that needs access to secrets"
+variable "backend_service_account_email" {
+  description = "Backend service account email that needs access to secrets"
   type        = string
 }
 
