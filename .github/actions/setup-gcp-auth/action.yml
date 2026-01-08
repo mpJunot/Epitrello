@@ -1,0 +1,34 @@
+name: 'Setup GCP Authentication'
+description: 'Setup Cloud SDK, validate credentials, and authenticate to GCP'
+
+inputs:
+  workload_identity_provider:
+    description: 'GCP Workload Identity Provider'
+    required: true
+  service_account:
+    description: 'GCP Service Account email'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Validate GCP credentials
+      shell: bash
+      run: |
+        if [ -z "${{ inputs.service_account }}" ]; then
+          echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ inputs.workload_identity_provider }}" ]; then
+          echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
+          exit 1
+        fi
+
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account: ${{ inputs.service_account }}
