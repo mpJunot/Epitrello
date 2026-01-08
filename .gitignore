@@ -60,6 +60,8 @@ service-account*.json
 # Terraform
 **/github-actions/env/*.tfvars
 !**/github-actions/env/*.tfvars.example
+**/terraform/env/*.tfvars
+!**/terraform/env/*.tfvars.example
 *.tfstate
 *.tfstate.*
 .terraform/
