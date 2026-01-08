@@ -20,13 +20,18 @@ output "backend_service_account" {
 # Frontend Outputs
 # ===================================
 output "frontend_url" {
-  description = "Frontend App Engine URL"
-  value       = module.app_engine.app_url
+  description = "Frontend Cloud Run service URL"
+  value       = module.cloud_run_frontend.service_url
+}
+
+output "frontend_service_name" {
+  description = "Frontend Cloud Run service name"
+  value       = module.cloud_run_frontend.service_name
 }
 
 output "frontend_service_account" {
   description = "Frontend service account email"
-  value       = module.app_engine.service_account_email
+  value       = module.cloud_run_frontend.service_account_email
 }
 
 # ===================================
@@ -85,7 +90,7 @@ output "deployment_summary" {
   description = "Complete deployment information"
   value = {
     environment     = var.environment
-    frontend_url    = module.app_engine.app_url
+    frontend_url    = module.cloud_run_frontend.service_url
     backend_url     = module.cloud_run.service_url
     database_ip     = module.cloud_sql.public_ip
     storage_bucket  = module.cloud_storage.bucket_name
@@ -123,13 +128,6 @@ output "connection_info" {
   sensitive = true
 }
 
-# ===================================
-# Service Account Outputs
-# ===================================
-output "deployer_service_account_email" {
-  description = "CI/CD Deployer service account email"
-  value       = google_service_account.epitrello_deployer.email
-}
 
 # ===================================
 # Next Steps
@@ -146,7 +144,7 @@ output "next_steps" {
      Region:      ${var.region}
 
   🔗 URLs:
-     Frontend:    ${module.app_engine.app_url}
+     Frontend:    ${module.cloud_run_frontend.service_url}
      Backend:     ${module.cloud_run.service_url}
 
   📊 Database:
@@ -175,13 +173,18 @@ output "next_steps" {
      DATABASE_URL="postgresql://${var.db_user}:PASSWORD@${module.cloud_sql.public_ip}:5432/${var.db_name}?sslmode=require" \
      npx prisma migrate deploy
 
-  4. Deploy frontend to App Engine:
+  4. Build and push frontend Docker image:
      cd frontend
-     NEXT_PUBLIC_API_URL="${module.cloud_run.service_url}/graphql" npm run build
-     gcloud app deploy
+     docker build -t ${var.frontend_image} .
+     docker push ${var.frontend_image}
 
-  5. Test your application:
-     open ${module.app_engine.app_url}
+  5. Update Cloud Run with new image:
+     gcloud run services update ${module.cloud_run_frontend.service_name} \
+       --image ${var.frontend_image} \
+       --region ${var.region}
+
+  6. Test your application:
+     open ${module.cloud_run_frontend.service_url}
 
   ⚠️  Notes:
      - Running in SINGLE INSTANCE mode (no Redis)
@@ -192,7 +195,6 @@ output "next_steps" {
   📚 Documentation:
      - Terraform: terraform.io
      - Cloud Run: cloud.google.com/run
-     - App Engine: cloud.google.com/appengine
 
   EOT
 }
