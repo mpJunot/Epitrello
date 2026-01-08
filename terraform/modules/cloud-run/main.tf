@@ -44,11 +44,6 @@ resource "google_cloud_run_v2_service" "backend" {
         value = "production"
       }
 
-      env {
-        name  = "PORT"
-        value = "8080"
-      }
-
       # Database connection (direct via public IP + SSL)
       dynamic "env" {
         for_each = var.database_connection != null && var.database_connection != "" ? [1] : []
@@ -285,28 +280,11 @@ resource "google_cloud_run_v2_service_iam_member" "noauth" {
 }
 
 # ===================================
-# IAM: Cloud SQL Client
+# IAM Permissions Note
 # ===================================
-resource "google_project_iam_member" "cloudsql_client" {
-  project = var.project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${var.service_account_email}"
-}
-
-# ===================================
-# IAM: Storage Object Admin
-# ===================================
-resource "google_project_iam_member" "storage_admin" {
-  project = var.project_id
-  role    = "roles/storage.objectAdmin"
-  member  = "serviceAccount:${var.service_account_email}"
-}
-
-# ===================================
-# IAM: Secret Manager Accessor
-# ===================================
-resource "google_project_iam_member" "secret_accessor" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${var.service_account_email}"
-}
+# IAM permissions are managed elsewhere:
+# - Secret Manager: Managed per-secret in the secrets module
+# - Storage: Managed per-bucket in the cloud-storage module
+# - Cloud SQL: Not needed for public IP connections with SSL
+# These project-level IAM bindings were removed to avoid permission errors
+# and follow the principle of least privilege (per-resource permissions)
