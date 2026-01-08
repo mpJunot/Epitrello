@@ -419,9 +419,39 @@ jobs:
           name: terraform-plan-${{ needs.detect-changes.outputs.environment }}
           path: ${{ env.TF_WORKING_DIR }}
 
+      - name: Validate required secrets
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          if [ -z "${{ secrets.DB_NAME }}" ]; then
+            echo "ERROR: DB_NAME secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_USER }}" ]; then
+            echo "ERROR: DB_USER secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "ERROR: DB_PASSWORD secret is not set"
+            exit 1
+          fi
+          echo "All required database secrets are set"
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
+
+      - name: Import existing Terraform state bucket if needed
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          # Check if bucket exists and is not in state
+          if terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            echo "Bucket already in Terraform state"
+          else
+            echo "Attempting to import existing bucket..."
+            terraform import google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
+              echo "Bucket import failed or bucket doesn't exist, will be created"
+            }
+          fi
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -451,6 +481,11 @@ jobs:
                 -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
                 -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
               echo "Applying regenerated plan..."
+              terraform apply -auto-approve tfplan
+            elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
+              echo "Bucket already exists, importing into state..."
+              terraform import google_storage_bucket.terraform_state epitrello-terraform-state || echo "Import failed, continuing..."
+              echo "Retrying apply..."
               terraform apply -auto-approve tfplan
             else
               echo "Apply failed with different error, see logs above"
