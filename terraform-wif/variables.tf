@@ -28,6 +28,7 @@ variable "sa_roles" {
     "roles/cloudsql.admin",
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",
+    "roles/iam.serviceAccountAdmin",
     "roles/iam.serviceAccountUser",
     "roles/iam.workloadIdentityPoolAdmin",
     "roles/run.admin",

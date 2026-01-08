@@ -21,6 +21,9 @@
 # 2. Uncomment the backend block above
 # 3. Run: terraform init -migrate-state
 
+# Terraform state bucket
+# Note: This bucket may already exist. If it does, import it:
+# terraform import google_storage_bucket.terraform_state epitrello-terraform-state
 resource "google_storage_bucket" "terraform_state" {
   # Must match the backend configuration in versions.tf
   name          = "epitrello-terraform-state"
