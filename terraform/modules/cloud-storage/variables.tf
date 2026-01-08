@@ -60,9 +60,8 @@ variable "service_account_email" {
 }
 
 variable "cloud_run_service_account_email" {
-  description = "Cloud Run service account email for additional IAM binding (optional)"
+  description = "Cloud Run service account email for additional IAM binding (required)"
   type        = string
-  default     = null
 }
 
 variable "labels" {
