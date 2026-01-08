@@ -1,0 +1,83 @@
+name: 'Setup Terraform Variables'
+description: 'Generate Terraform variables script from secrets'
+
+inputs:
+  environment:
+    description: 'Environment'
+    required: true
+  project_id:
+    description: 'GCP Project ID'
+    required: true
+  region:
+    description: 'GCP Region'
+    required: true
+    default: 'europe-west1'
+  db_name:
+    description: 'Database name'
+    required: true
+  db_user:
+    description: 'Database user'
+    required: true
+  db_password:
+    description: 'Database password'
+    required: true
+  jwt_secret:
+    description: 'JWT secret'
+    required: true
+  resend_api_key:
+    description: 'Resend API key'
+    required: false
+  google_client_id:
+    description: 'Google OAuth client ID'
+    required: false
+  google_client_secret:
+    description: 'Google OAuth client secret'
+    required: false
+  microsoft_client_id:
+    description: 'Microsoft OAuth client ID'
+    required: false
+  microsoft_client_secret:
+    description: 'Microsoft OAuth client secret'
+    required: false
+  apple_client_id:
+    description: 'Apple OAuth client ID'
+    required: false
+  apple_client_secret:
+    description: 'Apple OAuth client secret'
+    required: false
+  slack_client_id:
+    description: 'Slack OAuth client ID'
+    required: false
+  slack_client_secret:
+    description: 'Slack OAuth client secret'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Terraform variables
+      shell: bash
+      run: |
+        cat > /tmp/terraform_vars.sh << 'EOF'
+        TF_VARS=(
+          -var="environment=${{ inputs.environment }}"
+          -var="project_id=${{ inputs.project_id }}"
+          -var="region=${{ inputs.region }}"
+          -var="db_name=${{ inputs.db_name }}"
+          -var="db_user=${{ inputs.db_user }}"
+          -var="database_password=${{ inputs.db_password }}"
+          -var="backend_image=gcr.io/${{ inputs.project_id }}/epitrello-backend:latest"
+          -var="frontend_image=gcr.io/${{ inputs.project_id }}/epitrello-frontend:latest"
+          -var="jwt_secret=${{ inputs.jwt_secret }}"
+          -var="resend_api_key=${{ inputs.resend_api_key }}"
+          -var="google_client_id=${{ inputs.google_client_id }}"
+          -var="google_client_secret=${{ inputs.google_client_secret }}"
+          -var="microsoft_client_id=${{ inputs.microsoft_client_id }}"
+          -var="microsoft_client_secret=${{ inputs.microsoft_client_secret }}"
+          -var="apple_client_id=${{ inputs.apple_client_id }}"
+          -var="apple_client_secret=${{ inputs.apple_client_secret }}"
+          -var="slack_client_id=${{ inputs.slack_client_id }}"
+          -var="slack_client_secret=${{ inputs.slack_client_secret }}"
+        )
+        EOF
+        source /tmp/terraform_vars.sh
