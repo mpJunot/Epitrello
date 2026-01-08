@@ -13,6 +13,11 @@ variable "app_name" {
   type        = string
 }
 
+variable "environment" {
+  description = "Environment name (staging or production)"
+  type        = string
+}
+
 variable "subnet_cidr" {
   description = "CIDR range for the subnet"
   type        = string
