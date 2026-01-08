@@ -19,7 +19,7 @@ resource "google_compute_subnetwork" "subnet" {
   private_ip_google_access = true
 }
 
-# Serverless VPC Connector for App Engine and Cloud Run
+# Serverless VPC Connector for Cloud Run
 resource "google_vpc_access_connector" "connector" {
   name          = "${var.app_name}-vpc-connector"
   region        = var.region

@@ -135,7 +135,6 @@ module "cloud_storage" {
 
   # CORS configuration for frontend
   cors_origins = [
-    "https://${var.project_id}.appspot.com",
     "https://*.run.app",
     "http://localhost:3000" # For development
   ]
@@ -144,17 +143,22 @@ module "cloud_storage" {
 }
 
 # ===================================
-# App Engine Module (Frontend)
+# Cloud Run Module (Frontend)
 # ===================================
-module "app_engine" {
-  source = "./modules/app-engine"
+module "cloud_run_frontend" {
+  source = "./modules/cloud-run-frontend"
 
   project_id    = var.project_id
-  location      = var.app_engine_location
+  region        = var.region
   app_name      = local.app_name
+  image         = var.frontend_image
   backend_url   = module.cloud_run.service_url
+  cpu           = var.frontend_cpu
+  memory        = var.frontend_memory
   min_instances = var.frontend_min_instances
   max_instances = var.frontend_max_instances
+
+  labels = local.common_labels
 
   depends_on = [module.cloud_run]
 }

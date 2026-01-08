@@ -174,7 +174,7 @@ Unified deployment workflow for staging and production with automatic change det
 - Security scanning with Trivy
 - Terraform validation and deployment
 - Docker image build and push to GCR
-- Cloud Run (backend) and App Engine (frontend) deployment
+- Cloud Run (backend and frontend) deployment
 - Smoke tests after deployment
 
 **Jobs:**
@@ -189,7 +189,7 @@ Unified deployment workflow for staging and production with automatic change det
 8. **`terraform-plan`** - Generate Terraform plan
 9. **`terraform-apply`** - Apply Terraform changes
 10. **`deploy-backend`** - Deploy to Cloud Run
-11. **`deploy-frontend`** - Deploy to App Engine
+11. **`deploy-frontend`** - Deploy to Cloud Run
 12. **`smoke-tests`** - Run smoke tests
 13. **`notify`** - Deployment status notification
 
@@ -254,11 +254,10 @@ Automated cost optimization and resource cleanup.
 
 **Jobs:**
 
-1. **`cleanup-app-engine`** - Delete old App Engine versions
-2. **`cleanup-storage`** - Delete old Cloud Storage objects
-3. **`cost-report`** - Generate cost report
-4. **`identify-unused-resources`** - Identify unused resources
-5. **`notify`** - Send notification
+1. **`cleanup-storage`** - Delete old Cloud Storage objects
+2. **`cost-report`** - Generate cost report
+3. **`identify-unused-resources`** - Identify unused resources
+4. **`notify`** - Send notification
 
 ---
 
