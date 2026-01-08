@@ -22,6 +22,17 @@ on:
           - status
           - deploy
           - reset
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: string
+      action:
+        description: 'Action to perform'
+        required: true
+        type: string
+        default: 'deploy'
 
 env:
   GCP_REGION: europe-west1
@@ -155,8 +166,9 @@ jobs:
     needs: detect-migrations
     if: |
       (github.event_name == 'push' && needs.detect-migrations.outputs.has_migrations == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy') ||
+      (github.event_name == 'workflow_call' && inputs.action == 'deploy')
+    environment: ${{ github.event.inputs.environment || (inputs.environment != '' && inputs.environment) || 'staging' }}
     permissions:
       contents: read
       id-token: write
@@ -189,6 +201,8 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV=${{ github.event.inputs.environment }}
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            ENV="${{ inputs.environment }}"
           elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
             ENV="production"
           else
