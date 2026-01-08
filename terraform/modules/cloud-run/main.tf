@@ -1,13 +1,4 @@
 # ===================================
-# Service Account for Cloud Run
-# ===================================
-resource "google_service_account" "backend" {
-  account_id   = "${var.app_name}-backend-sa"
-  display_name = "Cloud Run Backend Service Account"
-  project      = var.project_id
-}
-
-# ===================================
 # Cloud Run Service (Backend)
 # ===================================
 resource "google_cloud_run_v2_service" "backend" {
@@ -16,7 +7,7 @@ resource "google_cloud_run_v2_service" "backend" {
   project  = var.project_id
 
   template {
-    service_account = google_service_account.backend.email
+    service_account = var.service_account_email
 
     # Scaling configuration
     scaling {
@@ -286,6 +277,8 @@ resource "google_cloud_run_v2_service_iam_member" "noauth" {
   project  = var.project_id
   role     = "roles/run.invoker"
   member   = "allUsers"
+
+  depends_on = [google_cloud_run_v2_service.backend]
 }
 
 # ===================================
@@ -294,7 +287,7 @@ resource "google_cloud_run_v2_service_iam_member" "noauth" {
 resource "google_project_iam_member" "cloudsql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.backend.email}"
+  member  = "serviceAccount:${var.service_account_email}"
 }
 
 # ===================================
@@ -303,7 +296,7 @@ resource "google_project_iam_member" "cloudsql_client" {
 resource "google_project_iam_member" "storage_admin" {
   project = var.project_id
   role    = "roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.backend.email}"
+  member  = "serviceAccount:${var.service_account_email}"
 }
 
 # ===================================
@@ -312,5 +305,5 @@ resource "google_project_iam_member" "storage_admin" {
 resource "google_project_iam_member" "secret_accessor" {
   project = var.project_id
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.backend.email}"
+  member  = "serviceAccount:${var.service_account_email}"
 }
