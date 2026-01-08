@@ -51,6 +51,9 @@ jobs:
     needs: detect-migrations
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'status'
     environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -61,15 +64,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
@@ -149,6 +157,9 @@ jobs:
       (github.event_name == 'push' && needs.detect-migrations.outputs.has_migrations == 'true') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
     environment: ${{ github.event.inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,15 +169,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
@@ -255,6 +271,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'reset' && github.event.inputs.environment == 'staging'
     environment: staging
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -265,15 +284,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
