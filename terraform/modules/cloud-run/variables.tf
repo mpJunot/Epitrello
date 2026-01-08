@@ -46,6 +46,7 @@ variable "database_connection" {
   description = "PostgreSQL connection string"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "jwt_secret_name" {

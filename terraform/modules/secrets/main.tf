@@ -45,18 +45,18 @@ resource "google_secret_manager_secret_version" "db_password_version" {
 }
 
 # ===================================
-# IAM: Allow service account to access secrets
+# IAM: Allow backend service account to access secrets
 # ===================================
 resource "google_secret_manager_secret_iam_member" "jwt_secret_access" {
   secret_id = google_secret_manager_secret.jwt_secret.id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 }
 
 resource "google_secret_manager_secret_iam_member" "db_password_access" {
   secret_id = google_secret_manager_secret.db_password.id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 }
 
 # ===================================
@@ -93,7 +93,7 @@ resource "google_secret_manager_secret_iam_member" "resend_api_key_access" {
 
   secret_id = google_secret_manager_secret.resend_api_key[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.resend_api_key]
 }
@@ -132,7 +132,7 @@ resource "google_secret_manager_secret_iam_member" "google_client_id_access" {
 
   secret_id = google_secret_manager_secret.google_client_id[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.google_client_id]
 }
@@ -168,7 +168,7 @@ resource "google_secret_manager_secret_iam_member" "google_client_secret_access"
 
   secret_id = google_secret_manager_secret.google_client_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.google_client_secret]
 }
@@ -207,7 +207,7 @@ resource "google_secret_manager_secret_iam_member" "microsoft_client_id_access" 
 
   secret_id = google_secret_manager_secret.microsoft_client_id[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.microsoft_client_id]
 }
@@ -243,7 +243,7 @@ resource "google_secret_manager_secret_iam_member" "microsoft_client_secret_acce
 
   secret_id = google_secret_manager_secret.microsoft_client_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.microsoft_client_secret]
 }
@@ -282,7 +282,7 @@ resource "google_secret_manager_secret_iam_member" "apple_client_id_access" {
 
   secret_id = google_secret_manager_secret.apple_client_id[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.apple_client_id]
 }
@@ -318,7 +318,7 @@ resource "google_secret_manager_secret_iam_member" "apple_client_secret_access" 
 
   secret_id = google_secret_manager_secret.apple_client_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.apple_client_secret]
 }
@@ -357,7 +357,7 @@ resource "google_secret_manager_secret_iam_member" "slack_client_id_access" {
 
   secret_id = google_secret_manager_secret.slack_client_id[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.slack_client_id]
 }
@@ -393,7 +393,7 @@ resource "google_secret_manager_secret_iam_member" "slack_client_secret_access" 
 
   secret_id = google_secret_manager_secret.slack_client_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.service_account_email}"
+  member    = "serviceAccount:${var.backend_service_account_email}"
 
   depends_on = [google_secret_manager_secret.slack_client_secret]
 }
