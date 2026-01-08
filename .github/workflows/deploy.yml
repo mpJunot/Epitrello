@@ -601,6 +601,9 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup GCP Authentication
         uses: ./.github/actions/setup-gcp-auth
         with:
