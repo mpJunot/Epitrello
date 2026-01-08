@@ -118,6 +118,11 @@ variable "vpc_connector_id" {
   default     = null
 }
 
+variable "service_account_email" {
+  description = "Service account email for Cloud Run service"
+  type        = string
+}
+
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
