@@ -39,12 +39,14 @@ runs:
         PROJECT_ID="${{ inputs.project_id }}"
 
         PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
-        DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | head -1 || echo "epitrello")
+        # Filter out 'postgres' default database and get the application database
+        DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
         DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
 
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
         echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
         echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+        echo "Using database: $DB_NAME"
 
     - name: Get database password from Secret Manager
       id: db-password
