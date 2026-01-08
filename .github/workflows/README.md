@@ -200,7 +200,8 @@ Unified deployment workflow for staging and production with automatic change det
 
 **Required Secrets:**
 
-- `GCP_SA_KEY` - GCP Service Account JSON key
+- `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
+- `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
 - `GCP_PROJECT_ID` - GCP Project ID
 - `STAGING_API_URL` / `PRODUCTION_API_URL` - API URLs
 
@@ -353,7 +354,8 @@ Configure the following secrets in repository settings:
 
 **Deployment (GCP):**
 
-- `GCP_SA_KEY` - GCP Service Account JSON key (for authentication)
+- `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
+- `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
 - `GCP_PROJECT_ID` - GCP Project ID
 - `STAGING_API_URL` - Staging environment API URL
 - `PRODUCTION_API_URL` - Production environment API URL
