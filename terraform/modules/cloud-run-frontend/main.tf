@@ -54,11 +54,6 @@ resource "google_cloud_run_v2_service" "frontend" {
       }
 
       env {
-        name  = "PORT"
-        value = "8080"
-      }
-
-      env {
         name  = "HOSTNAME"
         value = "0.0.0.0"
       }
@@ -134,8 +129,11 @@ resource "google_cloud_run_v2_service_iam_member" "noauth" {
 # ===================================
 # IAM: Storage Object Viewer (for static assets if needed)
 # ===================================
-resource "google_project_iam_member" "storage_viewer" {
-  project = var.project_id
-  role    = "roles/storage.objectViewer"
-  member  = "serviceAccount:${google_service_account.frontend.email}"
-}
+# Note: Project-level IAM bindings require elevated permissions.
+# If the frontend needs storage access, grant permissions at the bucket level
+# in the cloud-storage module instead of using project-level bindings.
+# resource "google_project_iam_member" "storage_viewer" {
+#   project = var.project_id
+#   role    = "roles/storage.objectViewer"
+#   member  = "serviceAccount:${google_service_account.frontend.email}"
+# }
