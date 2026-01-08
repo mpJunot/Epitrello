@@ -196,15 +196,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker --quiet
@@ -233,7 +238,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-frontend:
-    name: Build Frontend
+    name: Build Frontend Docker Image
     runs-on: ubuntu-latest
     needs: [detect-changes, test-frontend]
     if: needs.detect-changes.outputs.frontend == 'true' && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
@@ -242,21 +247,74 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build frontend
-        working-directory: frontend
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
+      - name: Validate GCP credentials
+        run: |
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
+            exit 1
+          fi
 
-      - name: Archive build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
         with:
-          name: frontend-build
-          path: frontend/.next/
-          retention-days: 7
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get Backend URL for build
+        id: backend-url
+        run: |
+          ENV=${{ needs.detect-changes.outputs.environment }}
+          SERVICE_NAME="${ENV}-epitrello-backend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+          if [ -z "$URL" ]; then
+            if [ "$ENV" == "production" ]; then
+              URL="${{ secrets.PRODUCTION_API_URL }}"
+            else
+              URL="${{ secrets.STAGING_API_URL }}"
+            fi
+            if [ -z "$URL" ]; then
+              echo "ERROR: Backend URL is not available from Cloud Run or secrets"
+              exit 1
+            fi
+          fi
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend
+          tags: |
+            type=sha,format=long
+            type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=true
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   terraform-plan:
     name: Terraform Plan
@@ -278,36 +336,12 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
-
-      - name: Apply service account permissions first
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          terraform init -upgrade
-          terraform apply -target=google_service_account.epitrello_deployer -target=google_project_iam_member.deployer_roles -auto-approve \
-            -var="environment=${{ needs.detect-changes.outputs.environment }}" \
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="db_name=${{ secrets.DB_NAME }}" \
-            -var="db_user=${{ secrets.DB_USER }}" \
-            -var="database_password=${{ secrets.DB_PASSWORD }}" \
-            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
-            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
-            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
-            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
-            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
-            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
-            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
-            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}" \
-            2>&1 | grep -v "No changes" || true
-          sleep 10
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -324,6 +358,7 @@ jobs:
             -var="db_user=${{ secrets.DB_USER }}" \
             -var="database_password=${{ secrets.DB_PASSWORD }}" \
             -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
+            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest" \
             -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
             -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
             -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
@@ -363,7 +398,8 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Download plan
         uses: actions/download-artifact@v4
@@ -391,6 +427,7 @@ jobs:
                 -var="db_user=${{ secrets.DB_USER }}" \
                 -var="database_password=${{ secrets.DB_PASSWORD }}" \
                 -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
+                -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest" \
                 -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
                 -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
                 -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
@@ -425,15 +462,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Deploy to Cloud Run
         run: |
@@ -451,7 +493,7 @@ jobs:
             --platform managed
 
   deploy-frontend:
-    name: Deploy Frontend to App Engine
+    name: Deploy Frontend to Cloud Run
     runs-on: ubuntu-latest
     needs: [detect-changes, build-frontend, terraform-apply]
     if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && needs.build-frontend.result == 'success' && needs.terraform-apply.result == 'success'
@@ -466,59 +508,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Verify App Engine application exists
-        run: |
-          if ! gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} > /dev/null 2>&1; then
-            echo "ERROR: App Engine application does not exist. It should be created by Terraform."
-            echo "Please ensure terraform-apply job completed successfully and created the App Engine application."
-            exit 1
-          fi
-
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
-
-      - name: Download build artifacts
-        id: download-artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/.next/
-        continue-on-error: true
-
-      - name: Check if build artifacts exist and build if missing
-        run: |
-          # Ensure pnpm is in PATH
-          export PATH="$PNPM_HOME:$PATH"
-          if ! command -v pnpm &> /dev/null; then
-            echo "ERROR: pnpm is not available in PATH"
-            echo "PNPM_HOME: $PNPM_HOME"
-            echo "PATH: $PATH"
-            exit 1
-          fi
-
-          # Check if artifacts were downloaded successfully
-          ARTIFACT_EXISTS=false
-          if [ -d "frontend/.next" ] && [ -n "$(ls -A frontend/.next 2>/dev/null)" ]; then
-            ARTIFACT_EXISTS=true
-          fi
-
-          if [ "$ARTIFACT_EXISTS" = "false" ]; then
-            cd frontend
-            pnpm build
-            cd ..
-          fi
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
@@ -541,51 +544,23 @@ jobs:
           fi
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Update app.yaml with API URL
-        working-directory: frontend
+      - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          API_URL="${{ steps.backend-url.outputs.url }}"
-          if [ -z "$API_URL" ]; then
-            echo "ERROR: Backend URL is not set"
-            exit 1
-          fi
-          printf 'runtime: nodejs20\n\nenv: standard\n\ninstance_class: F2\n\nautomatic_scaling:\n  min_instances: 0\n  max_instances: 10\n  target_cpu_utilization: 0.6\n  target_throughput_utilization: 0.6\n\nenv_variables:\n  NODE_ENV: production\n  NEXT_PUBLIC_API_URL: '\''%s'\''\n\nhandlers:\n  - url: /.*\n    script: auto\n    secure: always\n' "$API_URL" > app.yaml
+          IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:${IMAGE_TAG}"
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          BACKEND_URL="${{ steps.backend-url.outputs.url }}"
 
-      - name: Deploy to App Engine
-        working-directory: frontend
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          VERSION="${ENV}-${SHORT_SHA}"
+          echo "Deploying image: $IMAGE"
+          echo "Service: $SERVICE_NAME"
+          echo "Backend URL: $BACKEND_URL"
 
-          echo "Deploying version: ${VERSION}"
-          echo "App Engine application status:"
-          gcloud app describe --project=${{ secrets.GCP_PROJECT_ID }} || echo "App Engine application not found"
-
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if gcloud app deploy app.yaml \
-              --version=${VERSION} \
-              --no-promote \
-              --verbosity=info 2>&1 | tee /tmp/app-deploy.log; then
-              echo "Deployment successful"
-              exit 0
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Deployment failed, retrying (${RETRY_COUNT}/${MAX_RETRIES})..."
-                sleep 10
-              else
-                echo "Deployment failed after ${MAX_RETRIES} attempts"
-                echo "Last deployment log:"
-                tail -100 /tmp/app-deploy.log
-                exit 1
-              fi
-            fi
-          done
+          gcloud run services update $SERVICE_NAME \
+            --image $IMAGE \
+            --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed
 
   smoke-tests:
     name: Smoke Tests
@@ -622,15 +597,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
@@ -646,12 +626,10 @@ jobs:
         id: frontend-url
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
-          if [ "$ENV" == "production" ]; then
-            URL="https://${PROJECT_ID}.appspot.com"
-          else
-            URL="https://${ENV}-dot-${PROJECT_ID}.appspot.com"
-          fi
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Deployment Summary
