@@ -58,6 +58,8 @@ gcp-key*.json
 service-account*.json
 
 # Terraform
+**/github-actions/env/*.tfvars
+!**/github-actions/env/*.tfvars.example
 *.tfstate
 *.tfstate.*
 .terraform/
