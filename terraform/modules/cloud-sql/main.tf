@@ -65,9 +65,12 @@ resource "google_sql_database_instance" "main" {
       value = "100"
     }
 
+    # shared_buffers must be adjusted based on instance tier
+    # db-f1-micro (e2-micro, 1024MB RAM): 13107-78643 (recommended: 32768-65536)
+    # db-n1-standard-1 (n1-standard-1, 3.75GB RAM): can use higher values (262144 = 256MB)
     database_flags {
       name  = "shared_buffers"
-      value = "262144" # 256MB in 8KB blocks
+      value = var.db_tier == "db-f1-micro" ? "32768" : "262144" # 32MB for micro, 256MB for standard
     }
 
     # Insights configuration
