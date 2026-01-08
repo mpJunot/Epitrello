@@ -500,20 +500,16 @@ jobs:
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
               echo "Plan is stale, regenerating..."
-              terraform plan -out=tfplan \
-                -parallelism=10 \
-                -refresh=false \
-                "${TF_VARS[@]}"
-              echo "Applying regenerated plan..."
-              terraform apply -auto-approve tfplan
+              terraform refresh "${TF_VARS[@]}" || true
+              terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
+              terraform apply -auto-approve tfplan || exit 1
             elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
-              echo "Bucket already exists, importing into state..."
+              echo "Bucket already exists, importing..."
               terraform import "${TF_VARS[@]}" \
-                google_storage_bucket.terraform_state epitrello-terraform-state || echo "Import failed, continuing..."
-              echo "Retrying apply..."
-              terraform apply -auto-approve tfplan
+                google_storage_bucket.terraform_state epitrello-terraform-state || true
+              terraform apply -auto-approve tfplan || exit 1
             else
-              echo "Apply failed with different error, see logs above"
+              echo "Apply failed, see logs above"
               exit 1
             fi
           }

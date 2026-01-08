@@ -50,9 +50,12 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       # Database connection (direct via public IP + SSL)
-      env {
-        name  = "DATABASE_URL"
-        value = var.database_connection
+      dynamic "env" {
+        for_each = var.database_connection != null && var.database_connection != "" ? [1] : []
+        content {
+          name  = "DATABASE_URL"
+          value = var.database_connection
+        }
       }
 
       # JWT Secret from Secret Manager
