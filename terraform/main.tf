@@ -41,20 +41,22 @@ module "networking" {
 module "secrets" {
   source = "./modules/secrets"
 
-  project_id              = var.project_id
-  jwt_secret              = var.jwt_secret
-  database_password       = var.database_password
-  resend_api_key          = var.resend_api_key
-  google_client_id        = var.google_client_id
-  google_client_secret    = var.google_client_secret
-  microsoft_client_id     = var.microsoft_client_id
-  microsoft_client_secret = var.microsoft_client_secret
-  apple_client_id         = var.apple_client_id
-  apple_client_secret     = var.apple_client_secret
-  slack_client_id         = var.slack_client_id
-  slack_client_secret     = var.slack_client_secret
-  service_account_email   = google_service_account.default.email
-  labels                  = local.common_labels
+  project_id                    = var.project_id
+  jwt_secret                    = var.jwt_secret
+  database_password             = var.database_password
+  resend_api_key                = var.resend_api_key
+  google_client_id              = var.google_client_id
+  google_client_secret          = var.google_client_secret
+  microsoft_client_id           = var.microsoft_client_id
+  microsoft_client_secret       = var.microsoft_client_secret
+  apple_client_id               = var.apple_client_id
+  apple_client_secret           = var.apple_client_secret
+  slack_client_id               = var.slack_client_id
+  slack_client_secret           = var.slack_client_secret
+  backend_service_account_email = google_service_account.backend.email
+  labels                        = local.common_labels
+
+  depends_on = [google_service_account.backend]
 }
 
 # ===================================
