@@ -44,7 +44,8 @@ resource "google_storage_bucket" "terraform_state" {
 
   lifecycle {
     # Bucket already exists, ignore changes if it was created manually
-    ignore_changes = []
+    ignore_changes  = [name, location]
+    prevent_destroy = true
   }
 }
 
