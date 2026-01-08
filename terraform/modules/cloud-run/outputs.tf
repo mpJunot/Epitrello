@@ -10,7 +10,7 @@ output "service_url" {
 
 output "service_account_email" {
   description = "Service account email"
-  value       = google_service_account.backend.email
+  value       = var.service_account_email
 }
 
 output "service_id" {
