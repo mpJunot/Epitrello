@@ -80,19 +80,55 @@ module "cloud_sql" {
 }
 
 # ===================================
+# Cloud Run Backend Service Account
+# ===================================
+# Create the service account separately to avoid circular dependency
+# between cloud_storage and cloud_run modules
+resource "google_service_account" "backend" {
+  account_id   = "${local.app_name}-backend-sa"
+  display_name = "Cloud Run Backend Service Account"
+  project      = var.project_id
+}
+
+# ===================================
+# Cloud Storage Module
+# ===================================
+# Note: We use the service account created above to avoid circular dependency
+module "cloud_storage" {
+  source = "./modules/cloud-storage"
+
+  project_id                      = var.project_id
+  app_name                        = local.app_name
+  location                        = var.storage_location
+  service_account_email           = google_service_account.default.email
+  cloud_run_service_account_email = google_service_account.backend.email
+
+  # CORS configuration for frontend
+  cors_origins = [
+    "https://*.run.app",
+    "http://localhost:3000" # For development
+  ]
+
+  labels = local.common_labels
+
+  depends_on = [google_service_account.backend]
+}
+
+# ===================================
 # Cloud Run Module (Backend)
 # ===================================
 module "cloud_run" {
   source = "./modules/cloud-run"
 
-  project_id    = var.project_id
-  region        = var.region
-  app_name      = local.app_name
-  image         = var.backend_image
-  cpu           = var.backend_cpu
-  memory        = var.backend_memory
-  min_instances = var.backend_min_instances
-  max_instances = var.backend_max_instances
+  project_id            = var.project_id
+  region                = var.region
+  app_name              = local.app_name
+  image                 = var.backend_image
+  cpu                   = var.backend_cpu
+  memory                = var.backend_memory
+  min_instances         = var.backend_min_instances
+  max_instances         = var.backend_max_instances
+  service_account_email = google_service_account.backend.email
 
   database_connection                 = module.cloud_sql.connection_string
   jwt_secret_name                     = module.secrets.jwt_secret_name
@@ -115,31 +151,9 @@ module "cloud_run" {
     module.secrets,
     module.networking,
     module.cloud_storage,
-    google_service_account.default
+    google_service_account.default,
+    google_service_account.backend
   ]
-}
-
-# ===================================
-# Cloud Storage Module
-# ===================================
-# Note: We construct the Cloud Run service account email directly to avoid circular dependency
-# The service account email format is: ${app_name}-backend-sa@${project_id}.iam.gserviceaccount.com
-module "cloud_storage" {
-  source = "./modules/cloud-storage"
-
-  project_id                      = var.project_id
-  app_name                        = local.app_name
-  location                        = var.storage_location
-  service_account_email           = google_service_account.default.email
-  cloud_run_service_account_email = "${local.app_name}-backend-sa@${var.project_id}.iam.gserviceaccount.com"
-
-  # CORS configuration for frontend
-  cors_origins = [
-    "https://*.run.app",
-    "http://localhost:3000" # For development
-  ]
-
-  labels = local.common_labels
 }
 
 # ===================================
