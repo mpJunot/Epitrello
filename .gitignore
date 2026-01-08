@@ -66,4 +66,5 @@ service-account*.json
 .terraform.lock.hcl
 terraform.tfvars
 *.tfvars
+!*.tfvars.example
 !terraform/variables.tf
