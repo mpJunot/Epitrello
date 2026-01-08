@@ -38,13 +38,15 @@ backend_min_instances = 1
 backend_max_instances = 1
 
 # ===================================
-# Frontend (App Engine) Configuration
+# Frontend (Cloud Run) Configuration
 # ===================================
-app_engine_location = "europe-west"  # Options: europe-west, us-central, asia-northeast1
+frontend_image  = "gcr.io/YOUR-PROJECT-ID/epitrello-frontend:latest"
+frontend_cpu    = "1000m"  # 1000m = 1 vCPU, 2000m = 2 vCPU
+frontend_memory = "512Mi"  # 512Mi or 1Gi
 
 # Scaling configuration
-# Staging:    min=0, max=5
-# Production: min=1, max=20
+# Staging:    min=0 (scale to zero), max=5
+# Production: min=0, max=20
 frontend_min_instances = 0
 frontend_max_instances = 10
 

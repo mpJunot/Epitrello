@@ -222,7 +222,7 @@ resource "google_cloud_run_v2_service" "backend" {
       # CORS origins
       env {
         name  = "CORS_ORIGINS"
-        value = "https://${var.project_id}.appspot.com,https://*.run.app"
+        value = "https://*.run.app"
       }
 
       # ===================================
