@@ -194,22 +194,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -253,46 +239,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL for build
         id: backend-url
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SERVICE_NAME="${ENV}-epitrello-backend"
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ env.GCP_REGION }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
-          if [ -z "$URL" ]; then
-            if [ "$ENV" == "production" ]; then
-              URL="${{ secrets.PRODUCTION_API_URL }}"
-            else
-              URL="${{ secrets.STAGING_API_URL }}"
-            fi
-            if [ -z "$URL" ]; then
-              echo "ERROR: Backend URL is not available from Cloud Run or secrets"
-              exit 1
-            fi
-          fi
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker --quiet
@@ -342,8 +303,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -353,31 +314,24 @@ jobs:
         run: terraform init -upgrade
 
       - name: Setup Terraform variables
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          cat > /tmp/terraform_vars.sh << 'EOF'
-          TF_VARS=(
-            -var="environment=${{ needs.detect-changes.outputs.environment }}"
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
-            -var="region=${{ env.GCP_REGION }}"
-            -var="db_name=${{ secrets.DB_NAME }}"
-            -var="db_user=${{ secrets.DB_USER }}"
-            -var="database_password=${{ secrets.DB_PASSWORD }}"
-            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest"
-            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest"
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}"
-            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}"
-            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}"
-            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
-            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}"
-            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}"
-            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}"
-            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}"
-            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}"
-            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
-          )
-          EOF
-          source /tmp/terraform_vars.sh
+        uses: ./.github/actions/setup-terraform-vars
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          region: ${{ env.GCP_REGION }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
+          db_password: ${{ secrets.DB_PASSWORD }}
+          jwt_secret: ${{ secrets.JWT_SECRET }}
+          resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
+          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
+          slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -431,7 +385,7 @@ jobs:
           path: ${{ env.TF_WORKING_DIR }}
 
       - name: Validate required secrets
-        working-directory: ${{ env.TF_WORKING_DIR }}
+        shell: bash
         run: |
           if [ -z "${{ secrets.DB_NAME }}" ]; then
             echo "ERROR: DB_NAME secret is not set"
@@ -452,31 +406,24 @@ jobs:
         run: terraform init
 
       - name: Setup Terraform variables
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          cat > /tmp/terraform_vars.sh << 'EOF'
-          TF_VARS=(
-            -var="environment=${{ needs.detect-changes.outputs.environment }}"
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
-            -var="region=${{ env.GCP_REGION }}"
-            -var="db_name=${{ secrets.DB_NAME }}"
-            -var="db_user=${{ secrets.DB_USER }}"
-            -var="database_password=${{ secrets.DB_PASSWORD }}"
-            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest"
-            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest"
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}"
-            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}"
-            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}"
-            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
-            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}"
-            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}"
-            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}"
-            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}"
-            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}"
-            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
-          )
-          EOF
-          source /tmp/terraform_vars.sh
+        uses: ./.github/actions/setup-terraform-vars
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          region: ${{ env.GCP_REGION }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
+          db_password: ${{ secrets.DB_PASSWORD }}
+          jwt_secret: ${{ secrets.JWT_SECRET }}
+          resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
+          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
+          slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
 
       - name: Import existing Terraform state bucket if needed
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -551,22 +498,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -600,46 +533,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SERVICE_NAME="${ENV}-epitrello-backend"
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ env.GCP_REGION }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
-          if [ -z "$URL" ]; then
-            if [ "$ENV" == "production" ]; then
-              URL="${{ secrets.PRODUCTION_API_URL }}"
-            else
-              URL="${{ secrets.STAGING_API_URL }}"
-            fi
-            if [ -z "$URL" ]; then
-              echo "ERROR: Backend URL is not available from Cloud Run or secrets"
-              exit 1
-            fi
-          fi
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Deploy to Cloud Run
         run: |
@@ -693,43 +601,29 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SERVICE_NAME="${ENV}-epitrello-backend"
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ env.GCP_REGION }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Get Frontend URL
         id: frontend-url
+        shell: bash
         run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
+          ENV="${{ needs.detect-changes.outputs.environment }}"
           SERVICE_NAME="${ENV}-epitrello-frontend"
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
             --format="value(status.url)" 2>/dev/null || echo "")
           echo "url=$URL" >> $GITHUB_OUTPUT
 

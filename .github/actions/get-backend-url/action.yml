@@ -1,0 +1,61 @@
+name: 'Get Backend URL'
+description: 'Get backend Cloud Run service URL with fallback to secrets'
+
+inputs:
+  environment:
+    description: 'Environment (staging or production)'
+    required: true
+  region:
+    description: 'GCP Region'
+    required: true
+    default: 'europe-west1'
+  project_id:
+    description: 'GCP Project ID'
+    required: false
+  production_api_url:
+    description: 'Production API URL (fallback)'
+    required: false
+  staging_api_url:
+    description: 'Staging API URL (fallback)'
+    required: false
+
+outputs:
+  url:
+    description: 'Backend service URL'
+    value: ${{ steps.url.outputs.url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get Backend URL
+      id: url
+      shell: bash
+      run: |
+        ENV="${{ inputs.environment }}"
+        SERVICE_NAME="${ENV}-epitrello-backend"
+
+        if [ -n "${{ inputs.project_id }}" ]; then
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ inputs.region }} \
+            --project ${{ inputs.project_id }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+        else
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ inputs.region }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+        fi
+
+        if [ -z "$URL" ]; then
+          if [ "$ENV" == "production" ]; then
+            URL="${{ inputs.production_api_url }}"
+          else
+            URL="${{ inputs.staging_api_url }}"
+          fi
+          if [ -z "$URL" ]; then
+            echo "ERROR: Backend URL is not available from Cloud Run or secrets"
+            exit 1
+          fi
+        fi
+
+        echo "url=$URL" >> $GITHUB_OUTPUT
+        echo "Backend URL: $URL"
