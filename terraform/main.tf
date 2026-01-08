@@ -22,9 +22,10 @@ resource "google_service_account" "default" {
 module "networking" {
   source = "./modules/networking"
 
-  project_id = var.project_id
-  region     = var.region
-  app_name   = local.app_name
+  project_id  = var.project_id
+  region      = var.region
+  app_name    = local.app_name
+  environment = var.environment
 
   enable_private_ip       = var.enable_private_ip
   subnet_cidr             = var.subnet_cidr
