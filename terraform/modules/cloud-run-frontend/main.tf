@@ -79,7 +79,7 @@ resource "google_cloud_run_v2_service" "frontend" {
           port = 8080
         }
         initial_delay_seconds = 5
-        timeout_seconds       = 10
+        timeout_seconds       = 1
         period_seconds        = 3
         failure_threshold     = 20
       }
