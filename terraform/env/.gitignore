@@ -1,0 +1,3 @@
+# Ignore all tfvars files except examples
+*.tfvars
+!*.tfvars.example

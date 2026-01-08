@@ -138,12 +138,15 @@ If `sa_roles` is not specified, the following roles are assigned by default:
 - `roles/cloudsql.admin` - Cloud SQL instance management
 - `roles/compute.networkAdmin` - VPC network, subnet, and route management
 - `roles/compute.securityAdmin` - Firewall rules and SSL certificates management
+- `roles/iam.serviceAccountAdmin` - Service account creation and management
 - `roles/iam.serviceAccountUser` - Service account impersonation
-- `roles/run.admin` - Cloud Run service management
+- `roles/iam.workloadIdentityPoolAdmin` - Workload Identity Pool management
+- `roles/run.admin` - Cloud Run service management (includes IAM policy management)
 - `roles/secretmanager.admin` - Secret Manager management
 - `roles/servicenetworking.networksAdmin` - Service networking connections (VPC peering)
 - `roles/serviceusage.serviceUsageConsumer` - Service usage consumption
 - `roles/storage.admin` - Cloud Storage bucket management
+- `roles/vpcaccess.admin` - VPC Access Connector management
 
 ## Outputs
 
