@@ -99,6 +99,27 @@ variable "backend_max_instances" {
 }
 
 # ===================================
+# Frontend (Cloud Run) Configuration
+# ===================================
+variable "frontend_image" {
+  description = "Frontend Docker image URL (e.g., gcr.io/PROJECT_ID/epitrello-frontend:latest). Can be empty initially, will be updated after first build."
+  type        = string
+  default     = "gcr.io/PLACEHOLDER/epitrello-frontend:latest"
+}
+
+variable "frontend_cpu" {
+  description = "Frontend CPU allocation (e.g., 1000m = 1 vCPU)"
+  type        = string
+  default     = "1000m"
+}
+
+variable "frontend_memory" {
+  description = "Frontend memory allocation (e.g., 512Mi, 1Gi)"
+  type        = string
+  default     = "512Mi"
+}
+
+# ===================================
 # Secrets Configuration
 # ===================================
 variable "jwt_secret" {
@@ -175,24 +196,10 @@ variable "slack_client_secret" {
   default     = ""
 }
 
-# ===================================
-# Service Account Configuration
-# ===================================
-variable "create_service_account_key" {
-  description = "Create a new service account key (set to false after initial setup)"
-  type        = bool
-  default     = true
-}
 
 # ===================================
-# Frontend (App Engine) Configuration
+# Frontend (Cloud Run) Configuration
 # ===================================
-variable "app_engine_location" {
-  description = "App Engine location (europe-west, us-central, asia-northeast1)"
-  type        = string
-  default     = "europe-west"
-}
-
 variable "frontend_min_instances" {
   description = "Minimum number of frontend instances (0 to scale to zero)"
   type        = number

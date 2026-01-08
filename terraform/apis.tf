@@ -13,8 +13,9 @@ locals {
     "compute.googleapis.com",
     "vpcaccess.googleapis.com",
     "servicenetworking.googleapis.com",
-    "appengine.googleapis.com",
     "cloudbuild.googleapis.com",
+    "iamcredentials.googleapis.com", # Required for Workload Identity Federation
+    "sts.googleapis.com",            # Required for Workload Identity Federation
   ]
 }
 
