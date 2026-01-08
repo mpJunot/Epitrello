@@ -20,9 +20,9 @@ resource "google_compute_subnetwork" "subnet" {
 }
 
 # Serverless VPC Connector for Cloud Run
-# Note: Name must be lowercase and follow pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$
 resource "google_vpc_access_connector" "connector" {
-  name          = lower("${var.app_name}-vpc-connector")
+  # Pattern: ^[a-z][-a-z0-9]{0,23}[a-z0-9]$ (max 25 chars total)
+  name          = lower("${var.environment}-vpc-conn")
   region        = var.region
   project       = var.project_id
   network       = google_compute_network.vpc.name
