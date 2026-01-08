@@ -29,10 +29,12 @@ variable "sa_roles" {
     "roles/compute.networkAdmin",
     "roles/compute.securityAdmin",
     "roles/iam.serviceAccountUser",
+    "roles/iam.workloadIdentityPoolAdmin",
     "roles/run.admin",
     "roles/secretmanager.admin",
     "roles/servicenetworking.networksAdmin",
     "roles/serviceusage.serviceUsageConsumer",
     "roles/storage.admin",
+    "roles/vpcaccess.admin",
   ]
 }
