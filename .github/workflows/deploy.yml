@@ -352,32 +352,43 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
 
+      - name: Setup Terraform variables
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          cat > /tmp/terraform_vars.sh << 'EOF'
+          TF_VARS=(
+            -var="environment=${{ needs.detect-changes.outputs.environment }}"
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+            -var="region=${{ env.GCP_REGION }}"
+            -var="db_name=${{ secrets.DB_NAME }}"
+            -var="db_user=${{ secrets.DB_USER }}"
+            -var="database_password=${{ secrets.DB_PASSWORD }}"
+            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest"
+            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest"
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}"
+            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}"
+            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}"
+            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}"
+            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}"
+            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}"
+            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}"
+            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}"
+            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+          )
+          EOF
+          source /tmp/terraform_vars.sh
+
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           export TF_LOG=INFO
           export TF_LOG_PATH=/tmp/terraform.log
+          source /tmp/terraform_vars.sh
           terraform plan -out=tfplan \
             -parallelism=10 \
             -refresh=false \
-            -var="environment=${{ needs.detect-changes.outputs.environment }}" \
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="db_name=${{ secrets.DB_NAME }}" \
-            -var="db_user=${{ secrets.DB_USER }}" \
-            -var="database_password=${{ secrets.DB_PASSWORD }}" \
-            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
-            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest" \
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
-            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
-            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
-            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
-            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
-            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
-            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
-            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+            "${TF_VARS[@]}"
         timeout-minutes: 25
 
       - name: Save plan
@@ -440,15 +451,44 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
+      - name: Setup Terraform variables
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          cat > /tmp/terraform_vars.sh << 'EOF'
+          TF_VARS=(
+            -var="environment=${{ needs.detect-changes.outputs.environment }}"
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}"
+            -var="region=${{ env.GCP_REGION }}"
+            -var="db_name=${{ secrets.DB_NAME }}"
+            -var="db_user=${{ secrets.DB_USER }}"
+            -var="database_password=${{ secrets.DB_PASSWORD }}"
+            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest"
+            -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest"
+            -var="jwt_secret=${{ secrets.JWT_SECRET }}"
+            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}"
+            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}"
+            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}"
+            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}"
+            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}"
+            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}"
+            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}"
+            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+          )
+          EOF
+          source /tmp/terraform_vars.sh
+
       - name: Import existing Terraform state bucket if needed
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          source /tmp/terraform_vars.sh
           # Check if bucket exists and is not in state
           if terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
             echo "Bucket already in Terraform state"
           else
             echo "Attempting to import existing bucket..."
-            terraform import google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
+            terraform import "${TF_VARS[@]}" \
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
               echo "Bucket import failed or bucket doesn't exist, will be created"
             }
           fi
@@ -456,35 +496,20 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
               echo "Plan is stale, regenerating..."
               terraform plan -out=tfplan \
                 -parallelism=10 \
                 -refresh=false \
-                -var="environment=${{ needs.detect-changes.outputs.environment }}" \
-                -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-                -var="region=${{ env.GCP_REGION }}" \
-                -var="db_name=${{ secrets.DB_NAME }}" \
-                -var="db_user=${{ secrets.DB_USER }}" \
-                -var="database_password=${{ secrets.DB_PASSWORD }}" \
-                -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
-                -var="frontend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:latest" \
-                -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-                -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
-                -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
-                -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-                -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
-                -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
-                -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
-                -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
-                -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
-                -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+                "${TF_VARS[@]}"
               echo "Applying regenerated plan..."
               terraform apply -auto-approve tfplan
             elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
               echo "Bucket already exists, importing into state..."
-              terraform import google_storage_bucket.terraform_state epitrello-terraform-state || echo "Import failed, continuing..."
+              terraform import "${TF_VARS[@]}" \
+                google_storage_bucket.terraform_state epitrello-terraform-state || echo "Import failed, continuing..."
               echo "Retrying apply..."
               terraform apply -auto-approve tfplan
             else
