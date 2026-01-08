@@ -53,10 +53,10 @@ module "secrets" {
   apple_client_secret           = var.apple_client_secret
   slack_client_id               = var.slack_client_id
   slack_client_secret           = var.slack_client_secret
-  backend_service_account_email = google_service_account.backend.email
+  backend_service_account_email = module.service_accounts.backend_service_account_email
   labels                        = local.common_labels
 
-  depends_on = [google_service_account.backend]
+  depends_on = [module.service_accounts]
 }
 
 # ===================================
@@ -83,14 +83,13 @@ module "cloud_sql" {
 }
 
 # ===================================
-# Cloud Run Backend Service Account
+# Service Accounts Module
 # ===================================
-# Create the service account separately to avoid circular dependency
-# between cloud_storage and cloud_run modules
-resource "google_service_account" "backend" {
-  account_id   = "${local.app_name}-backend-sa"
-  display_name = "Cloud Run Backend Service Account"
-  project      = var.project_id
+module "service_accounts" {
+  source = "./modules/service-accounts"
+
+  project_id = var.project_id
+  app_name   = local.app_name
 }
 
 # ===================================
@@ -104,7 +103,7 @@ module "cloud_storage" {
   app_name                        = local.app_name
   location                        = var.storage_location
   service_account_email           = google_service_account.default.email
-  cloud_run_service_account_email = google_service_account.backend.email
+  cloud_run_service_account_email = module.service_accounts.backend_service_account_email
 
   # CORS configuration for frontend
   cors_origins = [
@@ -114,7 +113,7 @@ module "cloud_storage" {
 
   labels = local.common_labels
 
-  depends_on = [google_service_account.backend]
+  depends_on = [module.service_accounts]
 }
 
 # ===================================
@@ -131,7 +130,7 @@ module "cloud_run" {
   memory                = var.backend_memory
   min_instances         = var.backend_min_instances
   max_instances         = var.backend_max_instances
-  service_account_email = google_service_account.backend.email
+  service_account_email = module.service_accounts.backend_service_account_email
 
   database_connection                 = module.cloud_sql.connection_string
   jwt_secret_name                     = module.secrets.jwt_secret_name
@@ -154,8 +153,8 @@ module "cloud_run" {
     module.secrets,
     module.networking,
     module.cloud_storage,
-    google_service_account.default,
-    google_service_account.backend
+    module.service_accounts,
+    google_service_account.default
   ]
 }
 

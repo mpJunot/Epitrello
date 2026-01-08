@@ -52,6 +52,23 @@ resource "google_storage_bucket" "terraform_state" {
   }
 }
 
+# ===================================
+# IAM: Grant access to project owners and editors
+# ===================================
+# With uniform_bucket_level_access = true, IAM permissions must be explicit
+# Project owners and editors need access to read/write Terraform state
+resource "google_storage_bucket_iam_member" "owners" {
+  bucket = google_storage_bucket.terraform_state.name
+  role   = "roles/storage.objectAdmin"
+  member = "projectOwner:${var.project_id}"
+}
+
+resource "google_storage_bucket_iam_member" "editors" {
+  bucket = google_storage_bucket.terraform_state.name
+  role   = "roles/storage.objectAdmin"
+  member = "projectEditor:${var.project_id}"
+}
+
 output "terraform_state_bucket" {
   description = "Bucket for storing Terraform state"
   value       = google_storage_bucket.terraform_state.name
