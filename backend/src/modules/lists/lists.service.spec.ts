@@ -276,12 +276,13 @@ describe('ListsService', () => {
 
       mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
       mockPrismaService.list.findMany.mockResolvedValue(mockLists);
-      mockPrismaService.list.update
-        .mockResolvedValueOnce(mockLists[0])
-        .mockResolvedValueOnce(mockLists[1]);
-      mockPrismaService.$transaction.mockImplementation(async (callback) => {
-        return await callback(prismaService);
-      });
+
+      const updatedLists = [
+        { ...mockLists[0], position: 0 },
+        { ...mockLists[1], position: 1 },
+      ];
+
+      mockPrismaService.$transaction.mockResolvedValue(updatedLists);
 
       const result = await service.reorder(input, mockUser.id);
 
