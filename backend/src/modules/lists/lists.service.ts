@@ -9,7 +9,6 @@ import { CreateListInput } from './dto/create-list.input';
 import { UpdateListInput } from './dto/update-list.input';
 import { ReorderListsInput } from './dto/reorder-lists.input';
 import { List } from './entities/list.entity';
-import { Role } from '@prisma/client';
 
 @Injectable()
 export class ListsService {
