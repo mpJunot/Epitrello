@@ -2866,6 +2866,633 @@ query {
 
 ---
 
+## Lists
+
+Lists represent columns within a board. They contain cards and can be reordered by position.
+
+### Create List
+
+Create a new list in a board. Position is automatically calculated if not provided.
+
+**Mutation**: `createList`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation CreateList($input: CreateListInput!) {
+  createList(input: $input) {
+    id
+    boardId
+    title
+    position
+    isArchived
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "boardId": "board-uuid",
+    "title": "To Do",
+    "position": 0
+  }
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated as the next available position.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "createList": {
+      "id": "list-uuid",
+      "boardId": "board-uuid",
+      "title": "To Do",
+      "position": 0,
+      "isArchived": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Position is automatically calculated as the maximum position + 1 if not provided
+- User must have access to the board (member, workspace member, or board is public)
+- Cards are automatically deleted when a list is deleted (cascade delete)
+
+**Error Cases**:
+
+- `403 Forbidden` - User does not have access to the board
+- `404 Not Found` - Board does not exist
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation CreateList($input: CreateListInput!) { createList(input: $input) { id title position } }",
+    "variables": {
+      "input": {
+        "boardId": "board-uuid",
+        "title": "To Do"
+      }
+    }
+  }'
+```
+
+---
+
+### Get List by ID
+
+Get a specific list by ID with its cards.
+
+**Query**: `list`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+query List($id: ID!) {
+  list(id: $id) {
+    id
+    boardId
+    title
+    position
+    isArchived
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "list-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "list": {
+      "id": "list-uuid",
+      "boardId": "board-uuid",
+      "title": "To Do",
+      "position": 0,
+      "isArchived": false,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "query List($id: ID!) { list(id: $id) { id title position isArchived } }",
+    "variables": {
+      "id": "list-uuid"
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - List does not exist
+- `403 Forbidden` - User does not have access to the board
+
+---
+
+### Update List
+
+Update a list's title or position.
+
+**Mutation**: `updateList`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation UpdateList($input: UpdateListInput!) {
+  updateList(input: $input) {
+    id
+    boardId
+    title
+    position
+    isArchived
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "id": "list-uuid",
+    "title": "Updated List Title",
+    "position": 1
+  }
+}
+```
+
+> **Note**: All fields except `id` are optional. Update only the fields you want to change.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "updateList": {
+      "id": "list-uuid",
+      "boardId": "board-uuid",
+      "title": "Updated List Title",
+      "position": 1,
+      "isArchived": false,
+      "updatedAt": "2024-01-10T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation UpdateList($input: UpdateListInput!) { updateList(input: $input) { id title position } }",
+    "variables": {
+      "input": {
+        "id": "list-uuid",
+        "title": "Updated Title"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - List does not exist
+- `403 Forbidden` - User does not have access to the board
+
+---
+
+### Delete List
+
+Permanently delete a list. All cards in the list are automatically deleted via cascade.
+
+**Mutation**: `deleteList`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation DeleteList($id: ID!) {
+  deleteList(id: $id)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "list-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "deleteList": true
+  }
+}
+```
+
+**Notes**:
+
+- Permanently deletes the list and all associated cards
+- This action is irreversible
+- Cards are automatically deleted via database cascade
+
+**Error Cases**:
+
+- `404 Not Found` - List does not exist
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation DeleteList($id: ID!) { deleteList(id: $id) }",
+    "variables": {
+      "id": "list-uuid"
+    }
+  }'
+```
+
+---
+
+### Reorder Lists
+
+Update positions for multiple lists at once. All lists must belong to the same board.
+
+**Mutation**: `reorderLists`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation ReorderLists($input: ReorderListsInput!) {
+  reorderLists(input: $input) {
+    id
+    title
+    position
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "boardId": "board-uuid",
+    "listPositions": [
+      {
+        "id": "list-uuid-1",
+        "position": 0
+      },
+      {
+        "id": "list-uuid-2",
+        "position": 1
+      },
+      {
+        "id": "list-uuid-3",
+        "position": 2
+      }
+    ]
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "reorderLists": [
+      {
+        "id": "list-uuid-1",
+        "title": "To Do",
+        "position": 0
+      },
+      {
+        "id": "list-uuid-2",
+        "title": "In Progress",
+        "position": 1
+      },
+      {
+        "id": "list-uuid-3",
+        "title": "Done",
+        "position": 2
+      }
+    ]
+  }
+}
+```
+
+**Notes**:
+
+- All lists must belong to the same board
+- Positions are updated in a single transaction
+- Returns lists ordered by position (ascending)
+
+**Error Cases**:
+
+- `404 Not Found` - One or more lists not found
+- `400 Bad Request` - Lists belong to different boards
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation ReorderLists($input: ReorderListsInput!) { reorderLists(input: $input) { id position } }",
+    "variables": {
+      "input": {
+        "boardId": "board-uuid",
+        "listPositions": [
+          { "id": "list-uuid-1", "position": 0 },
+          { "id": "list-uuid-2", "position": 1 }
+        ]
+      }
+    }
+  }'
+```
+
+---
+
+### Archive List
+
+Archive a list (soft delete). Archived lists are hidden but can be restored.
+
+**Mutation**: `archiveList`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation ArchiveList($id: ID!) {
+  archiveList(id: $id) {
+    id
+    title
+    position
+    isArchived
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "list-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "archiveList": {
+      "id": "list-uuid",
+      "title": "To Do",
+      "position": 0,
+      "isArchived": true,
+      "updatedAt": "2024-01-10T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Archived lists are hidden from normal board views
+- List data is preserved and can be restored
+- Cards in archived lists remain accessible
+
+**Error Cases**:
+
+- `404 Not Found` - List does not exist
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation ArchiveList($id: ID!) { archiveList(id: $id) { id isArchived } }",
+    "variables": {
+      "id": "list-uuid"
+    }
+  }'
+```
+
+---
+
+## List Types
+
+### List
+
+```graphql
+type List {
+  id: ID!
+  boardId: ID!
+  title: String!
+  position: Int!
+  isArchived: Boolean!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+```
+
+### CreateListInput
+
+```graphql
+input CreateListInput {
+  boardId: ID!
+  title: String!
+  position: Int
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated.
+
+### UpdateListInput
+
+```graphql
+input UpdateListInput {
+  id: ID!
+  title: String
+  position: Int
+}
+```
+
+> **Note**: All fields except `id` are optional.
+
+### ReorderListsInput
+
+```graphql
+input ReorderListsInput {
+  boardId: ID!
+  listPositions: [ListPosition!]!
+}
+
+input ListPosition {
+  id: ID!
+  position: Int!
+}
+```
+
+---
+
+## List Management Examples
+
+### Complete List Workflow
+
+1. **Create a list:**
+
+```graphql
+mutation {
+  createList(
+    input: {
+      boardId: "board-uuid"
+      title: "To Do"
+    }
+  ) {
+    id
+    title
+    position
+  }
+}
+```
+
+2. **Get a list:**
+
+```graphql
+query {
+  list(id: "list-uuid") {
+    id
+    title
+    position
+    isArchived
+  }
+}
+```
+
+3. **Update a list:**
+
+```graphql
+mutation {
+  updateList(
+    input: {
+      id: "list-uuid"
+      title: "Updated List Title"
+      position: 1
+    }
+  ) {
+    id
+    title
+    position
+  }
+}
+```
+
+4. **Reorder multiple lists:**
+
+```graphql
+mutation {
+  reorderLists(
+    input: {
+      boardId: "board-uuid"
+      listPositions: [
+        { id: "list-uuid-1", position: 0 }
+        { id: "list-uuid-2", position: 1 }
+        { id: "list-uuid-3", position: 2 }
+      ]
+    }
+  ) {
+    id
+    title
+    position
+  }
+}
+```
+
+5. **Archive a list:**
+
+```graphql
+mutation {
+  archiveList(id: "list-uuid") {
+    id
+    isArchived
+  }
+}
+```
+
+6. **Delete a list:**
+
+```graphql
+mutation {
+  deleteList(id: "list-uuid")
+}
+```
+
+---
+
 ## Support
 
 For issues or questions, please refer to:
