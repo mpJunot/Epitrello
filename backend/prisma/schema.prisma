@@ -93,29 +93,29 @@ model Workspace {
 // Users can create boards, be assigned to cards, and participate in workspaces.
 
 model User {
-  id                     String    @id @default(uuid())
-  email                  String    @unique
-  name                   String
-  password               String
-  avatar                 String?
-  emailVerified          Boolean   @default(false)
-  emailVerificationToken String?   @unique
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  name                     String
+  password                 String
+  avatar                   String?
+  emailVerified            Boolean   @default(false)
+  emailVerificationToken   String?   @unique
   emailVerificationExpires DateTime?
-  resetPasswordToken     String?
-  resetPasswordExpires   DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  resetPasswordToken       String?
+  resetPasswordExpires     DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
-  createdBoards          Board[]                 @relation("BoardCreator")
-  boardMembers           BoardMember[]
-  cardAssignees          CardAssignee[]
-  comments               Comment[]
-  attachments            Attachment[]
-  workspaceMemberships   WorkspaceMember[]
-  notifications          Notification[]
-  oauthAccounts          OAuthAccount[]
-  sentInvitations        WorkspaceInvitation[]   @relation("InvitationInviter")
-  receivedInvitations    WorkspaceInvitation[]   @relation("InvitationInvitee")
+  createdBoards        Board[]               @relation("BoardCreator")
+  boardMembers         BoardMember[]
+  cardAssignees        CardAssignee[]
+  comments             Comment[]
+  attachments          Attachment[]
+  workspaceMemberships WorkspaceMember[]
+  notifications        Notification[]
+  oauthAccounts        OAuthAccount[]
+  sentInvitations      WorkspaceInvitation[] @relation("InvitationInviter")
+  receivedInvitations  WorkspaceInvitation[] @relation("InvitationInvitee")
 
   @@map("users")
 }
@@ -182,12 +182,13 @@ model BoardMember {
 // Lists contain cards and can be reordered by position.
 
 model List {
-  id        String   @id @default(uuid())
-  boardId   String
-  title     String
-  position  Float    @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  boardId    String
+  title      String
+  position   Int      @default(0)
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
   cards Card[]
