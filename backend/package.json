@@ -25,7 +25,9 @@
     "test:all:report": "node scripts/run-all-tests.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "docs:generate": "spectaql spectaql.config.yml",
+    "docs:watch": "spectaql spectaql.config.yml --watch"
   },
   "dependencies": {
     "@nestjs/apollo": "^12.0.9",
@@ -73,6 +75,7 @@
     "prettier": "^3.0.0",
     "prisma": "^5.6.0",
     "source-map-support": "^0.5.21",
+    "spectaql": "^3.0.6",
     "supertest": "^7.1.3",
     "ts-jest": "^29.1.0",
     "ts-loader": "^9.4.3",
