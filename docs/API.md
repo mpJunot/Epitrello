@@ -2811,11 +2811,7 @@ query {
 ```graphql
 mutation {
   addBoardMember(
-    input: {
-      boardId: "board-uuid"
-      userId: "user-uuid-2"
-      role: MEMBER
-    }
+    input: { boardId: "board-uuid", userId: "user-uuid-2", role: MEMBER }
   ) {
     id
     userId
@@ -2834,11 +2830,7 @@ mutation {
 ```graphql
 mutation {
   updateBoardMemberRole(
-    input: {
-      boardId: "board-uuid"
-      userId: "user-uuid-2"
-      role: ADMIN
-    }
+    input: { boardId: "board-uuid", userId: "user-uuid-2", role: ADMIN }
   )
 }
 ```
@@ -3407,12 +3399,7 @@ input ListPosition {
 
 ```graphql
 mutation {
-  createList(
-    input: {
-      boardId: "board-uuid"
-      title: "To Do"
-    }
-  ) {
+  createList(input: { boardId: "board-uuid", title: "To Do" }) {
     id
     title
     position
@@ -3438,11 +3425,7 @@ query {
 ```graphql
 mutation {
   updateList(
-    input: {
-      id: "list-uuid"
-      title: "Updated List Title"
-      position: 1
-    }
+    input: { id: "list-uuid", title: "Updated List Title", position: 1 }
   ) {
     id
     title
@@ -3488,6 +3471,851 @@ mutation {
 ```graphql
 mutation {
   deleteList(id: "list-uuid")
+}
+```
+
+---
+
+## Cards
+
+Cards represent tasks within a list. They can be moved between lists, reordered, and assigned to members.
+
+### Create Card
+
+Create a new card in a list. Position is automatically calculated if not provided.
+
+**Mutation**: `createCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation CreateCard($input: CreateCardInput!) {
+  createCard(input: $input) {
+    id
+    listId
+    title
+    description
+    coverUrl
+    startDate
+    dueDate
+    position
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "listId": "list-uuid",
+    "title": "Implement feature X",
+    "description": "# Task Description\n\n**Priority**: High",
+    "position": 0
+  }
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated as the next available position.
+> **Note**: `description` supports markdown formatting.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "createCard": {
+      "id": "card-uuid",
+      "listId": "list-uuid",
+      "title": "Implement feature X",
+      "description": "# Task Description\n\n**Priority**: High",
+      "coverUrl": null,
+      "startDate": null,
+      "dueDate": null,
+      "position": 0,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Position is automatically calculated as the maximum position + 1 if not provided
+- Description supports markdown formatting
+- User must have access to the board (member, workspace member, or board is public)
+
+**Error Cases**:
+
+- `403 Forbidden` - User does not have access to the board
+- `404 Not Found` - List does not exist
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation CreateCard($input: CreateCardInput!) { createCard(input: $input) { id title position } }",
+    "variables": {
+      "input": {
+        "listId": "list-uuid",
+        "title": "New Card"
+      }
+    }
+  }'
+```
+
+---
+
+### Get Card by ID
+
+Get a specific card by ID.
+
+**Query**: `card`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+query Card($id: ID!) {
+  card(id: $id) {
+    id
+    listId
+    title
+    description
+    coverUrl
+    startDate
+    dueDate
+    position
+    createdAt
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "card-uuid"
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "query Card($id: ID!) { card(id: $id) { id title description position } }",
+    "variables": {
+      "id": "card-uuid"
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Card does not exist
+- `403 Forbidden` - User does not have access to the board
+
+---
+
+### Update Card
+
+Update a card's properties including title, description, dates, and position.
+
+**Mutation**: `updateCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation UpdateCard($input: UpdateCardInput!) {
+  updateCard(input: $input) {
+    id
+    title
+    description
+    coverUrl
+    startDate
+    dueDate
+    position
+    updatedAt
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "id": "card-uuid",
+    "title": "Updated Card Title",
+    "description": "# Updated Description\n\nWith **markdown** support",
+    "dueDate": "2024-12-31T23:59:59Z",
+    "position": 1
+  }
+}
+```
+
+> **Note**: All fields except `id` are optional. Update only the fields you want to change.
+> **Note**: `description` supports markdown formatting.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "updateCard": {
+      "id": "card-uuid",
+      "title": "Updated Card Title",
+      "description": "# Updated Description\n\nWith **markdown** support",
+      "position": 1,
+      "updatedAt": "2024-01-10T00:00:00.000Z"
+    }
+  }
+}
+```
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation UpdateCard($input: UpdateCardInput!) { updateCard(input: $input) { id title description } }",
+    "variables": {
+      "input": {
+        "id": "card-uuid",
+        "title": "Updated Title"
+      }
+    }
+  }'
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Card does not exist
+- `403 Forbidden` - User does not have access to the board
+
+---
+
+### Delete Card
+
+Permanently delete a card.
+
+**Mutation**: `deleteCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation DeleteCard($id: ID!) {
+  deleteCard(id: $id)
+}
+```
+
+**Variables**:
+
+```json
+{
+  "id": "card-uuid"
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "deleteCard": true
+  }
+}
+```
+
+**Notes**:
+
+- Permanently deletes the card
+- This action is irreversible
+
+**Error Cases**:
+
+- `404 Not Found` - Card does not exist
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation DeleteCard($id: ID!) { deleteCard(id: $id) }",
+    "variables": {
+      "id": "card-uuid"
+    }
+  }'
+```
+
+---
+
+### Move Card
+
+Move a card to a different list within the same board. Position is automatically calculated if not provided.
+
+**Mutation**: `moveCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation MoveCard($input: MoveCardInput!) {
+  moveCard(input: $input) {
+    id
+    listId
+    title
+    position
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "cardId": "card-uuid",
+    "targetListId": "list-uuid-2",
+    "position": 0
+  }
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated.
+> **Note**: Cards can only be moved within the same board.
+
+**Response**:
+
+```json
+{
+  "data": {
+    "moveCard": {
+      "id": "card-uuid",
+      "listId": "list-uuid-2",
+      "title": "Card Title",
+      "position": 0
+    }
+  }
+}
+```
+
+**Notes**:
+
+- Cards can only be moved between lists within the same board
+- Position is automatically calculated as the maximum position + 1 if not provided
+
+**Error Cases**:
+
+- `404 Not Found` - Card or target list does not exist
+- `400 Bad Request` - Cannot move card between different boards
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation MoveCard($input: MoveCardInput!) { moveCard(input: $input) { id listId position } }",
+    "variables": {
+      "input": {
+        "cardId": "card-uuid",
+        "targetListId": "list-uuid-2"
+      }
+    }
+  }'
+```
+
+---
+
+### Reorder Cards
+
+Update positions for multiple cards within the same list. All cards must belong to the same list.
+
+**Mutation**: `reorderCards`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation ReorderCards($input: ReorderCardsInput!) {
+  reorderCards(input: $input) {
+    id
+    title
+    position
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "listId": "list-uuid",
+    "cardPositions": [
+      {
+        "id": "card-uuid-1",
+        "position": 0
+      },
+      {
+        "id": "card-uuid-2",
+        "position": 1
+      },
+      {
+        "id": "card-uuid-3",
+        "position": 2
+      }
+    ]
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "reorderCards": [
+      {
+        "id": "card-uuid-1",
+        "title": "Card 1",
+        "position": 0
+      },
+      {
+        "id": "card-uuid-2",
+        "title": "Card 2",
+        "position": 1
+      },
+      {
+        "id": "card-uuid-3",
+        "title": "Card 3",
+        "position": 2
+      }
+    ]
+  }
+}
+```
+
+**Notes**:
+
+- All cards must belong to the same list
+- Positions are updated in a single transaction
+- Returns cards ordered by position (ascending)
+
+**Error Cases**:
+
+- `404 Not Found` - One or more cards not found
+- `400 Bad Request` - Cards belong to different lists
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation ReorderCards($input: ReorderCardsInput!) { reorderCards(input: $input) { id position } }",
+    "variables": {
+      "input": {
+        "listId": "list-uuid",
+        "cardPositions": [
+          { "id": "card-uuid-1", "position": 0 },
+          { "id": "card-uuid-2", "position": 1 }
+        ]
+      }
+    }
+  }'
+```
+
+---
+
+### Assign Member to Card
+
+Assign a user to a card. The user will receive notifications related to the card.
+
+**Mutation**: `assignMemberToCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation AssignMemberToCard($input: AssignMemberToCardInput!) {
+  assignMemberToCard(input: $input) {
+    id
+    title
+    listId
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "cardId": "card-uuid",
+    "userId": "user-uuid"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "assignMemberToCard": {
+      "id": "card-uuid",
+      "title": "Card Title",
+      "listId": "list-uuid"
+    }
+  }
+}
+```
+
+**Notes**:
+
+- User must exist in the system
+- User cannot be assigned twice to the same card
+- Assigned users can view and interact with the card
+
+**Error Cases**:
+
+- `404 Not Found` - Card or user does not exist
+- `409 Conflict` - User is already assigned to this card
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation AssignMemberToCard($input: AssignMemberToCardInput!) { assignMemberToCard(input: $input) { id title } }",
+    "variables": {
+      "input": {
+        "cardId": "card-uuid",
+        "userId": "user-uuid"
+      }
+    }
+  }'
+```
+
+---
+
+### Unassign Member from Card
+
+Remove a user assignment from a card.
+
+**Mutation**: `unassignMemberFromCard`
+
+**Permissions**: User must have access to the board
+
+**GraphQL Query**:
+
+```graphql
+mutation UnassignMemberFromCard($input: UnassignMemberFromCardInput!) {
+  unassignMemberFromCard(input: $input) {
+    id
+    title
+    listId
+  }
+}
+```
+
+**Variables**:
+
+```json
+{
+  "input": {
+    "cardId": "card-uuid",
+    "userId": "user-uuid"
+  }
+}
+```
+
+**Response**:
+
+```json
+{
+  "data": {
+    "unassignMemberFromCard": {
+      "id": "card-uuid",
+      "title": "Card Title",
+      "listId": "list-uuid"
+    }
+  }
+}
+```
+
+**Error Cases**:
+
+- `404 Not Found` - Card does not exist
+- `404 Not Found` - User is not assigned to this card
+- `403 Forbidden` - User does not have access to the board
+
+**cURL Example**:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "query": "mutation UnassignMemberFromCard($input: UnassignMemberFromCardInput!) { unassignMemberFromCard(input: $input) { id title } }",
+    "variables": {
+      "input": {
+        "cardId": "card-uuid",
+        "userId": "user-uuid"
+      }
+    }
+  }'
+```
+
+---
+
+## Card Types
+
+### Card
+
+```graphql
+type Card {
+  id: ID!
+  listId: ID!
+  title: String!
+  description: String
+  coverUrl: String
+  startDate: DateTime
+  dueDate: DateTime
+  position: Float!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+```
+
+### CreateCardInput
+
+```graphql
+input CreateCardInput {
+  listId: ID!
+  title: String!
+  description: String
+  coverUrl: String
+  startDate: DateTime
+  dueDate: DateTime
+  position: Float
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated.
+> **Note**: `description` supports markdown formatting.
+
+### UpdateCardInput
+
+```graphql
+input UpdateCardInput {
+  id: ID!
+  title: String
+  description: String
+  coverUrl: String
+  startDate: DateTime
+  dueDate: DateTime
+  position: Float
+}
+```
+
+> **Note**: All fields except `id` are optional.
+> **Note**: `description` supports markdown formatting.
+
+### MoveCardInput
+
+```graphql
+input MoveCardInput {
+  cardId: ID!
+  targetListId: ID!
+  position: Float
+}
+```
+
+> **Note**: `position` is optional. If not provided, it will be automatically calculated.
+> **Note**: Cards can only be moved within the same board.
+
+### ReorderCardsInput
+
+```graphql
+input ReorderCardsInput {
+  listId: ID!
+  cardPositions: [CardPosition!]!
+}
+
+input CardPosition {
+  id: ID!
+  position: Float!
+}
+```
+
+### AssignMemberToCardInput
+
+```graphql
+input AssignMemberToCardInput {
+  cardId: ID!
+  userId: ID!
+}
+```
+
+### UnassignMemberFromCardInput
+
+```graphql
+input UnassignMemberFromCardInput {
+  cardId: ID!
+  userId: ID!
+}
+```
+
+---
+
+## Card Management Examples
+
+### Complete Card Workflow
+
+1. **Create a card:**
+
+```graphql
+mutation {
+  createCard(
+    input: {
+      listId: "list-uuid"
+      title: "Implement feature"
+      description: "# Feature Description\n\n**Priority**: High"
+    }
+  ) {
+    id
+    title
+    position
+  }
+}
+```
+
+2. **Get a card:**
+
+```graphql
+query {
+  card(id: "card-uuid") {
+    id
+    title
+    description
+    position
+  }
+}
+```
+
+3. **Update a card:**
+
+```graphql
+mutation {
+  updateCard(
+    input: {
+      id: "card-uuid"
+      title: "Updated Card Title"
+      description: "# Updated\n\nWith **markdown**"
+      dueDate: "2024-12-31T23:59:59Z"
+    }
+  ) {
+    id
+    title
+    description
+  }
+}
+```
+
+4. **Move a card to another list:**
+
+```graphql
+mutation {
+  moveCard(input: { cardId: "card-uuid", targetListId: "list-uuid-2" }) {
+    id
+    listId
+    position
+  }
+}
+```
+
+5. **Reorder cards within a list:**
+
+```graphql
+mutation {
+  reorderCards(
+    input: {
+      listId: "list-uuid"
+      cardPositions: [
+        { id: "card-uuid-1", position: 0 }
+        { id: "card-uuid-2", position: 1 }
+        { id: "card-uuid-3", position: 2 }
+      ]
+    }
+  ) {
+    id
+    position
+  }
+}
+```
+
+6. **Assign a member to a card:**
+
+```graphql
+mutation {
+  assignMemberToCard(input: { cardId: "card-uuid", userId: "user-uuid" }) {
+    id
+    title
+  }
+}
+```
+
+7. **Unassign a member from a card:**
+
+```graphql
+mutation {
+  unassignMemberFromCard(input: { cardId: "card-uuid", userId: "user-uuid" }) {
+    id
+    title
+  }
+}
+```
+
+8. **Delete a card:**
+
+```graphql
+mutation {
+  deleteCard(id: "card-uuid")
 }
 ```
 
