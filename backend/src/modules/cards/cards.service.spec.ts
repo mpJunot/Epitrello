@@ -63,13 +63,6 @@ describe('CardsService', () => {
     },
   };
 
-  const mockList = {
-    id: 'list-1',
-    boardId: 'board-1',
-    title: 'Test List',
-    position: 0,
-    isArchived: false,
-  };
 
   const mockCard = {
     id: 'card-1',
@@ -101,6 +94,7 @@ describe('CardsService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.resetAllMocks();
   });
 
   it('should be defined', () => {
