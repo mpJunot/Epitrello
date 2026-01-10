@@ -134,6 +134,19 @@ jobs:
           path: backend/coverage/
           retention-days: 30
 
+      - name: Generate GraphQL documentation
+        working-directory: backend
+        run: pnpm docs:generate
+
+      - name: Upload GraphQL documentation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphql-documentation-${{ github.sha }}
+          path: backend/docs/graphql/**
+          retention-days: 7
+          if-no-files-found: ignore
+
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
