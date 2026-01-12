@@ -60,3 +60,18 @@ resource "google_storage_bucket_iam_member" "service_account_admin" {
 
   depends_on = [google_storage_bucket.docs]
 }
+
+# ===================================
+# IAM: Deployer service account (for CI/CD)
+# ===================================
+# Grant permissions to the deployer service account used by CI/CD
+# This allows the GitHub Actions workflow to upload documentation
+resource "google_storage_bucket_iam_member" "deployer_admin" {
+  count = var.deployer_service_account_email != null && var.deployer_service_account_email != "" ? 1 : 0
+
+  bucket = google_storage_bucket.docs.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${var.deployer_service_account_email}"
+
+  depends_on = [google_storage_bucket.docs]
+}
