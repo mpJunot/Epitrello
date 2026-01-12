@@ -1,7 +1,6 @@
 # Epitrello
-
-![CI](https://github.com/mpJunot/Epitrello/workflows/CI/badge.svg)
-![Tests](https://github.com/mpJunot/Epitrello/workflows/Tests/badge.svg)
+[![Deploy Production](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-production.yml/badge.svg?branch=master)](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-production.yml)
+[![Deploy Staging](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-staging.yml/badge.svg?branch=dev)](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-staging.yml)
 [![codecov](https://codecov.io/gh/mpJunot/Epitrello/branch/master/graph/badge.svg)](https://codecov.io/gh/mpJunot/Epitrello)
 
 Epitrello is an online project management tool inspired by Toyota's Kanban methodology. It enables teams to organize work into boards, lists, and cards, facilitating task tracking and collaboration.
@@ -197,7 +196,7 @@ For more details, see [.github/workflows/README.md](./.github/workflows/README.m
 
 | Document                                          | Description                               |
 | ------------------------------------------------- | ----------------------------------------- |
-| [API Documentation](./docs/API.md)                | GraphQL API reference and examples        |
+| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html)                | GraphQL API reference and examples        |
 | [Docker Setup](./DOCKER.md)                       | Docker configuration and deployment guide |
 | [Development Tasks](./TASKS.md)                   | Prioritized development task list         |
 | [Backend Architecture](./backend/ARCHITECTURE.md) | Backend architecture overview             |
