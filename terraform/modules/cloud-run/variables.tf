@@ -46,6 +46,7 @@ variable "database_connection" {
   description = "PostgreSQL connection string"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "jwt_secret_name" {
@@ -116,6 +117,11 @@ variable "vpc_connector_id" {
   description = "VPC connector ID for private Cloud SQL access (optional)"
   type        = string
   default     = null
+}
+
+variable "service_account_email" {
+  description = "Service account email for Cloud Run service"
+  type        = string
 }
 
 variable "labels" {

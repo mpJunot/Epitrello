@@ -2,7 +2,7 @@ name: Database Migrations
 
 on:
   push:
-    branches: [master]
+    branches: [master, dev]
     paths:
       - 'backend/prisma/migrations/**'
   workflow_dispatch:
@@ -22,6 +22,17 @@ on:
           - status
           - deploy
           - reset
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: string
+      action:
+        description: 'Action to perform'
+        required: true
+        type: string
+        default: 'deploy'
 
 env:
   GCP_REGION: europe-west1
@@ -51,6 +62,9 @@ jobs:
     needs: detect-migrations
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'status'
     environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -61,15 +75,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
@@ -81,7 +100,8 @@ jobs:
           # Get database connection details
           CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
           PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
-          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | head -1 || echo "epitrello")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
           DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
 
           echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT
@@ -147,8 +167,12 @@ jobs:
     needs: detect-migrations
     if: |
       (github.event_name == 'push' && needs.detect-migrations.outputs.has_migrations == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
-    environment: ${{ github.event.inputs.environment || 'staging' }}
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy') ||
+      (github.event_name == 'workflow_call' && inputs.action == 'deploy')
+    environment: ${{ github.event.inputs.environment || (inputs.environment != '' && inputs.environment) || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -158,21 +182,28 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
         run: |
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             ENV=${{ github.event.inputs.environment }}
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            ENV="${{ inputs.environment }}"
           elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
             ENV="production"
           else
@@ -184,7 +215,8 @@ jobs:
           # Get database connection details
           CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
           PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
-          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | head -1 || echo "epitrello")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
           DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
 
           echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT
@@ -255,6 +287,9 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'reset' && github.event.inputs.environment == 'staging'
     environment: staging
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -265,15 +300,20 @@ jobs:
 
       - name: Validate GCP credentials
         run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
+            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
             exit 1
           fi
 
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get database connection info
         id: db
@@ -285,7 +325,8 @@ jobs:
           # Get database connection details
           CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
           PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
-          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | head -1 || echo "epitrello")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
           DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
 
           echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT

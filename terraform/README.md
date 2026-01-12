@@ -10,7 +10,7 @@ Infrastructure as Code for EpiTrello using Terraform on Google Cloud Platform.
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
 │  ┌──────────────┐         ┌──────────────┐            │
-│  │  App Engine  │────────▶│  Cloud Run   │            │
+│  │  Cloud Run   │────────▶│  Cloud Run   │            │
 │  │  (Frontend)  │  HTTPS  │  (Backend)   │            │
 │  │   Next.js    │         │   NestJS     │            │
 │  └──────────────┘         └──────┬───────┘            │
@@ -70,10 +70,15 @@ terraform/
     │   ├── variables.tf
     │   └── outputs.tf
     │
-    └── app-engine/          # Frontend Next.js
+    └── cloud-run-frontend/  # Frontend Next.js
         ├── main.tf
         ├── variables.tf
         └── outputs.tf
+
+github-actions/              # Service Account + Workload Identity for CI/CD
+├── main.tf
+├── variables.tf
+└── outputs.tf
 ```
 
 ## 🚀 Quick Start
@@ -81,6 +86,7 @@ terraform/
 ### Prerequisites
 
 1. **Install Terraform**
+
    ```bash
    # macOS
    brew install terraform
@@ -92,6 +98,7 @@ terraform/
    ```
 
 2. **Install Google Cloud SDK**
+
    ```bash
    curl https://sdk.cloud.google.com | bash
    exec -l $SHELL
@@ -106,6 +113,7 @@ terraform/
 ### Initial Setup
 
 1. **Create GCP Projects**
+
    ```bash
    # Staging
    gcloud projects create epitrello-staging --name="EpiTrello Staging"
@@ -115,10 +123,12 @@ terraform/
    ```
 
 2. **Enable Billing**
+
    - Go to https://console.cloud.google.com/billing
    - Link projects to billing account
 
 3. **Enable Required APIs**
+
    ```bash
    # For each project
    gcloud config set project epitrello-staging
@@ -129,11 +139,11 @@ terraform/
      sqladmin.googleapis.com \
      storage-api.googleapis.com \
      secretmanager.googleapis.com \
-     cloudbuild.googleapis.com \
-     appengine.googleapis.com
+     cloudbuild.googleapis.com
    ```
 
 4. **Create Configuration Files**
+
    ```bash
    # Copy example files
    cp terraform.tfvars.example staging.tfvars
@@ -141,6 +151,7 @@ terraform/
    ```
 
 5. **Generate Secrets**
+
    ```bash
    # Staging secrets
    echo "Staging JWT: $(openssl rand -base64 48)"
@@ -152,11 +163,13 @@ terraform/
    ```
 
 6. **Update Configuration Files**
+
    - Edit `staging.tfvars` with staging values
    - Edit `production.tfvars` with production values
    - Update project IDs, secrets, and resource configurations
 
 7. **Create Terraform State Bucket**
+
    ```bash
    # For staging
    gsutil mb -l europe-west1 gs://epitrello-terraform-state-staging
@@ -253,20 +266,22 @@ terraform destroy -var-file="staging.tfvars"
 ## 📊 Cost Estimation
 
 ### Staging Environment
-- **App Engine**: $0-15/month (scale to zero)
-- **Cloud Run**: $5-15/month (scale to zero)
+
+- **Cloud Run (Frontend)**: $0-10/month (scale to zero)
+- **Cloud Run (Backend)**: $5-15/month (scale to zero)
 - **Cloud SQL**: $10/month (db-f1-micro)
 - **Cloud Storage**: $1/month
 - **Secrets**: $0.50/month
-- **Total**: ~$17-42/month
+- **Total**: ~$17-37/month
 
 ### Production Environment
-- **App Engine**: $15-30/month (always on)
-- **Cloud Run**: $20-40/month (always on)
+
+- **Cloud Run (Frontend)**: $10-25/month (always on)
+- **Cloud Run (Backend)**: $20-40/month (always on)
 - **Cloud SQL**: $50/month (db-n1-standard-1)
 - **Cloud Storage**: $2/month
 - **Secrets**: $0.50/month
-- **Total**: ~$87-123/month
+- **Total**: ~$82-118/month
 
 ## 🔐 Security
 
@@ -319,7 +334,6 @@ tfsec .
 - **Terraform**: https://terraform.io
 - **Google Cloud**: https://cloud.google.com/docs
 - **Cloud Run**: https://cloud.google.com/run/docs
-- **App Engine**: https://cloud.google.com/appengine/docs
 - **Cloud SQL**: https://cloud.google.com/sql/docs
 
 ## 🐛 Troubleshooting

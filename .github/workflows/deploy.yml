@@ -184,6 +184,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [detect-changes, test-backend]
     if: needs.detect-changes.outputs.backend == 'true' && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
     outputs:
       image: ${{ steps.meta.outputs.tags }}
 
@@ -191,20 +194,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker --quiet
@@ -233,30 +227,61 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-frontend:
-    name: Build Frontend
+    name: Build Frontend Docker Image
     runs-on: ubuntu-latest
     needs: [detect-changes, test-frontend]
     if: needs.detect-changes.outputs.frontend == 'true' && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
-
-      - name: Build frontend
-        working-directory: frontend
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
-
-      - name: Archive build artifacts
-        uses: actions/upload-artifact@v4
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
-          name: frontend-build
-          path: frontend/.next/
-          retention-days: 7
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get Backend URL for build
+        id: backend-url
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend
+          tags: |
+            type=sha,format=long
+            type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=true
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   terraform-plan:
     name: Terraform Plan
@@ -265,6 +290,9 @@ jobs:
     needs: [detect-changes, terraform-validate]
     if: needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -275,40 +303,46 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
+
+      - name: Setup Terraform variables
+        uses: ./.github/actions/setup-terraform-vars
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          region: ${{ env.GCP_REGION }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
+          db_password: ${{ secrets.DB_PASSWORD }}
+          jwt_secret: ${{ secrets.JWT_SECRET }}
+          resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
+          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
+          slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           export TF_LOG=INFO
           export TF_LOG_PATH=/tmp/terraform.log
+          source /tmp/terraform_vars.sh
           terraform plan -out=tfplan \
             -parallelism=10 \
-            -refresh=true \
-            -var="environment=${{ needs.detect-changes.outputs.environment }}" \
-            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-            -var="region=${{ env.GCP_REGION }}" \
-            -var="db_name=${{ secrets.DB_NAME }}" \
-            -var="db_user=${{ secrets.DB_USER }}" \
-            -var="database_password=${{ secrets.DB_PASSWORD }}" \
-            -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
-            -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
-            -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
-            -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
-            -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
-            -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
-            -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
-            -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
+            -refresh=false \
+            "${TF_VARS[@]}"
         timeout-minutes: 25
 
       - name: Save plan
@@ -323,8 +357,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [detect-changes, terraform-plan]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true'
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true' && needs.terraform-plan.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
@@ -338,7 +375,8 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Download plan
         uses: actions/download-artifact@v4
@@ -346,70 +384,125 @@ jobs:
           name: terraform-plan-${{ needs.detect-changes.outputs.environment }}
           path: ${{ env.TF_WORKING_DIR }}
 
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.DB_NAME }}" ]; then
+            echo "ERROR: DB_NAME secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_USER }}" ]; then
+            echo "ERROR: DB_USER secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "ERROR: DB_PASSWORD secret is not set"
+            exit 1
+          fi
+          echo "All required database secrets are set"
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
+      - name: Setup Terraform variables
+        uses: ./.github/actions/setup-terraform-vars
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          region: ${{ env.GCP_REGION }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
+          db_password: ${{ secrets.DB_PASSWORD }}
+          jwt_secret: ${{ secrets.JWT_SECRET }}
+          resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+          google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
+          microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
+          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
+          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
+          slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
+
+      - name: Import existing Terraform state bucket if needed
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          source /tmp/terraform_vars.sh
+          # Check if bucket exists and is not in state
+          if terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            echo "Bucket already in Terraform state"
+          else
+            echo "Attempting to import existing bucket..."
+            terraform import "${TF_VARS[@]}" \
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
+              echo "Bucket import failed or bucket doesn't exist, will be created"
+            }
+          fi
+
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          # Try to apply the plan, if it's stale, regenerate it
+          source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
               echo "Plan is stale, regenerating..."
-              terraform plan -out=tfplan \
-                -parallelism=10 \
-                -refresh=true \
-                -var="environment=${{ needs.detect-changes.outputs.environment }}" \
-                -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-                -var="region=${{ env.GCP_REGION }}" \
-                -var="db_name=${{ secrets.DB_NAME }}" \
-                -var="db_user=${{ secrets.DB_USER }}" \
-                -var="database_password=${{ secrets.DB_PASSWORD }}" \
-                -var="backend_image=gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:latest" \
-                -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-                -var="resend_api_key=${{ secrets.RESEND_API_KEY }}" \
-                -var="google_client_id=${{ secrets.GOOGLE_CLIENT_ID }}" \
-                -var="google_client_secret=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-                -var="microsoft_client_id=${{ secrets.MICROSOFT_CLIENT_ID }}" \
-                -var="microsoft_client_secret=${{ secrets.MICROSOFT_CLIENT_SECRET }}" \
-                -var="apple_client_id=${{ secrets.APPLE_CLIENT_ID }}" \
-                -var="apple_client_secret=${{ secrets.APPLE_CLIENT_SECRET }}" \
-                -var="slack_client_id=${{ secrets.SLACK_CLIENT_ID }}" \
-                -var="slack_client_secret=${{ secrets.SLACK_CLIENT_SECRET }}"
-              echo "Applying regenerated plan..."
-              terraform apply -auto-approve tfplan
+              terraform refresh "${TF_VARS[@]}" || true
+              terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
+              terraform apply -auto-approve tfplan || exit 1
+            elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
+              echo "Bucket already exists, importing..."
+              terraform import "${TF_VARS[@]}" \
+                google_storage_bucket.terraform_state epitrello-terraform-state || true
+              terraform apply -auto-approve tfplan || exit 1
             else
-              echo "Apply failed with different error, see logs above"
+              echo "Apply failed, see logs above"
               exit 1
             fi
           }
 
-  deploy-backend:
-    name: Deploy Backend to Cloud Run
+  run-migrations:
+    name: Run Database Migrations
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-backend, terraform-apply]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.backend == 'true'
+    needs: [detect-changes, terraform-apply]
+    if: github.event_name != 'pull_request' && needs.terraform-apply.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Run migrations
+        uses: ./.github/actions/run-migrations
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          db_password: ${{ secrets.DB_PASSWORD }}
+
+  deploy-backend:
+    name: Deploy Backend to Cloud Run
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-backend, terraform-apply, run-migrations]
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.backend == 'true' && needs.build-backend.result == 'success' && needs.terraform-apply.result == 'success' && (needs.run-migrations.result == 'success' || needs.run-migrations.result == 'skipped')
+    environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Deploy to Cloud Run
         run: |
@@ -427,98 +520,58 @@ jobs:
             --platform managed
 
   deploy-frontend:
-    name: Deploy Frontend to App Engine
+    name: Deploy Frontend to Cloud Run
     runs-on: ubuntu-latest
     needs: [detect-changes, build-frontend, terraform-apply]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && (needs.build-frontend.result == 'success' || needs.build-frontend.result == 'skipped')
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && needs.build-frontend.result == 'success' && needs.terraform-apply.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: frontend/.next/
-        continue-on-error: true
-
-      - name: Check if build artifacts exist and build if missing
-        run: |
-          # Ensure pnpm is in PATH
-          export PATH="$PNPM_HOME:$PATH"
-          if ! command -v pnpm &> /dev/null; then
-            echo "ERROR: pnpm is not available in PATH"
-            echo "PNPM_HOME: $PNPM_HOME"
-            echo "PATH: $PATH"
-            exit 1
-          fi
-
-          if [ ! -d "frontend/.next" ] || [ -z "$(ls -A frontend/.next 2>/dev/null)" ]; then
-            echo "WARNING: Frontend build artifacts not found, building locally..."
-            cd frontend
-            pnpm build
-            cd ..
-          else
-            echo "Frontend build artifacts found"
-          fi
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.STAGING_API_URL || secrets.PRODUCTION_API_URL }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SERVICE_NAME="${ENV}-epitrello-backend"
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ env.GCP_REGION }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
-          if [ -z "$URL" ]; then
-            echo "ERROR: Could not retrieve backend URL for service: $SERVICE_NAME"
-            exit 1
-          fi
-          echo "Backend URL: $URL"
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
 
-      - name: Deploy to App Engine
-        working-directory: frontend
+      - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.detect-changes.outputs.environment }}
-          API_URL="${{ steps.backend-url.outputs.url }}"
-          if [ -z "$API_URL" ]; then
-            echo "ERROR: Backend URL is not set"
-            exit 1
-          fi
-          echo "Deploying frontend with API URL: $API_URL"
-          gcloud app deploy app.yaml \
-            --version=${ENV}-${{ github.sha }} \
-            --no-promote \
-            --set-env-vars="NEXT_PUBLIC_API_URL=${API_URL}"
+          IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:${IMAGE_TAG}"
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          BACKEND_URL="${{ steps.backend-url.outputs.url }}"
+
+          echo "Deploying image: $IMAGE"
+          echo "Service: $SERVICE_NAME"
+          echo "Backend URL: $BACKEND_URL"
+
+          gcloud run services update $SERVICE_NAME \
+            --image $IMAGE \
+            --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed
 
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
     needs: [deploy-backend, deploy-frontend]
-    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
+    if: (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
 
     steps:
       - name: Checkout
@@ -532,46 +585,49 @@ jobs:
   notify:
     name: Notify Deployment
     runs-on: ubuntu-latest
-    needs: [detect-changes, deploy-backend, deploy-frontend, smoke-tests]
-    if: always()
+    needs:
+      [
+        detect-changes,
+        terraform-apply,
+        run-migrations,
+        deploy-backend,
+        deploy-frontend,
+        smoke-tests,
+      ]
+    if: always() && (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
     environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then
-            echo "ERROR: GCP_SA_KEY secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Get Backend URL
         id: backend-url
-        run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          SERVICE_NAME="${ENV}-epitrello-backend"
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ env.GCP_REGION }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.detect-changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Get Frontend URL
         id: frontend-url
+        shell: bash
         run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
-          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
-          if [ "$ENV" == "production" ]; then
-            URL="https://${PROJECT_ID}.appspot.com"
-          else
-            URL="https://${ENV}-dot-${PROJECT_ID}.appspot.com"
-          fi
+          ENV="${{ needs.detect-changes.outputs.environment }}"
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Deployment Summary
@@ -582,13 +638,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| Terraform | ${{ needs.terraform-apply.result }} | - |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ needs.deploy-backend.result }} | ${{ steps.backend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ needs.deploy-frontend.result }} | ${{ steps.frontend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
 
       - name: Deployment status
         run: |
-          echo "Deployment completed"
+          echo "Terraform: ${{ needs.terraform-apply.result }}"
           echo "Backend: ${{ needs.deploy-backend.result }}"
           echo "Frontend: ${{ needs.deploy-frontend.result }}"
-          echo "Backend URL: ${{ steps.backend-url.outputs.url }}"
-          echo "Frontend URL: ${{ steps.frontend-url.outputs.url }}"
