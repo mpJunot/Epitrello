@@ -71,6 +71,19 @@ output "storage_bucket_url" {
 }
 
 # ===================================
+# Documentation Outputs
+# ===================================
+output "docs_bucket_name" {
+  description = "Documentation bucket name"
+  value       = module.docs_bucket.bucket_name
+}
+
+output "docs_bucket_public_url" {
+  description = "Public URL to access the GraphQL documentation"
+  value       = module.docs_bucket.public_url
+}
+
+# ===================================
 # Secrets Outputs
 # ===================================
 output "jwt_secret_name" {
