@@ -44,6 +44,14 @@ frontend_max_instances = 20
 storage_location = "EU"
 
 # ===================================
+# CI/CD Configuration
+# ===================================
+# Service account used by GitHub Actions for deployments
+# This should match the GCP_SERVICE_ACCOUNT secret in GitHub
+# Required for documentation bucket uploads
+# deployer_service_account_email = "epitrello-deployer@your-project-id.iam.gserviceaccount.com"
+
+# ===================================
 # Networking Configuration
 # ===================================
 # Enable private IP for Cloud SQL (recommended for production)
