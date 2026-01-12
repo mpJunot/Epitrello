@@ -51,27 +51,28 @@ resource "google_storage_bucket_iam_member" "public_read" {
 }
 
 # ===================================
-# IAM: Service account can write/update documentation
+# IAM: Documentation service account has full permissions
 # ===================================
-resource "google_storage_bucket_iam_member" "service_account_admin" {
+# Grant full permissions to the documentation service account
+# This service account is used by CI/CD to upload documentation
+# It has storage.objectAdmin role for full read/write access
+resource "google_storage_bucket_iam_member" "docs_service_account_admin" {
   bucket = google_storage_bucket.docs.name
   role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${var.service_account_email}"
+  member = "serviceAccount:${var.docs_service_account_email}"
 
   depends_on = [google_storage_bucket.docs]
 }
 
 # ===================================
-# IAM: Deployer service account (for CI/CD)
+# IAM: Allow CI/CD service account to impersonate docs service account
 # ===================================
-# Grant permissions to the deployer service account used by CI/CD
-# This allows the GitHub Actions workflow to upload documentation
-resource "google_storage_bucket_iam_member" "deployer_admin" {
-  count = var.deployer_service_account_email != null && var.deployer_service_account_email != "" ? 1 : 0
+# Grant serviceAccountUser role to allow CI/CD to impersonate the docs service account
+# This allows the CI/CD service account (via Workload Identity) to act as the docs service account
+resource "google_service_account_iam_member" "ci_cd_impersonate_docs" {
+  count = var.ci_cd_service_account_email != null && var.ci_cd_service_account_email != "" ? 1 : 0
 
-  bucket = google_storage_bucket.docs.name
-  role   = "roles/storage.objectAdmin"
-  member = "serviceAccount:${var.deployer_service_account_email}"
-
-  depends_on = [google_storage_bucket.docs]
+  service_account_id = var.docs_service_account_email
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${var.ci_cd_service_account_email}"
 }
