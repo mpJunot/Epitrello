@@ -185,13 +185,13 @@ module "cloud_run_frontend" {
 module "docs_bucket" {
   source = "./modules/docs-bucket"
 
-  project_id                     = var.project_id
-  app_name                       = local.app_name
-  location                       = var.storage_location
-  service_account_email          = google_service_account.default.email
-  deployer_service_account_email = var.deployer_service_account_email
+  project_id                  = var.project_id
+  app_name                    = local.app_name
+  location                    = var.storage_location
+  docs_service_account_email  = module.service_accounts.docs_service_account_email
+  ci_cd_service_account_email = var.ci_cd_service_account_email
 
   labels = local.common_labels
 
-  depends_on = [google_service_account.default]
+  depends_on = [module.service_accounts]
 }
