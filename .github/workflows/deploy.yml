@@ -594,6 +594,17 @@ jobs:
         working-directory: backend
         run: pnpm build
 
+      - name: Generate GraphQL schema
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_SECRET: dummy-secret-for-schema-generation-only
+        run: |
+          timeout 30 node -e "const { NestFactory } = require('@nestjs/core'); const { AppModule } = require('./dist/app.module'); (async () => { const app = await NestFactory.create(AppModule, { logger: false }); await app.close(); })().catch(() => process.exit(0));" || true
+          if [ -f "src/graphql/schema.gql" ]; then
+            echo "Schema generated: $(wc -l < src/graphql/schema.gql) lines"
+          fi
+
       - name: Generate GraphQL documentation
         working-directory: backend
         run: pnpm docs:generate
@@ -617,8 +628,6 @@ jobs:
           if [ -d "docs/graphql" ]; then
             echo "Uploading documentation to gs://${BUCKET}/"
             gcloud storage rsync --recursive docs/graphql/ gs://${BUCKET}/
-            echo "Documentation uploaded successfully"
-            echo "Public URL: https://storage.googleapis.com/${BUCKET}/index.html"
           else
             echo "Documentation directory not found, skipping upload"
           fi
