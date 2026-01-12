@@ -25,7 +25,6 @@
               <li><a href="#introduction">Welcome</a></li>
               <li><a href="#introduction-item-0">Getting Started</a></li>
               <li><a href="#introduction-item-1">Features</a></li>
-              <li><a href="#introduction-item-2">Rate Limiting</a></li>
             </ul>
           </div>
           <div class="nav-group">
@@ -136,26 +135,24 @@
           <div id="introduction" data-traverse-target="introduction">
             <div id="welcome" class="doc-row">
               <div class="doc-copy">
-                <p>GraphQL API documentation for Epitrello - A Trello-like project management application</p>
+                <p>Welcome to the GraphQL API documentation for Epitrello</p>
               </div>
               <div class="doc-examples">
-                <div class="example-section welcome-contact-section">
-                  <h5>Contact</h5>
-                  <p class="contact-name">Epitrello Support</p>
-                  <p class="contact-email"><a href="mailto:support@epitrello.com">support@epitrello.com</a></p>
+                <div class="example-section welcome-license-section">
+                  <h5>License</h5>
+                  <p class="license-name">MIT</p>
+                  <p class="license-url"><a href="https://opensource.org/licenses/MIT">https://opensource.org/licenses/MIT</a></p>
                 </div>
                 <div class="example-section welcome-api-endpoints-section example-section-is-code">
                   <h5>API Endpoints</h5>
-                  <pre><code>https://staging-epitrello-backend-940386127836.europe-west1.run.app/graphql</code></pre>
+                  <pre><code># Staging:
+https://staging-epitrello-backend-940386127836.europe-west1.run.app/graphql
+</code></pre>
                 </div>
                 <div class="example-section welcome-api-endpoints-section example-section-is-code">
                   <h5>Headers</h5>
-                  <pre><code># JWT token for authenticated requests
-Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
-                </div>
-                <div class="example-section welcome-version-section">
-                  <h5>Version</h5>
-                  <p>1.0.0</p>
+                  <pre><code># Your foo from bar
+Authorization: Bearer &lt;YOUR_TOKEN_HERE&gt;</code></pre>
                 </div>
               </div>
             </div>
@@ -186,16 +183,6 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                     <li><strong>Authentication</strong>: Secure JWT-based authentication</li>
                     <li><strong>OAuth</strong>: Support for Google, Microsoft, Apple, and Slack</li>
                   </ul>
-                </div>
-                <div class="doc-examples">
-                </div>
-              </div>
-            </div>
-            <div id="introduction-item-2" class="introduction-item" data-traverse-target="introduction-item-2">
-              <h2 class="introduction-item-title">Rate Limiting</h2>
-              <div class="doc-row">
-                <div class="doc-copy">
-                  <p>API requests are rate-limited. Please refer to the response headers for rate limit information.</p>
                 </div>
                 <div class="doc-examples">
                 </div>
@@ -247,7 +234,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> board<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> Board<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">board<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -256,7 +243,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -268,7 +262,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -279,9 +273,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"members"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">BoardMemberWithUser</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
@@ -322,7 +316,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> me <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> Me <span class="hljs-tag">{
   <span class="hljs-symbol">me <span class="hljs-tag">{
     <span class="hljs-symbol">avatar</span>
     <span class="hljs-symbol">createdAt</span>
@@ -339,11 +333,11 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"me"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -380,7 +374,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> myInvitations <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> MyInvitations <span class="hljs-tag">{
   <span class="hljs-symbol">myInvitations <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">expiresAt</span>
@@ -406,15 +400,15 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-punctuation">{</span>
         <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"expiresAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
       <span class="hljs-punctuation">}</span>
     <span class="hljs-punctuation">]</span>
@@ -452,14 +446,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> myWorkspaces <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> MyWorkspaces <span class="hljs-tag">{
   <span class="hljs-symbol">myWorkspaces <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">logoUrl</span>
     <span class="hljs-symbol">memberCount</span>
     <span class="hljs-symbol">memberships <span class="hljs-tag">{
-      <span class="hljs-type">...WorkspaceMemberFragment</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">name</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -476,10 +473,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-punctuation">{</span>
         <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">987.65</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">123.45</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"memberships"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">WorkspaceMember</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span>
       <span class="hljs-punctuation">}</span>
@@ -538,7 +535,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> user<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> User<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">user<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">avatar</span>
     <span class="hljs-symbol">createdAt</span>
@@ -552,7 +549,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -560,11 +557,11 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -601,7 +598,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> users <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> Users <span class="hljs-tag">{
   <span class="hljs-symbol">users <span class="hljs-tag">{
     <span class="hljs-symbol">avatar</span>
     <span class="hljs-symbol">createdAt</span>
@@ -623,7 +620,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
         <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
       <span class="hljs-punctuation">}</span>
     <span class="hljs-punctuation">]</span>
@@ -681,14 +678,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> workspace<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> Workspace<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">workspace<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">logoUrl</span>
     <span class="hljs-symbol">memberCount</span>
     <span class="hljs-symbol">memberships <span class="hljs-tag">{
-      <span class="hljs-type">...WorkspaceMemberFragment</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">name</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -699,7 +699,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -708,11 +708,11 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"workspace"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">123.45</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">987.65</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"memberships"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">WorkspaceMember</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span>
     <span class="hljs-punctuation">}</span>
@@ -770,7 +770,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> workspaceBoards<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> WorkspaceBoards<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">workspaceBoards<span class="hljs-tag">(workspaceId: <span class="hljs-code">$workspaceId</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -779,7 +779,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -800,14 +807,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"workspaceBoards"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
       <span class="hljs-punctuation">{</span>
-        <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"members"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">BoardMemberWithUser</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
@@ -867,7 +874,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> workspaceInvitations<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> WorkspaceInvitations<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">workspaceInvitations<span class="hljs-tag">(workspaceId: <span class="hljs-code">$workspaceId</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">expiresAt</span>
@@ -898,16 +905,16 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-punctuation">{</span>
         <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"expiresAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
+        <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
       <span class="hljs-punctuation">}</span>
     <span class="hljs-punctuation">]</span>
   <span class="hljs-punctuation">}</span>
@@ -964,13 +971,16 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> workspaceMembers<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">query</span> WorkspaceMembers<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">workspaceMembers<span class="hljs-tag">(workspaceId: <span class="hljs-code">$workspaceId</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">joinedAt</span>
     <span class="hljs-symbol">role</span>
     <span class="hljs-symbol">user <span class="hljs-tag">{
-      <span class="hljs-type">...MemberUserFragment</span>
+      <span class="hljs-symbol">avatar</span>
+      <span class="hljs-symbol">email</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">name</span>
     }</span></span>
     <span class="hljs-symbol">userId</span>
     <span class="hljs-symbol">workspaceId</span>
@@ -980,7 +990,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -989,12 +999,12 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"workspaceMembers"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
       <span class="hljs-punctuation">{</span>
-        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"joinedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
         <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">MemberUser</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-        <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
+        <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
       <span class="hljs-punctuation">}</span>
     <span class="hljs-punctuation">]</span>
   <span class="hljs-punctuation">}</span>
@@ -1049,7 +1059,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> acceptInvitation<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RespondInvitationInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> AcceptInvitation<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RespondInvitationInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">acceptInvitation<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">expiresAt</span>
@@ -1082,12 +1092,12 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -1144,14 +1154,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> addBoardMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> AddBoardMemberInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> AddBoardMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> AddBoardMemberInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">addBoardMember<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">boardId</span>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">joinedAt</span>
     <span class="hljs-symbol">role</span>
     <span class="hljs-symbol">user <span class="hljs-tag">{
-      <span class="hljs-type">...MemberUserFragment</span>
+      <span class="hljs-symbol">avatar</span>
+      <span class="hljs-symbol">email</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">name</span>
     }</span></span>
     <span class="hljs-symbol">userId</span>
   }</span></span>
@@ -1168,8 +1181,8 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"addBoardMember"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"joinedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">MemberUser</span><span class="hljs-punctuation">,</span>
@@ -1229,7 +1242,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> archiveBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> ArchiveBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">archiveBoard<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -1238,7 +1251,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -1268,7 +1288,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
+      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
@@ -1324,19 +1344,19 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> cancelInvitation<span class="hljs-tag">(<span class="hljs-code">$invitationId</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> CancelInvitation<span class="hljs-tag">(<span class="hljs-code">$invitationId</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">cancelInvitation<span class="hljs-tag">(invitationId: <span class="hljs-code">$invitationId</span>)</span></span>
 }</span></span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"invitationId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"invitationId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
                   <h5>Response</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"cancelInvitation"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"cancelInvitation"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -1389,7 +1409,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> createBoard<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateBoardInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> CreateBoard<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateBoardInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">createBoard<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -1398,7 +1418,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -1484,7 +1511,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> createUser<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateUserInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> CreateUser<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateUserInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">createUser<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">avatar</span>
     <span class="hljs-symbol">createdAt</span>
@@ -1508,9 +1535,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-attr">"createUser"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -1567,14 +1594,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> createWorkspace<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateWorkspaceInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> CreateWorkspace<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> CreateWorkspaceInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">createWorkspace<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">logoUrl</span>
     <span class="hljs-symbol">memberCount</span>
     <span class="hljs-symbol">memberships <span class="hljs-tag">{
-      <span class="hljs-type">...WorkspaceMemberFragment</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">name</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -1656,14 +1686,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> deleteBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> DeleteBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">deleteBoard<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span></span>
 }</span></span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -1721,7 +1751,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> deleteUser<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> DeleteUser<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">deleteUser<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span></span>
 }</span></span>
 </code></pre>
@@ -1786,14 +1816,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> deleteWorkspace<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> DeleteWorkspace<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">deleteWorkspace<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span></span>
 }</span></span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -1851,7 +1881,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> forgotPassword<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> ForgotPasswordInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> ForgotPassword<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> ForgotPasswordInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">forgotPassword<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">message</span>
   }</span></span>
@@ -1922,7 +1952,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> inviteMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> InviteMemberInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> InviteMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> InviteMemberInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">inviteMember<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">expiresAt</span>
@@ -1954,10 +1984,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-attr">"expiresAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
@@ -2017,19 +2047,19 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> leaveWorkspace<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> LeaveWorkspace<span class="hljs-tag">(<span class="hljs-code">$workspaceId</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">leaveWorkspace<span class="hljs-tag">(workspaceId: <span class="hljs-code">$workspaceId</span>)</span></span>
 }</span></span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
                   <h5>Response</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"leaveWorkspace"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"leaveWorkspace"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -2082,11 +2112,16 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> login<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> LoginInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> Login<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> LoginInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">login<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">token</span>
     <span class="hljs-symbol">user <span class="hljs-tag">{
-      <span class="hljs-type">...UserFragment</span>
+      <span class="hljs-symbol">avatar</span>
+      <span class="hljs-symbol">createdAt</span>
+      <span class="hljs-symbol">email</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">name</span>
+      <span class="hljs-symbol">updatedAt</span>
     }</span></span>
   }</span></span>
 }</span></span>
@@ -2102,7 +2137,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"login"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">User</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -2159,11 +2194,16 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> register<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RegisterInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> Register<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RegisterInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">register<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">token</span>
     <span class="hljs-symbol">user <span class="hljs-tag">{
-      <span class="hljs-type">...UserFragment</span>
+      <span class="hljs-symbol">avatar</span>
+      <span class="hljs-symbol">createdAt</span>
+      <span class="hljs-symbol">email</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">name</span>
+      <span class="hljs-symbol">updatedAt</span>
     }</span></span>
   }</span></span>
 }</span></span>
@@ -2179,7 +2219,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"register"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">User</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -2236,7 +2276,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> rejectInvitation<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RespondInvitationInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> RejectInvitation<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RespondInvitationInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">rejectInvitation<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">createdAt</span>
     <span class="hljs-symbol">expiresAt</span>
@@ -2267,14 +2307,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"expiresAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
@@ -2338,7 +2378,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> removeBoardMember<span class="hljs-tag">(
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> RemoveBoardMember<span class="hljs-tag">(
   <span class="hljs-code">$boardId</span>: ID!,
   <span class="hljs-code">$userId</span>: ID!
 )</span> <span class="hljs-tag">{
@@ -2351,15 +2391,12 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
-<span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
                   <h5>Response</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"removeBoardMember"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"removeBoardMember"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -2412,7 +2449,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> removeMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RemoveMemberInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> RemoveMember<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> RemoveMemberInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">removeMember<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span></span>
 }</span></span>
 </code></pre>
@@ -2424,7 +2461,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
                   <h5>Response</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"removeMember"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"removeMember"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">}</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -2477,7 +2514,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> resetPassword<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> ResetPasswordInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> ResetPassword<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> ResetPasswordInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">resetPassword<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">message</span>
   }</span></span>
@@ -2493,7 +2530,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <h5>Response</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-    <span class="hljs-attr">"resetPassword"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"message"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">}</span>
+    <span class="hljs-attr">"resetPassword"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span><span class="hljs-attr">"message"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -2548,7 +2585,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> unarchiveBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UnarchiveBoard<span class="hljs-tag">(<span class="hljs-code">$id</span>: ID!)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">unarchiveBoard<span class="hljs-tag">(id: <span class="hljs-code">$id</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -2557,7 +2594,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -2577,17 +2621,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"unarchiveBoard"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"members"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">BoardMemberWithUser</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
+      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
@@ -2643,7 +2687,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> updateBoard<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateBoardInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UpdateBoard<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateBoardInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">updateBoard<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">background</span>
     <span class="hljs-symbol">createdAt</span>
@@ -2652,7 +2696,14 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">id</span>
     <span class="hljs-symbol">isArchived</span>
     <span class="hljs-symbol">members <span class="hljs-tag">{
-      <span class="hljs-type">...BoardMemberWithUserFragment</span>
+      <span class="hljs-symbol">boardId</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">user <span class="hljs-tag">{
+        <span class="hljs-type">...MemberUserFragment</span>
+      }</span></span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">title</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -2672,17 +2723,17 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"updateBoard"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
-      <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"members"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">BoardMemberWithUser</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
+      <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
     <span class="hljs-punctuation">}</span>
   <span class="hljs-punctuation">}</span>
 <span class="hljs-punctuation">}</span>
@@ -2738,7 +2789,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> updateBoardMemberRole<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateBoardMemberRoleInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UpdateBoardMemberRole<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateBoardMemberRoleInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">updateBoardMemberRole<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span></span>
 }</span></span>
 </code></pre>
@@ -2803,7 +2854,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> updateMemberRole<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateMemberRoleInput!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UpdateMemberRole<span class="hljs-tag">(<span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateMemberRoleInput!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">updateMemberRole<span class="hljs-tag">(input: <span class="hljs-code">$input</span>)</span></span>
 }</span></span>
 </code></pre>
@@ -2875,7 +2926,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> updateUser<span class="hljs-tag">(
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UpdateUser<span class="hljs-tag">(
   <span class="hljs-code">$id</span>: ID!,
   <span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateUserInput!</span>
 )</span> <span class="hljs-tag">{
@@ -2895,7 +2946,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"input"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">UpdateUserInput</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"input"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">UpdateUserInput</span>
+<span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -2905,7 +2959,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-attr">"updateUser"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
@@ -2971,7 +3025,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> updateWorkspace<span class="hljs-tag">(
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> UpdateWorkspace<span class="hljs-tag">(
   <span class="hljs-code">$id</span>: ID!,
   <span class="hljs-code">$input</span>:<span class="hljs-type"> UpdateWorkspaceInput!</span>
 )</span> <span class="hljs-tag">{
@@ -2984,7 +3038,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
     <span class="hljs-symbol">logoUrl</span>
     <span class="hljs-symbol">memberCount</span>
     <span class="hljs-symbol">memberships <span class="hljs-tag">{
-      <span class="hljs-type">...WorkspaceMemberFragment</span>
+      <span class="hljs-symbol">id</span>
+      <span class="hljs-symbol">joinedAt</span>
+      <span class="hljs-symbol">role</span>
+      <span class="hljs-symbol">userId</span>
     }</span></span>
     <span class="hljs-symbol">name</span>
     <span class="hljs-symbol">updatedAt</span>
@@ -2995,7 +3052,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-variables-example">
                   <h5>Variables</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">"input"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">UpdateWorkspaceInput</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"input"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">UpdateWorkspaceInput</span>
+<span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
                 <div class="example-section example-section-is-code operation-response-example">
@@ -3004,9 +3064,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"data"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
     <span class="hljs-attr">"updateWorkspace"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
       <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-      <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">123.45</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">987.65</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"memberships"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">WorkspaceMember</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
       <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
@@ -3066,7 +3126,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <h4 class="example-heading">Example</h4>
                 <div class="example-section example-section-is-code operation-query-example">
                   <h5>Query</h5>
-                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> verifyEmail<span class="hljs-tag">(<span class="hljs-code">$token</span>:<span class="hljs-type"> String!</span>)</span> <span class="hljs-tag">{
+                  <pre><code class="hljs language-gql"><span class="hljs-symbol"><span class="hljs-keyword">mutation</span> VerifyEmail<span class="hljs-tag">(<span class="hljs-code">$token</span>:<span class="hljs-type"> String!</span>)</span> <span class="hljs-tag">{
   <span class="hljs-symbol">verifyEmail<span class="hljs-tag">(token: <span class="hljs-code">$token</span>)</span> <span class="hljs-tag">{
     <span class="hljs-symbol">message</span>
   }</span></span>
@@ -3283,15 +3343,15 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"creatorId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"isArchived"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"members"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">BoardMemberWithUser</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
+  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -3360,11 +3420,11 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"joinedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">MemberUser</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
+  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -3452,8 +3512,8 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
@@ -3519,7 +3579,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"password"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
+  <span class="hljs-attr">"password"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -3572,8 +3632,8 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -3617,7 +3677,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
               <div class="doc-examples">
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-number">987.65</span>
+                  <pre><code class="hljs language-json"><span class="hljs-number">123.45</span>
 </code></pre>
                 </div>
               </div>
@@ -3657,7 +3717,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
               <div class="doc-examples">
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -3794,7 +3854,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
+  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -3848,9 +3908,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"password"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"rememberMe"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span>
+  <span class="hljs-attr">"rememberMe"</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">false</span></span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -4008,9 +4068,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"companyName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"companyName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"password"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -4057,7 +4117,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -4107,7 +4167,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"newPassword"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
+  <span class="hljs-attr">"token"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -4145,7 +4205,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
               <div class="doc-examples">
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
-                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"invitationId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">}</span>
+                  <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span><span class="hljs-attr">"invitationId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
               </div>
@@ -4232,10 +4292,10 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"background"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"description"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"title"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"PRIVATE"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -4289,9 +4349,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"boardId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
+  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -4344,9 +4404,9 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
+  <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -4406,8 +4466,8 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"password"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
 <span class="hljs-punctuation">}</span>
@@ -4463,8 +4523,8 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span>
+  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"visibility"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>
@@ -4532,11 +4592,11 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"avatar"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"email"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"name"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -4673,7 +4733,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"logoUrl"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"memberCount"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">123.45</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"memberships"</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">WorkspaceMember</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
@@ -4785,15 +4845,15 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
   <span class="hljs-attr">"createdAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"expiresAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"inviteeEmail"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"inviteeId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"inviterId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"inviterName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"status"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"ACCEPTED"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"updatedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"workspaceName"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
@@ -4850,7 +4910,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
                 <div class="example-section example-section-is-code">
                   <h5>Example</h5>
                   <pre><code class="hljs language-json"><span class="hljs-punctuation">{</span>
-  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">"id"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"joinedAt"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"2007-12-03T10:15:30Z"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"xyz789"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
@@ -4926,7 +4986,7 @@ Authorization: Bearer YOUR_JWT_TOKEN</code></pre>
   <span class="hljs-attr">"role"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"abc123"</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"user"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">MemberUser</span><span class="hljs-punctuation">,</span>
   <span class="hljs-attr">"userId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span><span class="hljs-punctuation">,</span>
-  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-string">"4"</span>
+  <span class="hljs-attr">"workspaceId"</span><span class="hljs-punctuation">:</span> <span class="hljs-number">4</span>
 <span class="hljs-punctuation">}</span>
 </code></pre>
                 </div>

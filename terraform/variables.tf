@@ -274,3 +274,12 @@ variable "connector_machine_type" {
   type        = string
   default     = "e2-micro"
 }
+
+# ===================================
+# CI/CD Configuration
+# ===================================
+variable "deployer_service_account_email" {
+  description = "Service account email used by CI/CD for deployments (e.g., epitrello-deployer@project.iam.gserviceaccount.com). Required for documentation bucket uploads."
+  type        = string
+  default     = null
+}
