@@ -278,8 +278,9 @@ variable "connector_machine_type" {
 # ===================================
 # CI/CD Configuration
 # ===================================
-variable "deployer_service_account_email" {
-  description = "Service account email used by CI/CD for deployments (e.g., epitrello-deployer@project.iam.gserviceaccount.com). Required for documentation bucket uploads."
+variable "ci_cd_service_account_email" {
+  description = "CI/CD service account email (from Workload Identity Federation) that can impersonate the docs service account. Optional - if not provided, CI/CD will use its own permissions."
   type        = string
   default     = null
 }
+
