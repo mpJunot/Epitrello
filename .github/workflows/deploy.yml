@@ -288,7 +288,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [detect-changes, terraform-validate]
-    if: needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
     permissions:
       contents: read
