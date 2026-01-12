@@ -51,6 +51,9 @@ inputs:
   slack_client_secret:
     description: 'Slack OAuth client secret'
     required: false
+  deployer_service_account_email:
+    description: 'Deployer service account email for CI/CD (for documentation bucket permissions)'
+    required: false
 
 runs:
   using: 'composite'
@@ -79,5 +82,9 @@ runs:
           -var="slack_client_id=${{ inputs.slack_client_id }}"
           -var="slack_client_secret=${{ inputs.slack_client_secret }}"
         )
+        # Add deployer_service_account_email if provided
+        if [ -n "${{ inputs.deployer_service_account_email }}" ]; then
+          TF_VARS+=(-var="deployer_service_account_email=${{ inputs.deployer_service_account_email }}")
+        fi
         EOF
         source /tmp/terraform_vars.sh
