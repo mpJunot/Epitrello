@@ -22,9 +22,10 @@ resource "google_service_account" "default" {
 module "networking" {
   source = "./modules/networking"
 
-  project_id = var.project_id
-  region     = var.region
-  app_name   = local.app_name
+  project_id  = var.project_id
+  region      = var.region
+  app_name    = local.app_name
+  environment = var.environment
 
   enable_private_ip       = var.enable_private_ip
   subnet_cidr             = var.subnet_cidr
@@ -40,20 +41,22 @@ module "networking" {
 module "secrets" {
   source = "./modules/secrets"
 
-  project_id              = var.project_id
-  jwt_secret              = var.jwt_secret
-  database_password       = var.database_password
-  resend_api_key          = var.resend_api_key
-  google_client_id        = var.google_client_id
-  google_client_secret    = var.google_client_secret
-  microsoft_client_id     = var.microsoft_client_id
-  microsoft_client_secret = var.microsoft_client_secret
-  apple_client_id         = var.apple_client_id
-  apple_client_secret     = var.apple_client_secret
-  slack_client_id         = var.slack_client_id
-  slack_client_secret     = var.slack_client_secret
-  service_account_email   = google_service_account.default.email
-  labels                  = local.common_labels
+  project_id                    = var.project_id
+  jwt_secret                    = var.jwt_secret
+  database_password             = var.database_password
+  resend_api_key                = var.resend_api_key
+  google_client_id              = var.google_client_id
+  google_client_secret          = var.google_client_secret
+  microsoft_client_id           = var.microsoft_client_id
+  microsoft_client_secret       = var.microsoft_client_secret
+  apple_client_id               = var.apple_client_id
+  apple_client_secret           = var.apple_client_secret
+  slack_client_id               = var.slack_client_id
+  slack_client_secret           = var.slack_client_secret
+  backend_service_account_email = module.service_accounts.backend_service_account_email
+  labels                        = local.common_labels
+
+  depends_on = [module.service_accounts]
 }
 
 # ===================================
@@ -80,19 +83,54 @@ module "cloud_sql" {
 }
 
 # ===================================
+# Service Accounts Module
+# ===================================
+module "service_accounts" {
+  source = "./modules/service-accounts"
+
+  project_id = var.project_id
+  app_name   = local.app_name
+}
+
+# ===================================
+# Cloud Storage Module
+# ===================================
+# Note: We use the service account created above to avoid circular dependency
+module "cloud_storage" {
+  source = "./modules/cloud-storage"
+
+  project_id                      = var.project_id
+  app_name                        = local.app_name
+  location                        = var.storage_location
+  service_account_email           = google_service_account.default.email
+  cloud_run_service_account_email = module.service_accounts.backend_service_account_email
+
+  # CORS configuration for frontend
+  cors_origins = [
+    "https://*.run.app",
+    "http://localhost:3000" # For development
+  ]
+
+  labels = local.common_labels
+
+  depends_on = [module.service_accounts]
+}
+
+# ===================================
 # Cloud Run Module (Backend)
 # ===================================
 module "cloud_run" {
   source = "./modules/cloud-run"
 
-  project_id    = var.project_id
-  region        = var.region
-  app_name      = local.app_name
-  image         = var.backend_image
-  cpu           = var.backend_cpu
-  memory        = var.backend_memory
-  min_instances = var.backend_min_instances
-  max_instances = var.backend_max_instances
+  project_id            = var.project_id
+  region                = var.region
+  app_name              = local.app_name
+  image                 = var.backend_image
+  cpu                   = var.backend_cpu
+  memory                = var.backend_memory
+  min_instances         = var.backend_min_instances
+  max_instances         = var.backend_max_instances
+  service_account_email = module.service_accounts.backend_service_account_email
 
   database_connection                 = module.cloud_sql.connection_string
   jwt_secret_name                     = module.secrets.jwt_secret_name
@@ -115,46 +153,28 @@ module "cloud_run" {
     module.secrets,
     module.networking,
     module.cloud_storage,
+    module.service_accounts,
     google_service_account.default
   ]
 }
 
 # ===================================
-# Cloud Storage Module
+# Cloud Run Module (Frontend)
 # ===================================
-# Note: We construct the Cloud Run service account email directly to avoid circular dependency
-# The service account email format is: ${app_name}-backend-sa@${project_id}.iam.gserviceaccount.com
-module "cloud_storage" {
-  source = "./modules/cloud-storage"
-
-  project_id                      = var.project_id
-  app_name                        = local.app_name
-  location                        = var.storage_location
-  service_account_email           = google_service_account.default.email
-  cloud_run_service_account_email = "${local.app_name}-backend-sa@${var.project_id}.iam.gserviceaccount.com"
-
-  # CORS configuration for frontend
-  cors_origins = [
-    "https://${var.project_id}.appspot.com",
-    "https://*.run.app",
-    "http://localhost:3000" # For development
-  ]
-
-  labels = local.common_labels
-}
-
-# ===================================
-# App Engine Module (Frontend)
-# ===================================
-module "app_engine" {
-  source = "./modules/app-engine"
+module "cloud_run_frontend" {
+  source = "./modules/cloud-run-frontend"
 
   project_id    = var.project_id
-  location      = var.app_engine_location
+  region        = var.region
   app_name      = local.app_name
+  image         = var.frontend_image
   backend_url   = module.cloud_run.service_url
+  cpu           = var.frontend_cpu
+  memory        = var.frontend_memory
   min_instances = var.frontend_min_instances
   max_instances = var.frontend_max_instances
+
+  labels = local.common_labels
 
   depends_on = [module.cloud_run]
 }

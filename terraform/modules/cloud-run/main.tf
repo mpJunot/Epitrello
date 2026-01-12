@@ -1,13 +1,4 @@
 # ===================================
-# Service Account for Cloud Run
-# ===================================
-resource "google_service_account" "backend" {
-  account_id   = "${var.app_name}-backend-sa"
-  display_name = "Cloud Run Backend Service Account"
-  project      = var.project_id
-}
-
-# ===================================
 # Cloud Run Service (Backend)
 # ===================================
 resource "google_cloud_run_v2_service" "backend" {
@@ -16,7 +7,7 @@ resource "google_cloud_run_v2_service" "backend" {
   project  = var.project_id
 
   template {
-    service_account = google_service_account.backend.email
+    service_account = var.service_account_email
 
     # Scaling configuration
     scaling {
@@ -53,15 +44,13 @@ resource "google_cloud_run_v2_service" "backend" {
         value = "production"
       }
 
-      env {
-        name  = "PORT"
-        value = "8080"
-      }
-
       # Database connection (direct via public IP + SSL)
-      env {
-        name  = "DATABASE_URL"
-        value = var.database_connection
+      dynamic "env" {
+        for_each = var.database_connection != null && var.database_connection != "" ? [1] : []
+        content {
+          name  = "DATABASE_URL"
+          value = var.database_connection
+        }
       }
 
       # JWT Secret from Secret Manager
@@ -222,7 +211,7 @@ resource "google_cloud_run_v2_service" "backend" {
       # CORS origins
       env {
         name  = "CORS_ORIGINS"
-        value = "https://${var.project_id}.appspot.com,https://*.run.app"
+        value = "https://*.run.app"
       }
 
       # ===================================
@@ -234,10 +223,10 @@ resource "google_cloud_run_v2_service" "backend" {
           path = "/health"
           port = 8080
         }
-        initial_delay_seconds = 0
-        timeout_seconds       = 10
-        period_seconds        = 5
-        failure_threshold     = 6
+        initial_delay_seconds = 5
+        timeout_seconds       = 1
+        period_seconds        = 3
+        failure_threshold     = 20
       }
 
       liveness_probe {
@@ -275,6 +264,12 @@ resource "google_cloud_run_v2_service" "backend" {
   }
 
   labels = var.labels
+
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image
+    ]
+  }
 }
 
 # ===================================
@@ -286,31 +281,16 @@ resource "google_cloud_run_v2_service_iam_member" "noauth" {
   project  = var.project_id
   role     = "roles/run.invoker"
   member   = "allUsers"
+
+  depends_on = [google_cloud_run_v2_service.backend]
 }
 
 # ===================================
-# IAM: Cloud SQL Client
+# IAM Permissions Note
 # ===================================
-resource "google_project_iam_member" "cloudsql_client" {
-  project = var.project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
-
-# ===================================
-# IAM: Storage Object Admin
-# ===================================
-resource "google_project_iam_member" "storage_admin" {
-  project = var.project_id
-  role    = "roles/storage.objectAdmin"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
-
-# ===================================
-# IAM: Secret Manager Accessor
-# ===================================
-resource "google_project_iam_member" "secret_accessor" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
+# IAM permissions are managed elsewhere:
+# - Secret Manager: Managed per-secret in the secrets module
+# - Storage: Managed per-bucket in the cloud-storage module
+# - Cloud SQL: Not needed for public IP connections with SSL
+# These project-level IAM bindings were removed to avoid permission errors
+# and follow the principle of least privilege (per-resource permissions)
