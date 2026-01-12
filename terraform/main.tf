@@ -178,3 +178,19 @@ module "cloud_run_frontend" {
 
   depends_on = [module.cloud_run]
 }
+
+# ===================================
+# Documentation Bucket Module
+# ===================================
+module "docs_bucket" {
+  source = "./modules/docs-bucket"
+
+  project_id            = var.project_id
+  app_name              = local.app_name
+  location              = var.storage_location
+  service_account_email = google_service_account.default.email
+
+  labels = local.common_labels
+
+  depends_on = [google_service_account.default]
+}
