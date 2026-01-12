@@ -53,6 +53,12 @@ variable "service_account_email" {
   type        = string
 }
 
+variable "deployer_service_account_email" {
+  description = "Deployer service account email for CI/CD (optional, if different from service_account_email)"
+  type        = string
+  default     = null
+}
+
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
