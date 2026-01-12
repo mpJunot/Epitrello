@@ -616,7 +616,7 @@ jobs:
           BUCKET="${{ steps.bucket.outputs.bucket_name }}"
           if [ -d "docs/graphql" ]; then
             echo "Uploading documentation to gs://${BUCKET}/"
-            gcloud storage rsync -r --delete docs/graphql/ gs://${BUCKET}/
+            gcloud storage rsync --recursive docs/graphql/ gs://${BUCKET}/
             echo "Documentation uploaded successfully"
             echo "Public URL: https://storage.googleapis.com/${BUCKET}/index.html"
           else
