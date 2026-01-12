@@ -48,13 +48,13 @@ variable "versioning_enabled" {
   default     = true
 }
 
-variable "service_account_email" {
-  description = "Service account email for IAM binding (for CI/CD deployment)"
+variable "docs_service_account_email" {
+  description = "Documentation service account email with full permissions on the bucket"
   type        = string
 }
 
-variable "deployer_service_account_email" {
-  description = "Deployer service account email for CI/CD (optional, if different from service_account_email)"
+variable "ci_cd_service_account_email" {
+  description = "CI/CD service account email (from Workload Identity Federation) that can impersonate the docs service account. Optional - if not provided, CI/CD will use its own permissions."
   type        = string
   default     = null
 }
