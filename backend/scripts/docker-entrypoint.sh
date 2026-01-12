@@ -16,6 +16,7 @@ sh -c "$npx_prisma_cmd"
 
 echo "Starting application..."
 
-# Start the application
+# Start the application directly
+# Database migrations are handled by the database-migrations.yml workflow
 exec node dist/main.js
 
