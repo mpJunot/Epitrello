@@ -1,183 +1,163 @@
-'use client';
-import React from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+ 'use client';
+ import React, { useEffect, useState } from 'react';
+ import { useParams } from 'next/navigation';
+ import Link from 'next/link';
+ import BoardView from '../../../components/BoardView';
 
-type Card = {
-  id: string;
-  title: string;
-  description?: string;
-};
+// (types declared below)
 
-type List = {
-  id: string;
-  title: string;
-  cards: Card[];
-};
+ // types
+ type Card = { id: string; title: string; description?: string };
+ type List = { id: string; title: string; position?: number; cards?: Card[] };
+ type Board = { id: string; name: string; title: string; description?: string; background?: string; lists?: List[] };
 
-type Board = {
-  id: string;
-  name: string;
-  description?: string;
-  background?: string;
-  lists: List[];
-};
+ export default function BoardPage() {
+   const params = useParams();
+   const boardId = params.id as string;
+   const [board, setBoard] = useState<Board | null>(null);
+   const [lists, setLists] = useState<List[]>([]);
 
-// Mock data - in real app this would come from GraphQL
-const mockBoards: Record<string, Board> = {
-  '1': {
-    id: '1',
-    name: 'Project Alpha',
-    description: 'Main project board',
-    background: 'bg-gradient-to-br from-amber-400 to-orange-500',
-    lists: [
-      {
-        id: '1',
-        title: 'To Do',
-        cards: [
-          { id: '1', title: 'Design mockups', description: 'Create wireframes for the new feature' },
-          { id: '2', title: 'Setup database', description: 'Initialize PostgreSQL database' },
-        ],
-      },
-      {
-        id: '2',
-        title: 'In Progress',
-        cards: [
-          { id: '3', title: 'Implement authentication', description: 'Add login/signup functionality' },
-        ],
-      },
-      {
-        id: '3',
-        title: 'Done',
-        cards: [
-          { id: '4', title: 'Project setup', description: 'Initialize Next.js project' },
-        ],
-      },
-    ],
-  },
-  '2': {
-    id: '2',
-    name: 'Sprint Q4',
-    description: 'Current sprint tasks',
-    background: 'bg-gradient-to-br from-sky-400 to-blue-500',
-    lists: [
-      {
-        id: '4',
-        title: 'Backlog',
-        cards: [
-          { id: '5', title: 'Code review', description: 'Review pull requests' },
-        ],
-      },
-      {
-        id: '5',
-        title: 'Doing',
-        cards: [],
-      },
-    ],
-  },
-  '3': {
-    id: '3',
-    name: 'Product Backlog',
-    description: 'Future features and improvements',
-    background: 'bg-gradient-to-br from-emerald-400 to-green-500',
-    lists: [
-      {
-        id: '6',
-        title: 'Ideas',
-        cards: [
-          { id: '6', title: 'Dark mode', description: 'Implement dark theme' },
-          { id: '7', title: 'Mobile app', description: 'Create React Native app' },
-        ],
-      },
-    ],
-  },
-};
+   useEffect(() => {
+     // load board from localStorage
+     try {
+       const rawBoards = localStorage.getItem('epitrello_boards');
+       const boards = rawBoards ? JSON.parse(rawBoards) as Board[] : [];
+       const found = (boards || []).find((b) => String(b.id) === String(boardId));
+       if (!found) {
+         setBoard(null);
+         return;
+       }
+       setBoard(found);
 
-export default function BoardPage() {
-  const params = useParams();
-  const boardId = params.id as string;
-  const board = mockBoards[boardId] || null;
+       // load lists for this board
+       const rawLists = localStorage.getItem(`epitrello_lists_${boardId}`);
+       let l: List[] = rawLists ? JSON.parse(rawLists) : null;
+       if (!l || l.length === 0) {
+         // create default lists
+         l = [
+           { id: `${boardId}-list-1`, title: 'To Do', position: 1, cards: [] },
+           { id: `${boardId}-list-2`, title: 'Doing', position: 2, cards: [] },
+           { id: `${boardId}-list-3`, title: 'Done', position: 3, cards: [] },
+         ];
+         try { localStorage.setItem(`epitrello_lists_${boardId}`, JSON.stringify(l)); } catch (e) {}
+       }
+       setLists(l);
+     } catch (e) {
+       setBoard(null);
+     }
+   }, [boardId]);
 
-  if (!board) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-gray-400 mb-4">
-            <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Board not found</h2>
-          <p className="text-gray-500 mb-4">The board you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
+   useEffect(() => {
+     function onCreate(e: any) {
+       const title = e?.detail?.title;
+       if (!title) return;
+       const id = (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : String(Date.now());
+       const newList: List = { id, title, position: (lists.length || 0) + 1, cards: [] };
+       const next = [...lists, newList];
+       setLists(next);
+       try { localStorage.setItem(`epitrello_lists_${boardId}`, JSON.stringify(next)); } catch (err) {}
+     }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Board Header */}
-      <header className={`relative h-32 ${board.background || 'bg-gray-300'} flex items-end p-6 text-white`}>
-        <div className="absolute inset-0 bg-black bg-opacity-20" />
-        <div className="relative z-10">
-          <h1 className="text-2xl font-bold mb-1">{board.name}</h1>
-          {board.description && (
-            <p className="text-white text-opacity-90">{board.description}</p>
-          )}
-        </div>
-      </header>
+     function onCardCreated(e: any) {
+       const detail = e?.detail;
+       if (!detail) return;
+       const { listId, card } = detail;
+       const next = lists.map((lst) => lst.id === listId ? { ...lst, cards: [card, ...(lst.cards || [])] } : lst);
+       setLists(next);
+       try { localStorage.setItem(`epitrello_lists_${boardId}`, JSON.stringify(next)); } catch (err) {}
+     }
 
-      {/* Board Content */}
-      <main className="p-6">
-        <div className="flex gap-6 overflow-x-auto pb-4">
-          {board.lists.map((list) => (
-            <div
-              key={list.id}
-              className="bg-gray-100 rounded-lg p-4 min-w-80 max-w-80 flex flex-col"
-            >
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center justify-between">
-                {list.title}
-                <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                  {list.cards.length}
-                </span>
-              </h3>
+    function onListUpdated(e: any) {
+      const detail = e?.detail;
+      if (!detail) return;
+      const { listId, title } = detail;
+      if (!listId) return;
+      const next = lists.map((lst) => lst.id === listId ? { ...lst, title } : lst);
+      setLists(next);
+      try { localStorage.setItem(`epitrello_lists_${boardId}`, JSON.stringify(next)); } catch (err) {}
+    }
 
-              <div className="space-y-3 flex-1">
-                {list.cards.map((card) => (
-                  <div
-                    key={card.id}
-                    className="bg-white rounded shadow-sm p-3 hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <h4 className="font-medium text-gray-900 mb-1">{card.title}</h4>
-                    {card.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2">{card.description}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
+    function onCardMove(e: any) {
+      const d = e?.detail;
+      if (!d) return;
+      const { cardId, fromListId, toListId, toIndex } = d;
+      if (!cardId || !fromListId || !toListId) return;
 
-              <button className="mt-3 text-gray-600 hover:text-gray-900 text-sm flex items-center gap-2 p-2 rounded hover:bg-gray-200 transition-colors">
-                <span>+</span>
-                Add a card
-              </button>
-            </div>
-          ))}
+      // find source and destination
+      const src = lists.find((l) => l.id === fromListId);
+      const dst = lists.find((l) => l.id === toListId);
+      if (!src || !dst) return;
 
-          {/* Add List Button */}
-          <div className="min-w-80 max-w-80">
-            <button className="w-full bg-gray-100 hover:bg-gray-200 rounded-lg p-4 text-gray-600 hover:text-gray-900 transition-colors flex items-center justify-center gap-2">
-              <span>+</span>
-              Add a list
-            </button>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
+      // remove from source
+      const card = (src.cards || []).find((c) => c.id === cardId);
+      if (!card) return;
+      const newSrcCards = (src.cards || []).filter((c) => c.id !== cardId);
+
+      // insert into destination at toIndex (or push at end)
+      const dstCards = Array.from(dst.cards || []);
+      const insertAt = typeof toIndex === 'number' ? Math.min(Math.max(0, toIndex), dstCards.length) : dstCards.length;
+      dstCards.splice(insertAt, 0, card);
+
+      const next = lists.map((l) => {
+        if (l.id === fromListId) return { ...l, cards: newSrcCards };
+        if (l.id === toListId) return { ...l, cards: dstCards };
+        return l;
+      });
+      setLists(next);
+      try { localStorage.setItem(`epitrello_lists_${boardId}`, JSON.stringify(next)); } catch (err) {}
+    }
+
+     window.addEventListener('epitrello:list-create', onCreate as EventListener);
+     window.addEventListener('epitrello:card-created', onCardCreated as EventListener);
+    window.addEventListener('epitrello:card-move', onCardMove as EventListener);
+    window.addEventListener('epitrello:list-updated', onListUpdated as EventListener);
+     return () => {
+       window.removeEventListener('epitrello:list-create', onCreate as EventListener);
+       window.removeEventListener('epitrello:card-created', onCardCreated as EventListener);
+      window.removeEventListener('epitrello:card-move', onCardMove as EventListener);
+      window.removeEventListener('epitrello:list-updated', onListUpdated as EventListener);
+     };
+   }, [lists, boardId]);
+
+   if (board === null) {
+     return (
+       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+         <div className="text-center">
+           <div className="text-gray-400 mb-4">
+             <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+             </svg>
+           </div>
+           <h2 className="text-xl font-semibold text-gray-900 mb-2">Board not found</h2>
+           <p className="text-gray-500 mb-4">The board you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
+           <Link
+             href="/dashboard"
+             className="inline-flex items-center gap-2 rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700"
+           >
+             ← Back to Dashboard
+           </Link>
+         </div>
+       </div>
+     );
+   }
+
+  const composedBoard: Board = { ...board, lists, title: board.name };
+
+   return (
+     <div className="min-h-screen bg-gray-50">
+       <header className={`relative h-32 ${board.background || 'bg-gray-300'} flex items-end p-6 text-white`}>
+         <div className="absolute inset-0 bg-black bg-opacity-20" />
+         <div className="relative z-10">
+           <h1 className="text-2xl font-bold mb-1">{board.name}</h1>
+           {board.description && (
+             <p className="text-white text-opacity-90">{board.description}</p>
+           )}
+         </div>
+       </header>
+
+       <main className="p-6">
+         <BoardView board={composedBoard} />
+       </main>
+     </div>
+   );
+ }
