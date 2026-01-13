@@ -15,17 +15,28 @@ type Card = {
 
 export default function ListColumn({ list }: { list: { id: string; title: string; cards?: Card[] } }) {
   const [cards, setCards] = useState<Card[]>(list.cards || []);
+  const [lastLocalChange, setLastLocalChange] = useState<number>(0);
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title || "Untitled");
   const [ignoreParentSync, setIgnoreParentSync] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // keep local cards in sync if parent updates the list prop (but not during drag)
+  // keep local cards in sync if parent updates the list prop (but not during drag or immediately after a local reorder)
   useEffect(() => {
-    if (!ignoreParentSync) {
-      setCards(list.cards || []);
-    }
-  }, [list.cards, ignoreParentSync]);
+    if (ignoreParentSync) return;
+
+    const incoming = list.cards || [];
+    const localIds = cards.map((c) => c.id).join('|');
+    const incomingIds = incoming.map((c) => c.id).join('|');
+
+    // If the order and content are identical, skip
+    if (localIds === incomingIds) return;
+
+    // If we just performed a local change (<400ms), skip one cycle to avoid overwriting local reorder
+    if (Date.now() - lastLocalChange < 400) return;
+
+    setCards(incoming);
+  }, [list.cards, ignoreParentSync, cards, lastLocalChange]);
 
   // keep title in sync if parent updates
   useEffect(() => {
@@ -146,26 +157,57 @@ export default function ListColumn({ list }: { list: { id: string; title: string
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    setIgnoreParentSync(false);
     const raw = e.dataTransfer.getData('application/json');
+
     try {
       const data = raw ? JSON.parse(raw) : null;
       if (data && data.cardId) {
-        const toIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
-        
-        // If moving within the same list, update local state directly
-        if (data.fromListId === list.id && typeof data.fromIndex === 'number') {
-          const fromIndex = data.fromIndex;
-          const newCards = [...cards];
-          const [card] = newCards.splice(fromIndex, 1);
-          newCards.splice(toIndex, 0, card);
-          setCards(newCards);
+        const provisionalIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
+        const isIntralistMove = data.fromListId === list.id;
+
+        // If moving within the same list, update local state directly and adjust indices safely
+        if (isIntralistMove) {
+          console.log('Moving card within same list');
+          const fromIndex = typeof data.fromIndex === 'number' ? data.fromIndex : cards.findIndex((c) => c.id === data.cardId);
+          console.log('fromIndex:', fromIndex, 'toIndex:', provisionalIndex);
+          if (fromIndex !== -1) {
+            let toIndex = provisionalIndex;
+            if (toIndex === fromIndex) {
+              console.log('No move needed, same index');
+              setIgnoreParentSync(false);
+              setDragOverIndex(null);
+              return; // no move needed
+            }
+            // When removing an earlier item, the target index shifts by -1
+            console.log('Adjusted toIndex before move:', toIndex);
+            if (fromIndex < toIndex) {
+              toIndex = Math.max(0, toIndex - 1);
+            }
+            console.log('Final toIndex after adjustment:', toIndex);
+            const newCards = [...cards];
+            const [card] = newCards.splice(fromIndex, 1);
+            newCards.splice(toIndex, 0, card);
+            console.log('New card order:', newCards.map(c => c.id));
+            setCards(newCards);
+            setLastLocalChange(Date.now());
+            // For intra-list moves, we're done - no need to dispatch event or wait for parent sync
+            setIgnoreParentSync(false);
+          }
+        } else {
+          // For inter-list moves, dispatch event and let parent handle it
+          window.dispatchEvent(
+            new CustomEvent('epitrello:card-move', {
+              detail: { cardId: data.cardId, fromListId: data.fromListId, toListId: list.id, toIndex: provisionalIndex },
+            })
+          );
+          setIgnoreParentSync(false);
         }
-        
-        window.dispatchEvent(new CustomEvent('epitrello:card-move', { detail: { cardId: data.cardId, fromListId: data.fromListId, toListId: list.id, toIndex } }));
       }
-    } catch (err) {}
-    setDragOverIndex(null);
+    } catch (err) {
+      // swallow
+    } finally {
+      setDragOverIndex(null);
+    }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -221,7 +263,7 @@ export default function ListColumn({ list }: { list: { id: string; title: string
       {/* Zone des cartes avec scroll vertical */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-3 custom-scrollbar" style={{ minHeight: 0 }}>
         {cards.map((c, i) => (
-          <div key={c.id} className="relative animate-fade-in">
+          <div key={`${c.id}-${i}`} className="relative animate-fade-in">
             {/* optional insert marker when dragging over this index */}
             {dragOverIndex === i && (
               <div className="absolute -top-2 left-0 right-0 h-1 bg-indigo-200 rounded" />
