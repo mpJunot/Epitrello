@@ -147,9 +147,15 @@ export default function Sidebar() {
   };
 
   const onSignOut = async () => {
+    // Client-only logout: clear local storage and redirect
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch {}
+      localStorage.removeItem('epitrello_user');
+      localStorage.removeItem('epitrello_notifications');
+      localStorage.removeItem('epitrello_boards');
+      localStorage.removeItem('epitrello_active_board');
+      localStorage.removeItem('epitrello_workspaces');
+      localStorage.removeItem('epitrello_expanded_workspaces');
+    } catch (e) {}
     router.push("/auth/login");
   };
 
