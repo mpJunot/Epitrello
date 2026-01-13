@@ -255,12 +255,8 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     document.addEventListener("keydown", handleEscape);
     document.addEventListener("keydown", handleTab);
     
-    // Bloquer le scroll du board et ajouter le flou
+    // Bloquer le scroll du board (on évite de flouter le conteneur pour ne pas rendre la modale floue/inactive)
     document.body.style.overflow = "hidden";
-    const mainContent = document.getElementById("main-board-content");
-    if (mainContent) {
-      mainContent.classList.add("modal-blur");
-    }
 
     // Mettre le focus sur le bouton de fermeture au montage
     setTimeout(() => closeButtonRef.current?.focus(), 100);
@@ -269,9 +265,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       document.removeEventListener("keydown", handleEscape);
       document.removeEventListener("keydown", handleTab);
       document.body.style.overflow = "unset";
-      if (mainContent) {
-        mainContent.classList.remove("modal-blur");
-      }
     };
   }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title]);
 
