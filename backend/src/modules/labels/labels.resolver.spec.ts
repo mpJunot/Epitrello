@@ -65,4 +65,25 @@ describe('LabelsResolver', () => {
     expect(result).toEqual(mockLabel);
     expect(service.create).toHaveBeenCalled();
   });
+
+  it('should update a label', async () => {
+    mockLabelsService.update.mockResolvedValue(mockLabel);
+
+    const result = await resolver.updateLabel(
+      { id: 'label-1', name: 'Updated', color: 'blue' },
+      mockUser,
+    );
+
+    expect(result).toEqual(mockLabel);
+    expect(service.update).toHaveBeenCalled();
+  });
+
+  it('should delete a label', async () => {
+    mockLabelsService.delete.mockResolvedValue(true);
+
+    const result = await resolver.deleteLabel('label-1', mockUser);
+
+    expect(result).toBe(true);
+    expect(service.delete).toHaveBeenCalledWith('label-1', mockUser.id);
+  });
 });
