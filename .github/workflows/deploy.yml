@@ -288,7 +288,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [detect-changes, terraform-validate]
-    if: needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
+    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
     environment: ${{ needs.detect-changes.outputs.environment }}
     permissions:
       contents: read
@@ -567,6 +567,72 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed
 
+  deploy-docs:
+    name: Deploy GraphQL Documentation
+    runs-on: ubuntu-latest
+    needs: [detect-changes, terraform-apply, build-backend]
+    if: github.event_name != 'pull_request' && needs.terraform-apply.result == 'success' && needs.build-backend.result == 'success'
+    environment: ${{ needs.detect-changes.outputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Build application
+        working-directory: backend
+        run: pnpm build
+
+      - name: Generate GraphQL schema
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+          JWT_SECRET: dummy-secret-for-schema-generation-only
+        run: |
+          timeout 30 node -e "const { NestFactory } = require('@nestjs/core'); const { AppModule } = require('./dist/app.module'); (async () => { const app = await NestFactory.create(AppModule, { logger: false }); await app.close(); })().catch(() => process.exit(0));" || true
+          if [ -f "src/graphql/schema.gql" ]; then
+            echo "Schema generated: $(wc -l < src/graphql/schema.gql) lines"
+          fi
+
+      - name: Generate GraphQL documentation
+        working-directory: backend
+        run: pnpm docs:generate
+        continue-on-error: true
+
+      - name: Get documentation bucket name
+        id: bucket
+        shell: bash
+        run: |
+          ENV="${{ needs.detect-changes.outputs.environment }}"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          BUCKET_NAME="${PROJECT_ID}-${ENV}-epitrello-docs"
+          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "Documentation bucket: $BUCKET_NAME"
+
+      - name: Upload documentation to GCS
+        if: success()
+        working-directory: backend
+        run: |
+          BUCKET="${{ steps.bucket.outputs.bucket_name }}"
+          if [ -d "docs/graphql" ]; then
+            echo "Uploading documentation to gs://${BUCKET}/"
+            gcloud storage rsync --recursive docs/graphql/ gs://${BUCKET}/
+          else
+            echo "Documentation directory not found, skipping upload"
+          fi
+        continue-on-error: true
+
   smoke-tests:
     name: Smoke Tests
     runs-on: ubuntu-latest
@@ -592,6 +658,7 @@ jobs:
         run-migrations,
         deploy-backend,
         deploy-frontend,
+        deploy-docs,
         smoke-tests,
       ]
     if: always() && (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')

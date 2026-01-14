@@ -274,3 +274,13 @@ variable "connector_machine_type" {
   type        = string
   default     = "e2-micro"
 }
+
+# ===================================
+# CI/CD Configuration
+# ===================================
+variable "ci_cd_service_account_email" {
+  description = "CI/CD service account email (from Workload Identity Federation) that can impersonate the docs service account. Optional - if not provided, CI/CD will use its own permissions."
+  type        = string
+  default     = null
+}
+

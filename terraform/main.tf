@@ -178,3 +178,20 @@ module "cloud_run_frontend" {
 
   depends_on = [module.cloud_run]
 }
+
+# ===================================
+# Documentation Bucket Module
+# ===================================
+module "docs_bucket" {
+  source = "./modules/docs-bucket"
+
+  project_id                  = var.project_id
+  app_name                    = local.app_name
+  location                    = var.storage_location
+  docs_service_account_email  = module.service_accounts.docs_service_account_email
+  ci_cd_service_account_email = var.ci_cd_service_account_email
+
+  labels = local.common_labels
+
+  depends_on = [module.service_accounts]
+}
