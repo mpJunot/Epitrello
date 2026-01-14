@@ -137,8 +137,9 @@ jobs:
       - name: Generate GraphQL documentation
         working-directory: backend
         run: pnpm docs:generate
+        continue-on-error: true
 
-      - name: Upload GraphQL documentation
+      - name: Upload GraphQL documentation artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:

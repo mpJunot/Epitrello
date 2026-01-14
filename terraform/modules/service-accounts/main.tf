@@ -11,3 +11,16 @@ resource "google_service_account" "backend" {
   description  = "Service account for Cloud Run backend service"
   project      = var.project_id
 }
+
+# ===================================
+# Documentation Service Account
+# ===================================
+# Service account for documentation bucket management
+# This service account is used by CI/CD to upload GraphQL documentation
+# It has full permissions on the documentation bucket
+resource "google_service_account" "docs" {
+  account_id   = "${var.app_name}-docs-sa"
+  display_name = "Documentation Service Account"
+  description  = "Service account for GraphQL documentation bucket management"
+  project      = var.project_id
+}
