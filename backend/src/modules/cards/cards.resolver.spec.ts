@@ -247,4 +247,26 @@ describe('CardsResolver', () => {
       expect(service.removeLabelFromCard).toHaveBeenCalledWith('card-1', 'label-1', mockUser.id);
     });
   });
+
+  describe('labels', () => {
+    it('should resolve labels for a card', async () => {
+      mockLabelsLoader.load.mockResolvedValue([{ id: 'label-1' }]);
+
+      const result = await resolver.labels(mockCard as any);
+
+      expect(result).toHaveLength(1);
+      expect(mockLabelsLoader.load).toHaveBeenCalledWith('card-1');
+    });
+  });
+
+  describe('checklists', () => {
+    it('should resolve checklists for a card', async () => {
+      mockChecklistsLoader.load.mockResolvedValue([{ id: 'checklist-1' }]);
+
+      const result = await resolver.checklists(mockCard as any);
+
+      expect(result).toHaveLength(1);
+      expect(mockChecklistsLoader.load).toHaveBeenCalledWith('card-1');
+    });
+  });
 });
