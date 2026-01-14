@@ -84,16 +84,33 @@ export default function BoardView({ board }: { board: Board }) {
       setLists(updatedLists);
     };
 
+    const handleCardCreated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { listId, card } = customEvent.detail;
+      
+      // Ajouter la carte à la liste correspondante
+      const updatedLists = lists.map(list => {
+        if (list.id === listId) {
+          return { ...list, cards: [...(list.cards || []), card] };
+        }
+        return list;
+      });
+      
+      setLists(updatedLists);
+    };
+
     window.addEventListener('epitrello:list-create', handleListCreate);
     window.addEventListener('epitrello:list-copied', handleListCopied);
     window.addEventListener('epitrello:list-moved', handleListMoved);
     window.addEventListener('epitrello:move-all-cards', handleMoveAllCards);
+    window.addEventListener('epitrello:card-created', handleCardCreated);
 
     return () => {
       window.removeEventListener('epitrello:list-create', handleListCreate);
       window.removeEventListener('epitrello:list-copied', handleListCopied);
       window.removeEventListener('epitrello:list-moved', handleListMoved);
       window.removeEventListener('epitrello:move-all-cards', handleMoveAllCards);
+      window.removeEventListener('epitrello:card-created', handleCardCreated);
     };
   }, [lists]);
 
