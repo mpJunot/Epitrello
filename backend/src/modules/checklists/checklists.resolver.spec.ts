@@ -67,4 +67,40 @@ describe('ChecklistsResolver', () => {
     expect(result).toHaveLength(1);
     expect(service.findByCard).toHaveBeenCalledWith('card-1', mockUser.id);
   });
+
+  it('should create a checklist', async () => {
+    mockChecklistsService.createChecklist.mockResolvedValue(mockChecklist);
+
+    const result = await resolver.createChecklist(
+      { cardId: 'card-1', title: 'Checklist' },
+      mockUser,
+    );
+
+    expect(result).toEqual(mockChecklist);
+    expect(service.createChecklist).toHaveBeenCalledWith(
+      { cardId: 'card-1', title: 'Checklist' },
+      mockUser.id,
+    );
+  });
+
+  it('should update a checklist', async () => {
+    mockChecklistsService.updateChecklist.mockResolvedValue(mockChecklist);
+
+    const result = await resolver.updateChecklist(
+      { id: 'checklist-1', title: 'Updated' },
+      mockUser,
+    );
+
+    expect(result).toEqual(mockChecklist);
+    expect(service.updateChecklist).toHaveBeenCalled();
+  });
+
+  it('should delete a checklist', async () => {
+    mockChecklistsService.deleteChecklist.mockResolvedValue(true);
+
+    const result = await resolver.deleteChecklist('checklist-1', mockUser);
+
+    expect(result).toBe(true);
+    expect(service.deleteChecklist).toHaveBeenCalledWith('checklist-1', mockUser.id);
+  });
 });
