@@ -94,4 +94,28 @@ describe('LabelsService', () => {
     expect(result.name).toBe('New');
     expect(prismaService.label.update).toHaveBeenCalled();
   });
+
+  it('should reject unsupported color', async () => {
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+    await expect(
+      service.create({ boardId: 'board-1', name: 'Bad', color: 'beige' }, mockUser.id),
+    ).rejects.toThrow('Label color is not supported');
+  });
+
+  it('should delete a label', async () => {
+    mockPrismaService.label.findUnique.mockResolvedValue({
+      id: 'label-1',
+      boardId: 'board-1',
+      name: 'Urgent',
+      color: 'red',
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+    mockPrismaService.label.delete.mockResolvedValue({});
+
+    const result = await service.delete('label-1', mockUser.id);
+
+    expect(result).toBe(true);
+    expect(prismaService.label.delete).toHaveBeenCalled();
+  });
 });

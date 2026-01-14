@@ -113,4 +113,72 @@ describe('ChecklistsService', () => {
     expect(result.id).toBe('item-1');
     expect(prismaService.checklistItem.create).toHaveBeenCalled();
   });
+
+  it('should update a checklist item', async () => {
+    mockPrismaService.checklistItem.findUnique.mockResolvedValue({
+      id: 'item-1',
+      checklistId: 'checklist-1',
+      content: 'Old',
+      checked: false,
+      position: 0,
+    });
+    mockPrismaService.checklist.findUnique.mockResolvedValue({
+      id: 'checklist-1',
+      cardId: 'card-1',
+    });
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+    mockPrismaService.checklistItem.update.mockResolvedValue({
+      id: 'item-1',
+      checklistId: 'checklist-1',
+      content: 'New',
+      checked: true,
+      position: 1,
+    });
+
+    const result = await service.updateChecklistItem(
+      { id: 'item-1', content: 'New', checked: true, position: 1 },
+      mockUser.id,
+    );
+
+    expect(result.content).toBe('New');
+    expect(prismaService.checklistItem.update).toHaveBeenCalled();
+  });
+
+  it('should reorder checklist items', async () => {
+    mockPrismaService.checklist.findUnique.mockResolvedValue({
+      id: 'checklist-1',
+      cardId: 'card-1',
+    });
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+    mockPrismaService.checklistItem.findMany.mockResolvedValue([
+      { id: 'item-1', checklistId: 'checklist-1' },
+      { id: 'item-2', checklistId: 'checklist-1' },
+    ]);
+    mockPrismaService.$transaction.mockResolvedValue([
+      { id: 'item-1', position: 0 },
+      { id: 'item-2', position: 1 },
+    ]);
+
+    const result = await service.reorderChecklistItems(
+      {
+        checklistId: 'checklist-1',
+        itemPositions: [
+          { id: 'item-1', position: 0 },
+          { id: 'item-2', position: 1 },
+        ],
+      },
+      mockUser.id,
+    );
+
+    expect(result).toHaveLength(2);
+    expect(prismaService.$transaction).toHaveBeenCalled();
+  });
 });
