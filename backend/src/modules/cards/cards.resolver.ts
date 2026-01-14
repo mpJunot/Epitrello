@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { CardsService } from './cards.service';
 import { Card } from './entities/card.entity';
@@ -8,13 +8,28 @@ import { MoveCardInput } from './dto/move-card.input';
 import { ReorderCardsInput } from './dto/reorder-cards.input';
 import { AssignMemberToCardInput } from './dto/assign-member.input';
 import { UnassignMemberFromCardInput } from './dto/unassign-member.input';
+import { AddLabelToCardInput } from './dto/add-label-to-card.input';
+import { RemoveLabelFromCardInput } from './dto/remove-label-from-card.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CardsDataLoader } from './dataloaders/cards.dataloader';
+import { Label } from '../labels/entities/label.entity';
+import DataLoader from 'dataloader';
+import { Checklist } from '../checklists/entities/checklist.entity';
 
 @Resolver(() => Card)
 @UseGuards(GqlAuthGuard)
 export class CardsResolver {
-  constructor(private readonly cardsService: CardsService) {}
+  private readonly labelsLoader: DataLoader<string, Label[]>;
+  private readonly checklistsLoader: DataLoader<string, Checklist[]>;
+
+  constructor(
+    private readonly cardsService: CardsService,
+    private readonly cardsDataLoader: CardsDataLoader,
+  ) {
+    this.labelsLoader = this.cardsDataLoader.createLabelsByCardLoader();
+    this.checklistsLoader = this.cardsDataLoader.createChecklistsByCardLoader();
+  }
 
   @Mutation(() => Card, {
     description: 'Create a new card. Position is calculated automatically if not provided.',
@@ -95,5 +110,35 @@ export class CardsResolver {
     @CurrentUser() user: any,
   ): Promise<Card> {
     return this.cardsService.unassignMember(input, user.id);
+  }
+
+  @Mutation(() => Card, {
+    description: 'Add a label to a card. User must have access to the board.',
+  })
+  async addLabelToCard(
+    @Args('input') input: AddLabelToCardInput,
+    @CurrentUser() user: any,
+  ): Promise<Card> {
+    return this.cardsService.addLabelToCard(input.cardId, input.labelId, user.id);
+  }
+
+  @Mutation(() => Card, {
+    description: 'Remove a label from a card. User must have access to the board.',
+  })
+  async removeLabelFromCard(
+    @Args('input') input: RemoveLabelFromCardInput,
+    @CurrentUser() user: any,
+  ): Promise<Card> {
+    return this.cardsService.removeLabelFromCard(input.cardId, input.labelId, user.id);
+  }
+
+  @ResolveField(() => [Label], { nullable: true })
+  async labels(@Parent() card: Card): Promise<Label[]> {
+    return this.labelsLoader.load(card.id);
+  }
+
+  @ResolveField(() => [Checklist], { nullable: true })
+  async checklists(@Parent() card: Card): Promise<Checklist[]> {
+    return this.checklistsLoader.load(card.id);
   }
 }
