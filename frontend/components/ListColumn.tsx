@@ -817,15 +817,15 @@ export default function ListColumn({
                       disabled={totalListsCount <= 1}
                       aria-disabled={totalListsCount <= 1}
                     >
-                      <option value="0">1 (first)</option>
-                      <option value="1">2</option>
-                      <option value="2">3</option>
-                      <option value="3">4</option>
-                      <option value="4">5</option>
-                      <option value="999">Last position</option>
+                      {/* Générer les options dynamiquement selon le nombre de colonnes */}
+                      {Array.from({ length: totalListsCount }, (_, i) => (
+                        <option key={i} value={i.toString()}>
+                          {i + 1} {i === 0 ? '(first)' : i === totalListsCount - 1 ? '(last)' : ''}
+                        </option>
+                      ))}
                     </select>
                     <p className="text-xs text-gray-500 mt-1.5">
-                      Move this list to the selected position
+                      Move this list to the selected position ({totalListsCount} total)
                     </p>
                   </div>
 
