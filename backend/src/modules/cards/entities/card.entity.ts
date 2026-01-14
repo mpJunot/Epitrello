@@ -1,4 +1,6 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
+import { Label } from '../../labels/entities/label.entity';
+import { Checklist } from '../../checklists/entities/checklist.entity';
 
 @ObjectType()
 export class Card {
@@ -31,4 +33,10 @@ export class Card {
 
   @Field()
   updatedAt: Date;
+
+  @Field(() => [Label], { nullable: true })
+  labels?: Label[];
+
+  @Field(() => [Checklist], { nullable: true })
+  checklists?: Checklist[];
 }

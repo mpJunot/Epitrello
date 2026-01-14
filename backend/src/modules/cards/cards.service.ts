@@ -87,6 +87,22 @@ export class CardsService {
   }
 
   /**
+   * Get board ID from label ID
+   */
+  private async getBoardIdFromLabel(labelId: string): Promise<string> {
+    const label = await this.prisma.label.findUnique({
+      where: { id: labelId },
+      select: { boardId: true },
+    });
+
+    if (!label) {
+      throw new NotFoundException('Label not found');
+    }
+
+    return label.boardId;
+  }
+
+  /**
    * Calculate the next position for a new card
    * Returns the maximum position + 1, or 0 if no cards exist
    */
@@ -349,6 +365,85 @@ export class CardsService {
 
     const card = await this.prisma.card.findUnique({
       where: { id: input.cardId },
+    });
+
+    return card;
+  }
+
+  /**
+   * Add a label to a card
+   * - User must have access to the board
+   * - Label must belong to the same board as the card
+   */
+  async addLabelToCard(cardId: string, labelId: string, userId: string): Promise<Card> {
+    const cardBoardId = await this.getBoardIdFromCard(cardId);
+    const labelBoardId = await this.getBoardIdFromLabel(labelId);
+
+    await this.checkBoardAccess(cardBoardId, userId);
+
+    if (cardBoardId !== labelBoardId) {
+      throw new BadRequestException('Label does not belong to the same board');
+    }
+
+    const existing = await this.prisma.cardLabel.findUnique({
+      where: {
+        cardId_labelId: {
+          cardId,
+          labelId,
+        },
+      },
+    });
+
+    if (existing) {
+      throw new ConflictException('Label is already applied to this card');
+    }
+
+    await this.prisma.cardLabel.create({
+      data: {
+        cardId,
+        labelId,
+      },
+    });
+
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
+    });
+
+    return card;
+  }
+
+  /**
+   * Remove a label from a card
+   * - User must have access to the board
+   */
+  async removeLabelFromCard(cardId: string, labelId: string, userId: string): Promise<Card> {
+    const boardId = await this.getBoardIdFromCard(cardId);
+    await this.checkBoardAccess(boardId, userId);
+
+    const existing = await this.prisma.cardLabel.findUnique({
+      where: {
+        cardId_labelId: {
+          cardId,
+          labelId,
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Label is not applied to this card');
+    }
+
+    await this.prisma.cardLabel.delete({
+      where: {
+        cardId_labelId: {
+          cardId,
+          labelId,
+        },
+      },
+    });
+
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
     });
 
     return card;
