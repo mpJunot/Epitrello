@@ -278,6 +278,7 @@ export default function ListColumn({
     const c: Card = { id, title, description: "" };
     const next = [...cards, c];
     setCards(next);
+    setLastLocalChange(Date.now());
     try { window.dispatchEvent(new CustomEvent("epitrello:card-created", { detail: { listId: list.id, card: c } })); } catch (e) {}
     // clear textarea and keep focus for multiple cards
     setCardText("");
