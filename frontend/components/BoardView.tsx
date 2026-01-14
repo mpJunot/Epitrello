@@ -99,11 +99,21 @@ export default function BoardView({ board }: { board: Board }) {
       setLists(updatedLists);
     };
 
+    const handleListDeleted = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { listId } = customEvent.detail;
+      
+      // Supprimer la liste
+      const updatedLists = lists.filter(list => list.id !== listId);
+      setLists(updatedLists);
+    };
+
     window.addEventListener('epitrello:list-create', handleListCreate);
     window.addEventListener('epitrello:list-copied', handleListCopied);
     window.addEventListener('epitrello:list-moved', handleListMoved);
     window.addEventListener('epitrello:move-all-cards', handleMoveAllCards);
     window.addEventListener('epitrello:card-created', handleCardCreated);
+    window.addEventListener('epitrello:list-deleted', handleListDeleted);
 
     return () => {
       window.removeEventListener('epitrello:list-create', handleListCreate);
@@ -111,6 +121,7 @@ export default function BoardView({ board }: { board: Board }) {
       window.removeEventListener('epitrello:list-moved', handleListMoved);
       window.removeEventListener('epitrello:move-all-cards', handleMoveAllCards);
       window.removeEventListener('epitrello:card-created', handleCardCreated);
+      window.removeEventListener('epitrello:list-deleted', handleListDeleted);
     };
   }, [lists]);
 
@@ -130,7 +141,7 @@ export default function BoardView({ board }: { board: Board }) {
       >
         {lists.map((l) => (
           <div key={l.id} className="snap-center md:snap-align-none">
-            <ListColumn list={l} totalListsCount={lists.length} />
+            <ListColumn list={l} totalListsCount={lists.length} allLists={lists} />
           </div>
         ))}
 
