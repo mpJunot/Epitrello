@@ -36,6 +36,14 @@ describe('CardsService', () => {
       create: jest.fn(),
       delete: jest.fn(),
     },
+    label: {
+      findUnique: jest.fn(),
+    },
+    cardLabel: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
 
@@ -516,6 +524,79 @@ describe('CardsService', () => {
       mockPrismaService.cardAssignee.findUnique.mockResolvedValue(null);
 
       await expect(service.unassignMember(input, mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('addLabelToCard', () => {
+    it('should add a label to a card', async () => {
+      mockPrismaService.card.findUnique
+        .mockResolvedValueOnce({
+          ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce(mockCard);
+      mockPrismaService.label.findUnique.mockResolvedValue({ id: 'label-1', boardId: 'board-1' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue(null);
+      mockPrismaService.cardLabel.create.mockResolvedValue({
+        id: 'card-label-1',
+        cardId: 'card-1',
+        labelId: 'label-1',
+      });
+
+      const result = await service.addLabelToCard('card-1', 'label-1', mockUser.id);
+
+      expect(result).toBeDefined();
+      expect(prismaService.cardLabel.create).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when label is from different board', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.label.findUnique.mockResolvedValue({ id: 'label-1', boardId: 'board-2' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('removeLabelFromCard', () => {
+    it('should remove a label from a card', async () => {
+      mockPrismaService.card.findUnique
+        .mockResolvedValueOnce({
+          ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce(mockCard);
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue({
+        id: 'card-label-1',
+        cardId: 'card-1',
+        labelId: 'label-1',
+      });
+      mockPrismaService.cardLabel.delete.mockResolvedValue({});
+
+      const result = await service.removeLabelFromCard('card-1', 'label-1', mockUser.id);
+
+      expect(result).toBeDefined();
+      expect(prismaService.cardLabel.delete).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when label is not applied', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue(null);
+
+      await expect(service.removeLabelFromCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });
