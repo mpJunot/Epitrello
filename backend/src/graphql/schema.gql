@@ -8,6 +8,11 @@ input AddBoardMemberInput {
   userId: ID!
 }
 
+input AssignMemberToCardInput {
+  cardId: ID!
+  userId: ID!
+}
+
 """Authentication response containing JWT token and user data"""
 type AuthPayload {
   """JWT token to use in Authorization header for authenticated requests"""
@@ -40,12 +45,52 @@ type BoardMemberWithUser {
   userId: ID!
 }
 
+type Card {
+  coverUrl: String
+  createdAt: DateTime!
+  description: String
+  dueDate: DateTime
+  id: ID!
+  listId: ID!
+  position: Float!
+  startDate: DateTime
+  title: String!
+  updatedAt: DateTime!
+}
+
+input CardPosition {
+  id: ID!
+  position: Float!
+}
+
 input CreateBoardInput {
   background: String
   description: String
   title: String!
   visibility: Visibility
   workspaceId: ID
+}
+
+input CreateCardInput {
+  coverUrl: String
+
+  """Card description with markdown support"""
+  description: String
+  dueDate: DateTime
+  listId: ID!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+  startDate: DateTime
+  title: String!
+}
+
+input CreateListInput {
+  boardId: ID!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+  title: String!
 }
 
 input CreateUserInput {
@@ -86,6 +131,21 @@ input InviteMemberInput {
   workspaceId: String!
 }
 
+type List {
+  boardId: ID!
+  createdAt: DateTime!
+  id: ID!
+  isArchived: Boolean!
+  position: Int!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input ListPosition {
+  id: ID!
+  position: Float!
+}
+
 """Input for user login"""
 input LoginInput {
   """User email address"""
@@ -111,6 +171,16 @@ type MessageResponse {
   message: String!
 }
 
+input MoveCardInput {
+  cardId: ID!
+
+  """
+  Optional position in target list. If not provided, will be calculated automatically.
+  """
+  position: Float
+  targetListId: ID!
+}
+
 type Mutation {
   """Accept a workspace invitation."""
   acceptInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
@@ -120,6 +190,12 @@ type Mutation {
 
   """Archive a board. User must be ADMIN or MEMBER."""
   archiveBoard(id: ID!): Board!
+
+  """Archive a list. User must have access to the board."""
+  archiveList(id: ID!): List!
+
+  """Assign a member to a card. User must have access to the board."""
+  assignMemberToCard(input: AssignMemberToCardInput!): Card!
 
   """
   Cancel a pending invitation. Only the inviter or workspace admin can cancel.
@@ -131,6 +207,16 @@ type Mutation {
   """
   createBoard(input: CreateBoardInput!): Board!
 
+  """
+  Create a new card. Position is calculated automatically if not provided.
+  """
+  createCard(input: CreateCardInput!): Card!
+
+  """
+  Create a new list. Position is calculated automatically if not provided.
+  """
+  createList(input: CreateListInput!): List!
+
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
 
@@ -139,6 +225,12 @@ type Mutation {
 
   """Delete a board. Only board ADMIN can delete."""
   deleteBoard(id: ID!): Boolean!
+
+  """Delete a card. User must have access to the board."""
+  deleteCard(id: ID!): Boolean!
+
+  """Delete a list. Cards are automatically deleted via cascade."""
+  deleteList(id: ID!): Boolean!
 
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
@@ -163,6 +255,11 @@ type Mutation {
   login(input: LoginInput!): AuthPayload!
 
   """
+  Move a card to a different list within the same board. Position is calculated automatically if not provided.
+  """
+  moveCard(input: MoveCardInput!): Card!
+
+  """
   Register a new user account. If companyName is provided, a workspace is automatically created.
   """
   register(input: RegisterInput!): AuthPayload!
@@ -177,6 +274,16 @@ type Mutation {
   removeMember(input: RemoveMemberInput!): Boolean!
 
   """
+  Reorder multiple cards within the same list. All cards must belong to the same list.
+  """
+  reorderCards(input: ReorderCardsInput!): [Card!]!
+
+  """
+  Reorder multiple lists at once. All lists must belong to the same board.
+  """
+  reorderLists(input: ReorderListsInput!): [List!]!
+
+  """
   Reset password using a valid reset token. The token is received via email after requesting a password reset.
   """
   resetPassword(input: ResetPasswordInput!): MessageResponse!
@@ -184,11 +291,20 @@ type Mutation {
   """Unarchive a board. User must be ADMIN or MEMBER."""
   unarchiveBoard(id: ID!): Board!
 
+  """Unassign a member from a card. User must have access to the board."""
+  unassignMemberFromCard(input: UnassignMemberFromCardInput!): Card!
+
   """Update a board. User must be ADMIN or MEMBER of the board."""
   updateBoard(input: UpdateBoardInput!): Board!
 
   """Update a member role in a board. Only board ADMIN can update roles."""
   updateBoardMemberRole(input: UpdateBoardMemberRoleInput!): Boolean!
+
+  """Update a card. User must have access to the board."""
+  updateCard(input: UpdateCardInput!): Card!
+
+  """Update a list. User must have access to the board."""
+  updateList(input: UpdateListInput!): List!
 
   """Update a member role in a workspace. Only ADMIN can update roles."""
   updateMemberRole(input: UpdateMemberRoleInput!): Boolean!
@@ -208,6 +324,12 @@ type Mutation {
 type Query {
   """Get a board by ID. Access based on visibility and membership."""
   board(id: ID!): Board!
+
+  """Get a card by ID. User must have access to the board."""
+  card(id: ID!): Card!
+
+  """Get a list by ID. User must have access to the board."""
+  list(id: ID!): List!
 
   """Get the currently authenticated user information"""
   me: User
@@ -257,6 +379,16 @@ input RemoveMemberInput {
   workspaceId: String!
 }
 
+input ReorderCardsInput {
+  cardPositions: [CardPosition!]!
+  listId: ID!
+}
+
+input ReorderListsInput {
+  boardId: ID!
+  listPositions: [ListPosition!]!
+}
+
 """Input for resetting password with token"""
 input ResetPasswordInput {
   """New password (minimum 6 characters)"""
@@ -268,6 +400,11 @@ input ResetPasswordInput {
 
 input RespondInvitationInput {
   invitationId: String!
+}
+
+input UnassignMemberFromCardInput {
+  cardId: ID!
+  userId: ID!
 }
 
 input UpdateBoardInput {
@@ -282,6 +419,24 @@ input UpdateBoardMemberRoleInput {
   boardId: ID!
   role: String!
   userId: ID!
+}
+
+input UpdateCardInput {
+  coverUrl: String
+
+  """Card description with markdown support"""
+  description: String
+  dueDate: DateTime
+  id: ID!
+  position: Float
+  startDate: DateTime
+  title: String
+}
+
+input UpdateListInput {
+  id: ID!
+  position: Int
+  title: String
 }
 
 input UpdateMemberRoleInput {
