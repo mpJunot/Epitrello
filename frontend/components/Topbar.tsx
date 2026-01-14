@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import CreateBoardModal from "./CreateBoardModal";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -14,6 +15,9 @@ export default function Topbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const [userName, setUserName] = useState<string>('Benjamin Maillot');
+  const [userEmail, setUserEmail] = useState<string>('maillotbenjamin1@gmail.com');
+  const router = useRouter();
 
   useEffect(() => {
     try {
@@ -39,6 +43,20 @@ export default function Topbar() {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
+  // try to load user info from localStorage if available
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('epitrello_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.name) setUserName(u.name);
+        if (u?.email) setUserEmail(u.email);
+      }
+    } catch (e) {
+      // ignore and keep defaults
+    }
+  }, []);
+
   const onSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     // simple client-side emit; integrate with search route later
@@ -46,22 +64,52 @@ export default function Topbar() {
     setSearchOpen(false);
   };
 
-  const createBoard = () => {
-    const name = window.prompt("Board name");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const createBoard = (payload?: { name?: string; workspaceId?: string; visibility?: string }) => {
+    // If called with payload (from modal), create board; otherwise open modal
+    if (!payload) {
+      setCreateOpen(true);
+      return;
+    }
+
+    const { name, workspaceId, visibility } = payload;
     if (!name) return;
+
     try {
-      const raw = localStorage.getItem("epitrello_boards");
+      const backgrounds = [
+        'bg-gradient-to-br from-amber-400 to-orange-500',
+        'bg-gradient-to-br from-sky-400 to-blue-500',
+        'bg-gradient-to-br from-emerald-400 to-green-500',
+        'bg-gradient-to-br from-violet-400 to-purple-500',
+        'bg-gradient-to-br from-rose-400 to-pink-500',
+        'bg-gradient-to-br from-cyan-400 to-teal-500',
+      ];
+
+      const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+
+      const raw = localStorage.getItem('epitrello_boards');
       const boards = raw ? JSON.parse(raw) : [];
       const id = (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
-      const b = { id, title: name, color: "bg-amber-400" };
-      const next = [b, ...boards];
-      localStorage.setItem("epitrello_boards", JSON.stringify(next));
-      window.dispatchEvent(new Event("epitrello:boards-updated"));
-      // navigate to new board
-      window.location.href = `/dashboard?board=${id}`;
+      const board = {
+        id,
+        name,
+        description: undefined,
+        background: randomBackground,
+        members: 1,
+        workspaceId,
+        visibility,
+      };
+
+      const next = [board, ...boards];
+      localStorage.setItem('epitrello_boards', JSON.stringify(next));
+      window.dispatchEvent(new Event('epitrello:boards-updated'));
+
+      // navigate to the newly created board page
+      router.push(`/boards/${id}`);
     } catch (e) {
       console.error(e);
-      alert("Unable to create board");
+      alert('Impossible de créer le tableau');
     }
   };
 
@@ -107,20 +155,21 @@ export default function Topbar() {
 
           {/* Create board */}
           <button
-            onClick={createBoard}
+            onClick={() => createBoard()}
             aria-label="Create a new board"
             className="hidden sm:inline-flex items-center gap-2 px-3 py-1 bg-indigo-600 text-white rounded"
           >
             + Créer
           </button>
           <button
-            onClick={createBoard}
+            onClick={() => createBoard()}
             aria-label="Create board"
             className="sm:hidden p-2 rounded bg-indigo-600 text-white"
             title="Créer"
           >
             +
           </button>
+          <CreateBoardModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={(p) => createBoard(p)} />
 
           {/* Notifications */}
           <button
@@ -149,10 +198,61 @@ export default function Topbar() {
             </button>
 
             {openProfile && (
-              <div role="menu" aria-label="Menu profil" className="absolute right-0 mt-2 w-56 bg-white border rounded shadow p-2 z-10">
-                <a role="menuitem" href="/auth/me" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Profile and settings</a>
-                <a role="menuitem" href="/settings" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Account settings</a>
-                <a role="menuitem" href="/auth/logout" className="block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">Sign out</a>
+              <div role="menu" aria-label="Menu profil" className="absolute right-0 mt-2 w-64 bg-white border rounded shadow p-3 z-10 text-sm">
+                <div className="mb-2">
+                  <div className="text-xs text-gray-500 font-medium">Account</div>
+                  <div className="mt-2">
+                    <div className="font-semibold text-gray-900">{userName}</div>
+                    <div className="text-xs text-gray-600">{userEmail}</div>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Switch accounts</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Manage account</a>
+                  </div>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div className="mb-2">
+                  <div className="text-xs text-gray-500 font-medium">Trello</div>
+                  <div className="mt-2 space-y-1">
+                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Profile and visibility</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Activity</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Cards</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Settings</a>
+                  </div>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div className="mb-2">
+                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Help</a>
+                </div>
+
+                <div className="border-t my-2" />
+
+                <div>
+                  <button
+                    role="menuitem"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Clear client-side stored user data (client-only logout)
+                      try {
+                        localStorage.removeItem('epitrello_user');
+                        localStorage.removeItem('epitrello_notifications');
+                        localStorage.removeItem('epitrello_boards');
+                        localStorage.removeItem('epitrello_active_board');
+                        localStorage.removeItem('epitrello_workspaces');
+                        localStorage.removeItem('epitrello_expanded_workspaces');
+                      } catch (err) {}
+                      setOpenProfile(false);
+                      router.push('/auth/login');
+                    }}
+                    className="w-full text-left block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded"
+                  >
+                    Log out
+                  </button>
+                </div>
               </div>
             )}
           </div>
