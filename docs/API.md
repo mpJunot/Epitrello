@@ -4119,6 +4119,8 @@ type Card {
   position: Float!
   createdAt: DateTime!
   updatedAt: DateTime!
+  labels: [Label!]
+  checklists: [Checklist!]
 }
 ```
 
@@ -4198,6 +4200,91 @@ input AssignMemberToCardInput {
 input UnassignMemberFromCardInput {
   cardId: ID!
   userId: ID!
+}
+```
+
+### Label Types
+
+```graphql
+type Label {
+  id: ID!
+  boardId: ID!
+  name: String
+  color: String!
+}
+
+input CreateLabelInput {
+  boardId: ID!
+  name: String
+  color: String!
+}
+
+input UpdateLabelInput {
+  id: ID!
+  name: String
+  color: String
+}
+
+input AddLabelToCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+
+input RemoveLabelFromCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+```
+
+### Checklist Types
+
+```graphql
+type Checklist {
+  id: ID!
+  cardId: ID!
+  title: String!
+  items: [ChecklistItem!]
+}
+
+type ChecklistItem {
+  id: ID!
+  checklistId: ID!
+  content: String!
+  checked: Boolean!
+  position: Float!
+}
+
+input CreateChecklistInput {
+  cardId: ID!
+  title: String!
+}
+
+input UpdateChecklistInput {
+  id: ID!
+  title: String
+}
+
+input AddChecklistItemInput {
+  checklistId: ID!
+  content: String!
+  position: Float
+}
+
+input UpdateChecklistItemInput {
+  id: ID!
+  content: String
+  checked: Boolean
+  position: Float
+}
+
+input ChecklistItemPositionInput {
+  id: ID!
+  position: Float!
+}
+
+input ReorderChecklistItemsInput {
+  checklistId: ID!
+  itemPositions: [ChecklistItemPositionInput!]!
 }
 ```
 
@@ -4320,6 +4407,111 @@ mutation {
 ```
 
 ---
+
+## Labels
+
+Labels are Trello-style tags attached to cards. Labels are created at the board level and can be applied to cards.
+
+### Create Label
+
+**Mutation**: `createLabel`
+
+```graphql
+mutation CreateLabel($input: CreateLabelInput!) {
+  createLabel(input: $input) {
+    id
+    boardId
+    name
+    color
+  }
+}
+```
+
+### List Board Labels
+
+**Query**: `boardLabels`
+
+```graphql
+query BoardLabels($boardId: ID!) {
+  boardLabels(boardId: $boardId) {
+    id
+    name
+    color
+  }
+}
+```
+
+### Add/Remove Label on Card
+
+**Mutations**: `addLabelToCard`, `removeLabelFromCard`
+
+```graphql
+mutation AddLabelToCard($input: AddLabelToCardInput!) {
+  addLabelToCard(input: $input) {
+    id
+    title
+    labels {
+      id
+      name
+      color
+    }
+  }
+}
+```
+
+---
+
+## Checklists
+
+Checklists are attached to cards and contain ordered items.
+
+### Create Checklist
+
+**Mutation**: `createChecklist`
+
+```graphql
+mutation CreateChecklist($input: CreateChecklistInput!) {
+  createChecklist(input: $input) {
+    id
+    cardId
+    title
+  }
+}
+```
+
+### List Card Checklists
+
+**Query**: `cardChecklists`
+
+```graphql
+query CardChecklists($cardId: ID!) {
+  cardChecklists(cardId: $cardId) {
+    id
+    title
+    items {
+      id
+      content
+      checked
+      position
+    }
+  }
+}
+```
+
+### Checklist Items
+
+**Mutations**: `addChecklistItem`, `updateChecklistItem`, `deleteChecklistItem`, `reorderChecklistItems`
+
+```graphql
+mutation AddChecklistItem($input: AddChecklistItemInput!) {
+  addChecklistItem(input: $input) {
+    id
+    content
+    checked
+    position
+  }
+}
+```
 
 ## Support
 

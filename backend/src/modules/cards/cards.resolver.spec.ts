@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CardsResolver } from './cards.resolver';
 import { CardsService } from './cards.service';
+import { CardsDataLoader } from './dataloaders/cards.dataloader';
 
 describe('CardsResolver', () => {
   let resolver: CardsResolver;
@@ -15,6 +16,21 @@ describe('CardsResolver', () => {
     reorder: jest.fn(),
     assignMember: jest.fn(),
     unassignMember: jest.fn(),
+    addLabelToCard: jest.fn(),
+    removeLabelFromCard: jest.fn(),
+  };
+
+  const mockLabelsLoader = {
+    load: jest.fn(),
+  };
+
+  const mockChecklistsLoader = {
+    load: jest.fn(),
+  };
+
+  const mockCardsDataLoader = {
+    createLabelsByCardLoader: jest.fn(() => mockLabelsLoader),
+    createChecklistsByCardLoader: jest.fn(() => mockChecklistsLoader),
   };
 
   const mockUser = {
@@ -43,6 +59,10 @@ describe('CardsResolver', () => {
         {
           provide: CardsService,
           useValue: mockCardsService,
+        },
+        {
+          provide: CardsDataLoader,
+          useValue: mockCardsDataLoader,
         },
       ],
     }).compile();
@@ -193,6 +213,38 @@ describe('CardsResolver', () => {
 
       expect(result).toEqual(mockCard);
       expect(service.unassignMember).toHaveBeenCalledWith(input, mockUser.id);
+    });
+  });
+
+  describe('addLabelToCard', () => {
+    it('should add a label to a card', async () => {
+      const input = {
+        cardId: 'card-1',
+        labelId: 'label-1',
+      };
+
+      mockCardsService.addLabelToCard.mockResolvedValue(mockCard);
+
+      const result = await resolver.addLabelToCard(input, mockUser);
+
+      expect(result).toEqual(mockCard);
+      expect(service.addLabelToCard).toHaveBeenCalledWith('card-1', 'label-1', mockUser.id);
+    });
+  });
+
+  describe('removeLabelFromCard', () => {
+    it('should remove a label from a card', async () => {
+      const input = {
+        cardId: 'card-1',
+        labelId: 'label-1',
+      };
+
+      mockCardsService.removeLabelFromCard.mockResolvedValue(mockCard);
+
+      const result = await resolver.removeLabelFromCard(input, mockUser);
+
+      expect(result).toEqual(mockCard);
+      expect(service.removeLabelFromCard).toHaveBeenCalledWith('card-1', 'label-1', mockUser.id);
     });
   });
 });
