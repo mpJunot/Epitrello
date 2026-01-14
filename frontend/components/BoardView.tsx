@@ -46,12 +46,54 @@ export default function BoardView({ board }: { board: Board }) {
       setLists([...lists, newList]);
     };
 
+    const handleListMoved = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { listId, newPosition } = customEvent.detail;
+      
+      // Trouver la liste à déplacer
+      const listIndex = lists.findIndex(l => l.id === listId);
+      if (listIndex === -1) return;
+      
+      // Créer un nouveau tableau sans la liste
+      const updatedLists = lists.filter(l => l.id !== listId);
+      
+      // Insérer la liste à la nouvelle position
+      const position = Math.min(newPosition, updatedLists.length);
+      updatedLists.splice(position, 0, lists[listIndex]);
+      
+      setLists(updatedLists);
+    };
+
+    const handleMoveAllCards = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { sourceListId, targetListId, cards: cardsToMove } = customEvent.detail;
+      
+      // Trouver les listes source et cible
+      const updatedLists = lists.map(list => {
+        if (list.id === sourceListId) {
+          // Vider la liste source
+          return { ...list, cards: [] };
+        }
+        if (list.id === targetListId) {
+          // Ajouter les cartes à la liste cible
+          return { ...list, cards: [...(list.cards || []), ...cardsToMove] };
+        }
+        return list;
+      });
+      
+      setLists(updatedLists);
+    };
+
     window.addEventListener('epitrello:list-create', handleListCreate);
     window.addEventListener('epitrello:list-copied', handleListCopied);
+    window.addEventListener('epitrello:list-moved', handleListMoved);
+    window.addEventListener('epitrello:move-all-cards', handleMoveAllCards);
 
     return () => {
       window.removeEventListener('epitrello:list-create', handleListCreate);
       window.removeEventListener('epitrello:list-copied', handleListCopied);
+      window.removeEventListener('epitrello:list-moved', handleListMoved);
+      window.removeEventListener('epitrello:move-all-cards', handleMoveAllCards);
     };
   }, [lists]);
 
