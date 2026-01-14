@@ -21,6 +21,40 @@ type Board = {
 };
 
 export default function BoardView({ board }: { board: Board }) {
+  const [lists, setLists] = useState(board.lists || []);
+
+  useEffect(() => {
+    const handleListCreate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { title } = customEvent.detail;
+      const newList = {
+        id: (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString(),
+        title,
+        cards: [],
+      };
+      setLists([...lists, newList]);
+    };
+
+    const handleListCopied = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { newListTitle, cards } = customEvent.detail;
+      const newList = {
+        id: (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString(),
+        title: newListTitle,
+        cards: cards,
+      };
+      setLists([...lists, newList]);
+    };
+
+    window.addEventListener('epitrello:list-create', handleListCreate);
+    window.addEventListener('epitrello:list-copied', handleListCopied);
+
+    return () => {
+      window.removeEventListener('epitrello:list-create', handleListCreate);
+      window.removeEventListener('epitrello:list-copied', handleListCopied);
+    };
+  }, [lists]);
+
   return (
     <div className="p-4" id="main-board-content">
       <div className="flex items-center justify-between mb-4">
@@ -35,9 +69,9 @@ export default function BoardView({ board }: { board: Board }) {
         className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar" 
         style={{ height: 'calc(100vh - 200px)' }}
       >
-        {(board.lists || []).map((l) => (
+        {lists.map((l) => (
           <div key={l.id} className="snap-center md:snap-align-none">
-            <ListColumn list={l} />
+            <ListColumn list={l} totalListsCount={lists.length} />
           </div>
         ))}
 
