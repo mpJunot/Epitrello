@@ -562,6 +562,19 @@ describe('CardsService', () => {
         BadRequestException,
       );
     });
+
+    it('should throw NotFoundException when label does not exist', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.label.findUnique.mockResolvedValue(null);
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   describe('removeLabelFromCard', () => {
