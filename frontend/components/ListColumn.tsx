@@ -15,10 +15,12 @@ type Card = {
 
 export default function ListColumn({ 
   list, 
-  totalListsCount = 1 
+  totalListsCount = 1,
+  allLists = []
 }: { 
   list: { id: string; title: string; cards?: Card[] }; 
   totalListsCount?: number;
+  allLists?: { id: string; title: string; cards?: Card[] }[];
 }) {
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
@@ -117,6 +119,9 @@ export default function ListColumn({
   // Sort submenu state
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [activeSortOption, setActiveSortOption] = useState<string | null>(null);
+
+  // Delete list submenu state
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
   useEffect(() => {
     if (addingCard && textareaRef.current) textareaRef.current.focus();
@@ -266,6 +271,32 @@ export default function ListColumn({
     };
   }, [showSortMenu]);
 
+  // Gérer la fermeture du sous-menu de suppression
+  useEffect(() => {
+    if (!showDeleteMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
+        setShowDeleteMenu(false);
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowDeleteMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showDeleteMenu]);
+
   const submitCard = () => {
     const title = (cardText || "").trim();
     if (!title) {
@@ -393,6 +424,24 @@ export default function ListColumn({
     // Vider la colonne source
     setCards([]);
     setShowMoveAllCardsMenu(false);
+  };
+
+  const openDeleteMenu = () => {
+    setShowActions(false);
+    setShowDeleteMenu(true);
+  };
+
+  const deleteList = () => {
+    // Dispatcher un événement pour supprimer la liste
+    window.dispatchEvent(
+      new CustomEvent('epitrello:list-deleted', {
+        detail: {
+          listId: list.id,
+        },
+      })
+    );
+
+    setShowDeleteMenu(false);
   };
 
   const applySortOption = (sortOption: string) => {
@@ -606,7 +655,7 @@ export default function ListColumn({
             </button>
 
             {/* Menu d'actions flottant */}
-            {showActions && !showCopyMenu && !showMoveMenu && !showMoveAllCardsMenu && !showSortMenu && (
+            {showActions && !showCopyMenu && !showMoveMenu && !showMoveAllCardsMenu && !showSortMenu && !showDeleteMenu && (
               <div
                 ref={actionsMenuRef}
                 className="absolute right-0 top-full mt-1 w-60 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden"
@@ -690,6 +739,16 @@ export default function ListColumn({
                     {activeSortOption && cards.length > 0 && (
                       <span className="text-xs text-indigo-600 font-medium" aria-label="Sort active">●</span>
                     )}
+                  </button>
+
+                  <div className="border-t border-gray-200 my-1"></div>
+
+                  <button
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 transition-colors"
+                    role="menuitem"
+                    onClick={openDeleteMenu}
+                  >
+                    Delete list
                   </button>
                 </div>
               </div>
@@ -891,10 +950,13 @@ export default function ListColumn({
                       aria-required="true"
                     >
                       <option value="">Select a list...</option>
-                      {/* TODO: Peupler avec les listes disponibles */}
-                      <option value="list-1">List 1</option>
-                      <option value="list-2">List 2</option>
-                      <option value="list-3">List 3</option>
+                      {allLists
+                        .filter((l) => l.id !== list.id)
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.title}
+                          </option>
+                        ))}
                     </select>
                     {cards.length > 0 && totalListsCount > 1 && (
                       <p className="text-xs text-gray-500 mt-1.5">
@@ -1045,6 +1107,59 @@ export default function ListColumn({
                       </button>
                     </>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Sous-menu : Delete list */}
+            {showDeleteMenu && (
+              <div
+                ref={actionsMenuRef}
+                className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden"
+                role="dialog"
+                aria-label="Delete list confirmation"
+              >
+                {/* En-tête */}
+                <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-700">Delete list?</h4>
+                  <button
+                    onClick={() => setShowDeleteMenu(false)}
+                    className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 rounded transition-colors"
+                    aria-label="Close delete confirmation dialog"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Corps */}
+                <div className="p-4 space-y-4">
+                  {/* Message d'avertissement */}
+                  <div className="bg-red-50 border border-red-200 rounded p-3">
+                    <p className="text-sm text-red-800 font-medium mb-2">
+                      ⚠️ This action is irreversible
+                    </p>
+                    <p className="text-xs text-red-700">
+                      Deleting this list will permanently remove <strong>"{title}"</strong> and all its {cards.length} card{cards.length !== 1 ? 's' : ''}. This cannot be undone.
+                    </p>
+                  </div>
+
+                  {/* Boutons de confirmation */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowDeleteMenu(false)}
+                      className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={deleteList}
+                      className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 active:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
