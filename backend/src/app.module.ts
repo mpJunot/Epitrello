@@ -13,6 +13,8 @@ import { InvitationsModule } from './modules/invitations/invitations.module';
 import { BoardsModule } from './modules/boards/boards.module';
 import { ListsModule } from './modules/lists/lists.module';
 import { CardsModule } from './modules/cards/cards.module';
+import { LabelsModule } from './modules/labels/labels.module';
+import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { HealthController } from './common/controllers/health.controller';
@@ -54,6 +56,8 @@ import { HealthController } from './common/controllers/health.controller';
     BoardsModule,
     ListsModule,
     CardsModule,
+    LabelsModule,
+    ChecklistsModule,
   ],
   controllers: [HealthController],
   providers: [
