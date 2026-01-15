@@ -399,7 +399,6 @@ jobs:
             echo "ERROR: DB_PASSWORD secret is not set"
             exit 1
           fi
-          echo "All required database secrets are set"
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -430,14 +429,9 @@ jobs:
         run: |
           source /tmp/terraform_vars.sh
           # Check if bucket exists and is not in state
-          if terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
-            echo "Bucket already in Terraform state"
-          else
-            echo "Attempting to import existing bucket..."
+          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
             terraform import "${TF_VARS[@]}" \
-              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
-              echo "Bucket import failed or bucket doesn't exist, will be created"
-            }
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
           fi
 
       - name: Terraform Apply
@@ -446,17 +440,14 @@ jobs:
           source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
-              echo "Plan is stale, regenerating..."
               terraform refresh "${TF_VARS[@]}" || true
               terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
               terraform apply -auto-approve tfplan || exit 1
             elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
-              echo "Bucket already exists, importing..."
               terraform import "${TF_VARS[@]}" \
                 google_storage_bucket.terraform_state epitrello-terraform-state || true
               terraform apply -auto-approve tfplan || exit 1
             else
-              echo "Apply failed, see logs above"
               exit 1
             fi
           }
@@ -511,9 +502,6 @@ jobs:
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
 
-          echo "Deploying image: $IMAGE"
-          echo "Service: $SERVICE_NAME"
-
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
             --region ${{ env.GCP_REGION }} \
@@ -557,10 +545,6 @@ jobs:
           SERVICE_NAME="${ENV}-epitrello-frontend"
           BACKEND_URL="${{ steps.backend-url.outputs.url }}"
 
-          echo "Deploying image: $IMAGE"
-          echo "Service: $SERVICE_NAME"
-          echo "Backend URL: $BACKEND_URL"
-
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
             --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
@@ -601,9 +585,6 @@ jobs:
           JWT_SECRET: dummy-secret-for-schema-generation-only
         run: |
           timeout 30 node -e "const { NestFactory } = require('@nestjs/core'); const { AppModule } = require('./dist/app.module'); (async () => { const app = await NestFactory.create(AppModule, { logger: false }); await app.close(); })().catch(() => process.exit(0));" || true
-          if [ -f "src/graphql/schema.gql" ]; then
-            echo "Schema generated: $(wc -l < src/graphql/schema.gql) lines"
-          fi
 
       - name: Generate GraphQL documentation
         working-directory: backend
@@ -618,7 +599,6 @@ jobs:
           PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
           BUCKET_NAME="${PROJECT_ID}-${ENV}-epitrello-docs"
           echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-          echo "Documentation bucket: $BUCKET_NAME"
 
       - name: Upload documentation to GCS
         if: success()
@@ -626,10 +606,7 @@ jobs:
         run: |
           BUCKET="${{ steps.bucket.outputs.bucket_name }}"
           if [ -d "docs/graphql" ]; then
-            echo "Uploading documentation to gs://${BUCKET}/"
             gcloud storage rsync --recursive docs/graphql/ gs://${BUCKET}/
-          else
-            echo "Documentation directory not found, skipping upload"
           fi
         continue-on-error: true
 
@@ -709,8 +686,3 @@ jobs:
           echo "| Backend | ${{ needs.deploy-backend.result }} | ${{ steps.backend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ needs.deploy-frontend.result }} | ${{ steps.frontend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: Deployment status
-        run: |
-          echo "Terraform: ${{ needs.terraform-apply.result }}"
-          echo "Backend: ${{ needs.deploy-backend.result }}"
-          echo "Frontend: ${{ needs.deploy-frontend.result }}"

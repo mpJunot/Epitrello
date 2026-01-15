@@ -128,12 +128,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -148,10 +142,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
@@ -244,12 +234,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -264,10 +248,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
@@ -353,12 +333,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -373,10 +347,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend

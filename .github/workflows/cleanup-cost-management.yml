@@ -34,10 +34,6 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: List old objects
-        run: |
-          gsutil ls -l gs://${{ secrets.GCP_PROJECT_ID }}-epitrello-storage/ | head -20
-
       - name: Delete old objects (older than 90 days)
         run: |
           gsutil -m rm -r gs://${{ secrets.GCP_PROJECT_ID }}-epitrello-storage/** || true
