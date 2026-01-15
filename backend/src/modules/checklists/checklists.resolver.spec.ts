@@ -103,4 +103,76 @@ describe('ChecklistsResolver', () => {
     expect(result).toBe(true);
     expect(service.deleteChecklist).toHaveBeenCalledWith('checklist-1', mockUser.id);
   });
+
+  it('should add a checklist item', async () => {
+    const item = { id: 'item-1', checklistId: 'checklist-1', content: 'Item', position: 0 };
+    mockChecklistsService.addChecklistItem.mockResolvedValue(item);
+
+    const result = await resolver.addChecklistItem(
+      { checklistId: 'checklist-1', content: 'Item' },
+      mockUser,
+    );
+
+    expect(result).toEqual(item);
+    expect(service.addChecklistItem).toHaveBeenCalledWith(
+      { checklistId: 'checklist-1', content: 'Item' },
+      mockUser.id,
+    );
+  });
+
+  it('should update a checklist item', async () => {
+    const item = { id: 'item-1', checklistId: 'checklist-1', content: 'Updated', position: 1 };
+    mockChecklistsService.updateChecklistItem.mockResolvedValue(item);
+
+    const result = await resolver.updateChecklistItem(
+      { id: 'item-1', content: 'Updated', position: 1 },
+      mockUser,
+    );
+
+    expect(result).toEqual(item);
+    expect(service.updateChecklistItem).toHaveBeenCalledWith(
+      { id: 'item-1', content: 'Updated', position: 1 },
+      mockUser.id,
+    );
+  });
+
+  it('should delete a checklist item', async () => {
+    mockChecklistsService.deleteChecklistItem.mockResolvedValue(true);
+
+    const result = await resolver.deleteChecklistItem('item-1', mockUser);
+
+    expect(result).toBe(true);
+    expect(service.deleteChecklistItem).toHaveBeenCalledWith('item-1', mockUser.id);
+  });
+
+  it('should reorder checklist items', async () => {
+    const items = [
+      { id: 'item-1', position: 0, checklistId: 'checklist-1' },
+      { id: 'item-2', position: 1, checklistId: 'checklist-1' },
+    ];
+    mockChecklistsService.reorderChecklistItems.mockResolvedValue(items);
+
+    const result = await resolver.reorderChecklistItems(
+      {
+        checklistId: 'checklist-1',
+        itemPositions: [
+          { id: 'item-1', position: 0 },
+          { id: 'item-2', position: 1 },
+        ],
+      },
+      mockUser,
+    );
+
+    expect(result).toEqual(items);
+    expect(service.reorderChecklistItems).toHaveBeenCalledWith(
+      {
+        checklistId: 'checklist-1',
+        itemPositions: [
+          { id: 'item-1', position: 0 },
+          { id: 'item-2', position: 1 },
+        ],
+      },
+      mockUser.id,
+    );
+  });
 });
