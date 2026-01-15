@@ -106,6 +106,69 @@ describe('CommentsService', () => {
     ).rejects.toThrow('You do not have access to this board');
   });
 
+  it('should throw when board is not found', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.create({ cardId: 'card-1', content: 'Hello' }, mockUser.id),
+    ).rejects.toThrow('Board not found');
+  });
+
+  it('should allow access for public boards', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue({
+      ...mockBoard,
+      visibility: Visibility.PUBLIC,
+      members: [],
+      workspace: null,
+    });
+    mockPrismaService.comment.create.mockResolvedValue({
+      id: 'comment-1',
+      cardId: 'card-1',
+      authorId: 'user-1',
+      content: 'Hello',
+    });
+
+    const result = await service.create(
+      { cardId: 'card-1', content: 'Hello' },
+      mockUser.id,
+    );
+
+    expect(result.id).toBe('comment-1');
+  });
+
+  it('should allow access for workspace members', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue({
+      ...mockBoard,
+      members: [],
+      workspace: { memberships: [{ userId: mockUser.id }] },
+    });
+    mockPrismaService.comment.create.mockResolvedValue({
+      id: 'comment-1',
+      cardId: 'card-1',
+      authorId: 'user-1',
+      content: 'Hello',
+    });
+
+    const result = await service.create(
+      { cardId: 'card-1', content: 'Hello' },
+      mockUser.id,
+    );
+
+    expect(result.id).toBe('comment-1');
+  });
+
   it('should get a comment by id', async () => {
     mockPrismaService.comment.findUnique.mockResolvedValue({
       id: 'comment-1',
@@ -130,6 +193,14 @@ describe('CommentsService', () => {
     );
   });
 
+  it('should throw when card does not exist', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue(null);
+
+    await expect(service.findByCard('card-1', mockUser.id)).rejects.toThrow(
+      'Card not found',
+    );
+  });
+
   it('should list comments by card', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
@@ -148,6 +219,22 @@ describe('CommentsService', () => {
       where: { cardId: 'card-1' },
       orderBy: { createdAt: 'asc' },
     });
+  });
+
+  it('should forbid listing comments without access', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue({
+      ...mockBoard,
+      members: [],
+      workspace: { memberships: [] },
+    });
+
+    await expect(service.findByCard('card-1', mockUser.id)).rejects.toThrow(
+      'You do not have access to this board',
+    );
   });
 
   it('should update a comment', async () => {
@@ -176,6 +263,24 @@ describe('CommentsService', () => {
 
     expect(result.content).toBe('New');
     expect(prismaService.comment.update).toHaveBeenCalled();
+  });
+
+  it('should reject empty content on update', async () => {
+    mockPrismaService.comment.findUnique.mockResolvedValue({
+      id: 'comment-1',
+      cardId: 'card-1',
+      authorId: 'user-1',
+      content: 'Old',
+    });
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+    await expect(
+      service.update({ id: 'comment-1', content: '   ' }, mockUser.id),
+    ).rejects.toThrow('Comment content is required');
   });
 
   it('should throw when comment not found on update', async () => {
