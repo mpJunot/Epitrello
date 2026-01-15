@@ -147,6 +147,31 @@ describe('ListsService', () => {
 
       await expect(service.create(input, mockUser.id)).rejects.toThrow(ForbiddenException);
     });
+
+    it('should allow creating list on public board without membership', async () => {
+      const input = {
+        boardId: 'board-1',
+        title: 'Public List',
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [],
+        visibility: Visibility.PUBLIC,
+        workspace: null,
+      });
+      mockPrismaService.list.findFirst.mockResolvedValue(null);
+      mockPrismaService.list.create.mockResolvedValue({
+        ...mockList,
+        title: 'Public List',
+        position: 0,
+      });
+
+      const result = await service.create(input, mockUser.id);
+
+      expect(result.title).toBe('Public List');
+      expect(prismaService.list.create).toHaveBeenCalled();
+    });
   });
 
   describe('findOne', () => {
@@ -308,6 +333,23 @@ describe('ListsService', () => {
       mockPrismaService.list.findMany.mockResolvedValue(mockLists);
 
       await expect(service.reorder(input, mockUser.id)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException if some lists are missing', async () => {
+      const input = {
+        boardId: 'board-1',
+        listPositions: [
+          { id: 'list-1', position: 0 },
+          { id: 'list-2', position: 1 },
+        ],
+      };
+
+      const mockLists = [{ ...mockList, id: 'list-1', boardId: 'board-1' }];
+
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.list.findMany.mockResolvedValue(mockLists);
+
+      await expect(service.reorder(input, mockUser.id)).rejects.toThrow(NotFoundException);
     });
   });
 
