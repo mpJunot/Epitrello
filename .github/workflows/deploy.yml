@@ -648,6 +648,7 @@ jobs:
             --project ${{ secrets.GCP_PROJECT_ID }} \
             --format="value(status.url)" 2>/dev/null || echo "")
           echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
 
       - name: Deployment Summary
         run: |
