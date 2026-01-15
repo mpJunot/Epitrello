@@ -61,6 +61,10 @@ describe('CommentsResolver', () => {
     expect(resolver).toBeDefined();
   });
 
+  it('should initialize dataloader on construction', () => {
+    expect(mockCommentsDataLoader.createUsersByIdLoader).toHaveBeenCalled();
+  });
+
   it('should get a comment', async () => {
     mockCommentsService.findOne.mockResolvedValue(mockComment);
 
