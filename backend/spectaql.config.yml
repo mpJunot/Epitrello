@@ -11,6 +11,8 @@ introspection:
 
   spectaqlDirective:
     enable: true
+  headers:
+    Authorization: Bearer your-token-here
 
 extensions:
   graphqlScalarExamples: true
