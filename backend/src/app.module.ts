@@ -16,6 +16,7 @@ import { CardsModule } from './modules/cards/cards.module';
 import { LabelsModule } from './modules/labels/labels.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { HealthController } from './common/controllers/health.controller';
@@ -60,6 +61,7 @@ import { HealthController } from './common/controllers/health.controller';
     LabelsModule,
     ChecklistsModule,
     CommentsModule,
+    AttachmentsModule,
   ],
   controllers: [HealthController],
   providers: [
