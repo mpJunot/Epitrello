@@ -21,16 +21,11 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Authenticate to GCP
-      uses: google-github-actions/auth@v2
+    - name: Setup GCP Authentication
+      uses: ./.github/actions/setup-gcp-auth
       with:
         workload_identity_provider: ${{ inputs.workload_identity_provider }}
         service_account: ${{ inputs.service_account }}
-
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: ${{ inputs.project_id }}
 
     - name: Get database connection info
       id: db
