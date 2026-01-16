@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { setAuthToken } from "@/lib/graphql-client";
 
 const LoginSchema = z.object({
   email: z.string().min(1, "Email requis").email("Email invalide"),
@@ -57,6 +58,11 @@ export default function LoginPage() {
       const json = await res.json();
       if (json.errors && json.errors.length) {
         throw new Error(json.errors[0].message || "Erreur GraphQL");
+      }
+
+      // Store the token
+      if (json.data?.login?.token) {
+        setAuthToken(json.data.login.token);
       }
 
       // Redirect to dashboard

@@ -3,13 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
+import { getMyWorkspaces } from "@/lib/actions/workspaces";
 
 type Board = { id: string; title: string; color?: string };
-type Workspace = { id: string; title: string };
+type Workspace = { id: string; name: string; };
 
 const STORAGE_KEY = "epitrello_boards";
 const ACTIVE_KEY = "epitrello_active_board";
-const WORKSPACES_KEY = "epitrello_workspaces";
 const EXPANDED_KEY = "epitrello_expanded_workspaces";
 
 function loadBoards(): Board[] {
@@ -25,20 +25,6 @@ function loadBoards(): Board[] {
 function saveBoards(boards: Board[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
   window.dispatchEvent(new Event("epitrello:boards-updated"));
-}
-
-function loadWorkspaces(): Workspace[] {
-  try {
-    const raw = localStorage.getItem(WORKSPACES_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Workspace[];
-  } catch {
-    return [];
-  }
-}
-
-function saveWorkspaces(ws: Workspace[]) {
-  localStorage.setItem(WORKSPACES_KEY, JSON.stringify(ws));
 }
 
 function loadExpanded(): string[] {
@@ -62,6 +48,8 @@ export default function Sidebar() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
+  const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   
@@ -92,24 +80,41 @@ export default function Sidebar() {
     } catch {}
   }, []);
 
-  // load workspaces and expanded state
+  // load workspaces from backend and expanded state
   useEffect(() => {
-    try {
-      const ws = loadWorkspaces();
-      if (!ws || ws.length === 0) {
-        const defaults = [
-          { id: uuidv4(), title: "Personal" },
-          { id: uuidv4(), title: "Acme Corp" },
-        ];
-        saveWorkspaces(defaults);
-        setWorkspaces(defaults);
-      } else {
+    const loadWorkspacesFromBackend = async () => {
+      setLoadingWorkspaces(true);
+      setWorkspacesError(null);
+      try {
+        const ws = await getMyWorkspaces();
         setWorkspaces(ws);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
+        setWorkspacesError(errorMessage);
+        setWorkspaces([]);
+      } finally {
+        setLoadingWorkspaces(false);
       }
+    };
 
-      setExpandedWorkspaces(loadExpanded());
-    } catch {}
+    loadWorkspacesFromBackend();
+    setExpandedWorkspaces(loadExpanded());
   }, []);
+
+  const retryLoadWorkspaces = async () => {
+    setLoadingWorkspaces(true);
+    setWorkspacesError(null);
+    try {
+      const ws = await getMyWorkspaces();
+      setWorkspaces(ws);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
+      setWorkspacesError(errorMessage);
+      setWorkspaces([]);
+    } finally {
+      setLoadingWorkspaces(false);
+    }
+  };
 
   // persist expandedWorkspaces to storage when it changes
   useEffect(() => {
@@ -153,8 +158,8 @@ export default function Sidebar() {
       localStorage.removeItem('epitrello_notifications');
       localStorage.removeItem('epitrello_boards');
       localStorage.removeItem('epitrello_active_board');
-      localStorage.removeItem('epitrello_workspaces');
       localStorage.removeItem('epitrello_expanded_workspaces');
+      localStorage.removeItem('auth_token');
     } catch (e) {}
     router.push("/auth/login");
   };
@@ -231,58 +236,93 @@ export default function Sidebar() {
           {!collapsed && (
             <div className="mb-3">
               <div className="text-xs text-gray-500 uppercase mb-2">Workspaces</div>
-              <ul className="space-y-2">
-                {workspaces.map((w) => {
-                  const expanded = expandedWorkspaces.includes(w.id);
-                  // derive active states for items inside this workspace
-                  const boardsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/boards`);
-                  const membersActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/members`);
-                  const settingsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/settings`);
-                  return (
-                    <li key={w.id}>
-                      <div className="flex items-center justify-between">
-                        <button onClick={() => toggleWorkspace(w.id)} className="w-full text-left p-2 rounded flex items-center gap-2 hover:bg-gray-50">
-                          <span className="font-medium text-gray-900">{w.title}</span>
-                          <span className="ml-auto text-gray-400">{expanded ? "▾" : "▸"}</span>
-                        </button>
-                      </div>
-
-                      {expanded && (
-                        <div className="mt-1 ml-4">
-                          <ul className="space-y-1">
-                            <li>
-                              <button onClick={() => onBoards(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${boardsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                  <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
-                                </svg>
-                                <span>Boards</span>
-                              </button>
-                            </li>
-
-                            <li>
-                              <button onClick={() => onMembers(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${membersActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                  <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM4 14a4 4 0 018 0v1H4v-1z" />
-                                </svg>
-                                <span>Members</span>
-                              </button>
-                            </li>
-
-                            <li>
-                              <button onClick={() => onSettings(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${settingsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                  <path fillRule="evenodd" d="M11.3 1.046a1 1 0 00-2.6 0l-.2.6a1 1 0 01-.95.69H5.1a1 1 0 00-.98.8l-.2.98a1 1 0 01-.54.72L2.1 6.9a1 1 0 000 1.2l1 1a1 1 0 01.27.9l-.2.98a1 1 0 00.98 1.2h2.55a1 1 0 01.95.69l.2.6a1 1 0 002.6 0l.2-.6a1 1 0 01.95-.69h2.55a1 1 0 00.98-1.2l-.2-.98a1 1 0 01.27-.9l1-1a1 1 0 000-1.2l-1.36-1.36a1 1 0 01-.54-.72l-.2-.98a1 1 0 00-.98-.8h-2.55a1 1 0 01-.95-.69l-.2-.6z" clipRule="evenodd" />
-                                </svg>
-                                <span>Settings</span>
-                              </button>
-                            </li>
-                          </ul>
+              
+              {/* Loading state */}
+              {loadingWorkspaces && (
+                <div className="flex items-center gap-2 p-2 text-sm text-gray-500">
+                  <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+                  <span>Loading...</span>
+                </div>
+              )}
+              
+              {/* Error state */}
+              {workspacesError && !loadingWorkspaces && (
+                <div className="p-2 text-sm text-red-600 bg-red-50 rounded space-y-2">
+                  <div>
+                    <p className="font-medium">Failed to load workspaces</p>
+                    <p className="text-xs mt-1">{workspacesError}</p>
+                  </div>
+                  <button 
+                    onClick={retryLoadWorkspaces}
+                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              
+              {/* Empty state */}
+              {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
+                <div className="p-2 text-sm text-gray-500 text-center">
+                  No workspaces found
+                </div>
+              )}
+              
+              {/* Workspaces list */}
+              {!loadingWorkspaces && !workspacesError && workspaces.length > 0 && (
+                <ul className="space-y-2">
+                  {workspaces.map((w) => {
+                    const expanded = expandedWorkspaces.includes(w.id);
+                    // derive active states for items inside this workspace
+                    const boardsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/boards`);
+                    const membersActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/members`);
+                    const settingsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/settings`);
+                    return (
+                      <li key={w.id}>
+                        <div className="flex items-center justify-between">
+                          <button onClick={() => toggleWorkspace(w.id)} className="w-full text-left p-2 rounded flex items-center gap-2 hover:bg-gray-50">
+                            <span className="font-medium text-gray-900">{w.name}</span>
+                            <span className="ml-auto text-gray-400">{expanded ? "▾" : "▸"}</span>
+                          </button>
                         </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
+
+                        {expanded && (
+                          <div className="mt-1 ml-4">
+                            <ul className="space-y-1">
+                              <li>
+                                <button onClick={() => onBoards(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${boardsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                    <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
+                                  </svg>
+                                  <span>Boards</span>
+                                </button>
+                              </li>
+
+                              <li>
+                                <button onClick={() => onMembers(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${membersActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                    <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM4 14a4 4 0 018 0v1H4v-1z" />
+                                  </svg>
+                                  <span>Members</span>
+                                </button>
+                              </li>
+
+                              <li>
+                                <button onClick={() => onSettings(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${settingsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
+                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                    <path fillRule="evenodd" d="M11.3 1.046a1 1 0 00-2.6 0l-.2.6a1 1 0 01-.95.69H5.1a1 1 0 00-.98.8l-.2.98a1 1 0 01-.54.72L2.1 6.9a1 1 0 000 1.2l1 1a1 1 0 01.27.9l-.2.98a1 1 0 00.98 1.2h2.55a1 1 0 01.95.69l.2.6a1 1 0 002.6 0l.2-.6a1 1 0 01.95-.69h2.55a1 1 0 00.98-1.2l-.2-.98a1 1 0 01.27-.9l1-1a1 1 0 000-1.2l-1.36-1.36a1 1 0 01-.54-.72l-.2-.98a1 1 0 00-.98-.8h-2.55a1 1 0 01-.95-.69l-.2-.6z" clipRule="evenodd" />
+                                  </svg>
+                                  <span>Settings</span>
+                                </button>
+                              </li>
+                            </ul>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           )}
           
