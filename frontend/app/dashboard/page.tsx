@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getMyWorkspaces } from '@/lib/actions/workspaces';
 
 type Board = {
   id: string;
@@ -22,6 +23,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [boards, setBoards] = useState<Board[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
+  const [workspacesError, setWorkspacesError] = useState<string | null>(null);
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardDescription, setNewBoardDescription] = useState('');
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export default function DashboardPage() {
     boardName: '',
   });
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [loadingBoards] = useState(false); // placeholder if needed later
 
   const createBoard = (workspaceId?: string, name?: string, desc?: string, visibility?: 'personal' | 'workspace' | 'public') => {
     const boardName = (name ?? newBoardName).trim();
@@ -68,41 +72,59 @@ export default function DashboardPage() {
 
   // load workspaces and boards from localStorage on mount
   useEffect(() => {
-    try {
-      const rawWs = localStorage.getItem(WORKSPACES_KEY);
-      let ws: Workspace[] = [];
-      if (rawWs) {
-        ws = JSON.parse(rawWs) as Workspace[];
+    const load = async () => {
+      let wsSnapshot: Workspace[] = [];
+      setLoadingWorkspaces(true);
+      setWorkspacesError(null);
+      try {
+        // Fetch workspaces from backend
+        const wsFromApi = await getMyWorkspaces();
+        const mapped = wsFromApi.map((w) => ({ id: w.id, title: w.name }));
+        wsSnapshot = mapped;
+        setWorkspaces(mapped);
+        try { localStorage.setItem(WORKSPACES_KEY, JSON.stringify(mapped)); } catch {}
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load workspaces';
+        setWorkspacesError(message);
+        // Fallback to localStorage if available
+        try {
+          const rawWs = localStorage.getItem(WORKSPACES_KEY);
+          const ws = rawWs ? JSON.parse(rawWs) as Workspace[] : [];
+          wsSnapshot = ws;
+          setWorkspaces(ws);
+        } catch (e) {
+          wsSnapshot = [];
+          setWorkspaces([]);
+        }
+      } finally {
+        setLoadingWorkspaces(false);
       }
-      if (!ws || ws.length === 0) {
-        const defaults: Workspace[] = [
-          { id: String(Date.now() - 2000), title: 'Personal' },
-          { id: String(Date.now() - 1000), title: 'Acme Corp' },
-        ];
-        ws = defaults;
-        try { localStorage.setItem(WORKSPACES_KEY, JSON.stringify(defaults)); } catch {}
-      }
-      setWorkspaces(ws);
 
-      const rawBoards = localStorage.getItem(BOARDS_KEY);
-      let b: Board[] = [];
-      if (rawBoards) {
-        b = JSON.parse(rawBoards) as Board[];
+      // Boards remain local for now
+      try {
+        const rawBoards = localStorage.getItem(BOARDS_KEY);
+        let b: Board[] = [];
+        if (rawBoards) {
+          b = JSON.parse(rawBoards) as Board[];
+        }
+        if (!b || b.length === 0) {
+          const firstWsId = wsSnapshot[0]?.id;
+          const samples: Board[] = firstWsId ? [
+            { id: 'b1', name: 'Project Alpha', description: 'Main project board', background: 'bg-gradient-to-br from-amber-400 to-orange-500', members: 3, workspaceId: firstWsId },
+            { id: 'b2', name: 'Sprint Q4', description: 'Current sprint tasks', background: 'bg-gradient-to-br from-sky-400 to-blue-500', members: 5, workspaceId: firstWsId },
+          ] : [];
+          b = samples;
+          if (samples.length > 0) {
+            try { localStorage.setItem(BOARDS_KEY, JSON.stringify(samples)); } catch {}
+          }
+        }
+        setBoards(b);
+      } catch (e) {
+        // ignore
       }
-      if (!b || b.length === 0) {
-        // create some sample boards assigned to first workspace
-        const samples: Board[] = [
-          { id: 'b1', name: 'Project Alpha', description: 'Main project board', background: 'bg-gradient-to-br from-amber-400 to-orange-500', members: 3, workspaceId: ws[0].id },
-          { id: 'b2', name: 'Sprint Q4', description: 'Current sprint tasks', background: 'bg-gradient-to-br from-sky-400 to-blue-500', members: 5, workspaceId: ws[0].id },
-          { id: 'b3', name: 'Company Roadmap', description: 'Roadmap items', background: 'bg-gradient-to-br from-emerald-400 to-green-500', members: 2, workspaceId: ws[1].id },
-        ];
-        b = samples;
-        try { localStorage.setItem(BOARDS_KEY, JSON.stringify(samples)); } catch {}
-      }
-      setBoards(b);
-    } catch (e) {
-      // ignore
-    }
+    };
+
+    load();
   }, []);
 
   const deleteBoard = (id: string) => {

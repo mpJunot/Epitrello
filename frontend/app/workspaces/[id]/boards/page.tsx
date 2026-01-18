@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import CreateBoardModal from '@/components/CreateBoardModal';
+import { getWorkspaceBoards, GqlBoard } from '@/lib/actions/workspaces';
+import { createBoard, Visibility } from '@/lib/actions/boards';
 
 type Board = { id: string; name: string; description?: string; background?: string; members?: number; workspaceId?: string };
 
@@ -11,15 +14,37 @@ export default function WorkspaceBoardsPage() {
   const workspaceId = params.id as string;
   const [boards, setBoards] = useState<Board[]>([]);
   const [workspaceName, setWorkspaceName] = useState<string>('Workspace');
+  const [showCreate, setShowCreate] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('epitrello_boards');
-      const arr = raw ? JSON.parse(raw) as Board[] : [];
-      const filtered = arr.filter(b => b.workspaceId === workspaceId);
-      setBoards(filtered);
-    } catch (e) { setBoards([]); }
+    const loadBoards = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const gqlBoards: GqlBoard[] = await getWorkspaceBoards(workspaceId);
+        const uiBoards: Board[] = (gqlBoards || []).map((b) => ({
+          id: b.id,
+          name: b.title,
+          description: b.description,
+          background: b.background,
+          members: b.members ? b.members.length : undefined,
+          workspaceId: b.workspaceId,
+        }));
+        setBoards(uiBoards);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to load boards';
+        setError(msg);
+        setBoards([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    loadBoards();
+
+    // Workspace name still from localStorage for now (not required to connect)
     try {
       const rawWs = localStorage.getItem('epitrello_workspaces');
       const ws = rawWs ? JSON.parse(rawWs) : [];
@@ -43,10 +68,55 @@ export default function WorkspaceBoardsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {boards.length === 0 && (
-            <div className="text-gray-500">No boards in this workspace yet.</div>
+          {loading && (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+            </div>
           )}
-          {boards.map((b) => (
+          {!loading && error && (
+            <div className="col-span-full bg-red-50 border border-red-200 text-red-700 p-4 rounded">
+              <div className="flex items-center justify-between">
+                <span>Erreur: {error}</span>
+                <button onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  // re-trigger load by updating dependency or calling loader directly
+                  (async () => {
+                    try {
+                      const gqlBoards: GqlBoard[] = await getWorkspaceBoards(workspaceId);
+                      const uiBoards: Board[] = (gqlBoards || []).map((b) => ({
+                        id: b.id,
+                        name: b.title,
+                        description: b.description,
+                        background: b.background,
+                        members: b.members ? b.members.length : undefined,
+                        workspaceId: b.workspaceId,
+                      }));
+                      setBoards(uiBoards);
+                    } catch (err) {
+                      const msg = err instanceof Error ? err.message : 'Failed to load boards';
+                      setError(msg);
+                      setBoards([]);
+                    } finally {
+                      setLoading(false);
+                    }
+                  })();
+                }} className="px-3 py-1 bg-red-600 text-white rounded">Réessayer</button>
+              </div>
+            </div>
+          )}
+          {!loading && !error && boards.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center bg-white border rounded-lg p-8 text-center">
+              <p className="text-gray-600 mb-4">Aucun board dans ce workspace.</p>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Ajouter un board
+              </button>
+            </div>
+          )}
+          {!loading && !error && boards.map((b) => (
             <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-gray-200'}`}>
               <div className="relative h-full">
                 <div className="absolute inset-0 bg-black bg-opacity-20" />
@@ -59,6 +129,30 @@ export default function WorkspaceBoardsPage() {
           ))}
         </div>
       </div>
+      {/* Create Board Modal */}
+      <CreateBoardModal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreate={async (payload: { name: string; workspaceId?: string; visibility?: string }) => {
+          try {
+            const visMap: Record<string, Visibility> = {
+              personal: 'PRIVATE',
+              workspace: 'WORKSPACE',
+              public: 'PUBLIC',
+            };
+            const newBoard = await createBoard({
+              title: payload.name,
+              visibility: payload.visibility ? visMap[payload.visibility] : undefined,
+              workspaceId: payload.workspaceId || workspaceId,
+            });
+            setShowCreate(false);
+            router.push(`/boards/${newBoard.id}`);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Failed to create board';
+            alert(msg);
+          }
+        }}
+      />
     </div>
   );
 }
