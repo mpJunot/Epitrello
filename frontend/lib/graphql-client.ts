@@ -24,25 +24,49 @@ export async function graphqlRequest<T>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // 🔍 DEBUG: Log de la requête GraphQL
+    console.log('🚀 GraphQL Request:', {
+        url: API_URL,
+        hasToken: !!token,
+        query: query.trim().split('\n')[0] + '...', // Première ligne de la query
+        variables: JSON.stringify(variables, null, 2),
+        variablesType: typeof variables,
+        variablesKeys: variables ? Object.keys(variables) : [],
+    });
+
     try {
+        const requestBody = {
+            query,
+            variables,
+        };
+        
+        console.log('📦 Body stringifié:', JSON.stringify(requestBody, null, 2));
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-                query,
-                variables,
-            }),
+            body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
             const text = await response.text();
+            console.error('❌ GraphQL HTTP Error:', { status: response.status, statusText: response.statusText, body: text });
             throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
         }
 
         const result: GraphQLResponse<T> = await response.json();
+        
+        console.log('✅ GraphQL Response:', {
+            hasData: !!result.data,
+            hasErrors: !!result.errors,
+            data: result.data,
+        });
 
         if (result.errors) {
-            throw new Error(result.errors[0].message || 'GraphQL request failed');
+            console.error('❌ GraphQL Errors détaillées:', JSON.stringify(result.errors, null, 2));
+            console.error('❌ Extensions complètes:', result.errors.map(e => (e as any).extensions));
+            const errorMsg = result.errors.map(e => e.message).join(', ');
+            throw new Error(errorMsg || 'GraphQL request failed');
         }
 
         if (!result.data) {

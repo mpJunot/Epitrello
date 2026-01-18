@@ -34,17 +34,20 @@ export default function ListColumn({
     if (ignoreParentSync) return;
 
     const incoming = list.cards || [];
-    const localIds = cards.map((c) => c.id).join('|');
-    const incomingIds = incoming.map((c) => c.id).join('|');
+    
+    // Compare IDs AND content (title, description) to detect changes
+    const localSignature = cards.map((c) => `${c.id}:${c.title}:${c.description || ''}`).join('|');
+    const incomingSignature = incoming.map((c) => `${c.id}:${c.title}:${c.description || ''}`).join('|');
 
     // If the order and content are identical, skip
-    if (localIds === incomingIds) return;
+    if (localSignature === incomingSignature) return;
 
     // If we just performed a local change (<400ms), skip one cycle to avoid overwriting local reorder
     if (Date.now() - lastLocalChange < 400) return;
 
+    console.log('🔄 ListColumn: Updating cards from parent for list:', list.id, list.title);
     setCards(incoming);
-  }, [list.cards, ignoreParentSync, cards, lastLocalChange]);
+  }, [list.cards, ignoreParentSync, cards, lastLocalChange, list.id, list.title]);
 
   // keep title in sync if parent updates
   useEffect(() => {
@@ -557,7 +560,12 @@ export default function ListColumn({
             console.log('New card order:', newCards.map(c => c.id));
             setCards(newCards);
             setLastLocalChange(Date.now());
-            // For intra-list moves, we're done - no need to dispatch event or wait for parent sync
+            // Emit move event so parent can sync reorder
+            window.dispatchEvent(
+              new CustomEvent('epitrello:card-move', {
+                detail: { cardId: data.cardId, fromListId: list.id, toListId: list.id, toIndex },
+              })
+            );
             setIgnoreParentSync(false);
           }
         } else {

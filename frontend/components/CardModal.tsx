@@ -142,11 +142,13 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
   // Mettre à jour le titre si la carte change
   useEffect(() => {
+    console.log('🔄 CardModal: card.title changed to:', card.title);
     setTitle(card.title);
   }, [card.title]);
 
   // Mettre à jour la description si la carte change
   useEffect(() => {
+    console.log('🔄 CardModal: card.description changed to:', card.description);
     setDescription(card.description || "");
   }, [card.description]);
 
@@ -258,8 +260,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     // Bloquer le scroll du board (on évite de flouter le conteneur pour ne pas rendre la modale floue/inactive)
     document.body.style.overflow = "hidden";
 
-    // Mettre le focus sur le bouton de fermeture au montage
-    setTimeout(() => closeButtonRef.current?.focus(), 100);
+    // Mettre le focus sur le bouton de fermeture au montage UNIQUEMENT
+    // Ne pas remettre le focus si on est en train d'éditer
+    if (!isEditingTitle && !isEditingDescription) {
+      setTimeout(() => closeButtonRef.current?.focus(), 100);
+    }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
@@ -283,6 +288,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     
     // Notifier le changement (événement custom pour plus tard)
     if (trimmedTitle !== card.title) {
+      console.log('📤 CardModal: Dispatching card-title-updated event:', { cardId: card.id, title: trimmedTitle });
       window.dispatchEvent(
         new CustomEvent("epitrello:card-title-updated", {
           detail: { cardId: card.id, title: trimmedTitle },
@@ -765,7 +771,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                       onClick={() => setIsEditingTitle(true)}
                       title="Click to edit title"
                     >
-                      {title}
+                      {card.title}
                     </h2>
                   ) : (
                     <input
