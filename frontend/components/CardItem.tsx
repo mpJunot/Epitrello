@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CardModal from "./CardModal";
 
 // Inline simple types + small label/avatar renderers to avoid module resolution issues
@@ -48,6 +48,11 @@ export default function CardItem({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Log pour debug
+  useEffect(() => {
+    console.log('🃏 CardItem: card prop changed:', { id: card.id, title: card.title });
+  }, [card, card.id, card.title]);
 
   const handleClick = (e: React.MouseEvent) => {
     // Ne pas ouvrir la modale si on est en train de drag

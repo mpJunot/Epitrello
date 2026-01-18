@@ -111,3 +111,31 @@ export async function getWorkspaceBoards(workspaceId: string): Promise<GqlBoard[
   const result = await graphqlRequest<{ workspaceBoards: GqlBoard[] }>(query, { workspaceId });
   return result.workspaceBoards;
 }
+
+/**
+ * Get a workspace by ID (backend integration)
+ */
+export async function getWorkspace(id: string): Promise<Workspace> {
+  const query = `
+    query Workspace($id: ID!) {
+      workspace(id: $id) {
+        id
+        name
+        logoUrl
+        visibility
+        memberCount
+        createdAt
+        updatedAt
+        memberships {
+          id
+          userId
+          role
+          joinedAt
+        }
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ workspace: Workspace }>(query, { id });
+  return result.workspace;
+}

@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { Board } from './entities/board.entity';
@@ -9,11 +9,25 @@ import { AddBoardMemberInput } from './dto/add-board-member.input';
 import { UpdateBoardMemberRoleInput } from './dto/update-board-member-role.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../prisma/prisma.service';
+import { List } from '../lists/entities/list.entity';
 
 @Resolver(() => Board)
 @UseGuards(GqlAuthGuard)
 export class BoardsResolver {
-  constructor(private readonly boardsService: BoardsService) {}
+  constructor(
+    private readonly boardsService: BoardsService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @ResolveField(() => [List])
+  async lists(@Parent() board: Board): Promise<List[]> {
+    return this.prisma.list.findMany({
+      where: { boardId: board.id, isArchived: false },
+      orderBy: { position: 'asc' },
+      include: { cards: true },
+    });
+  }
 
   @Mutation(() => Board, {
     description: 'Create a new board. User must be ADMIN or MEMBER of the workspace (if provided).',
