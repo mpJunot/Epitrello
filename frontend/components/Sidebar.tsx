@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import { getMyWorkspaces } from "@/lib/actions/workspaces";
+import { getMyWorkspaces, createWorkspace } from "@/lib/actions/workspaces";
 
 type Board = { id: string; title: string; color?: string };
 type Workspace = { id: string; name: string; };
@@ -50,6 +50,9 @@ export default function Sidebar() {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
+  const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
+  const [newWorkspaceName, setNewWorkspaceName] = useState('');
+  const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   
@@ -127,6 +130,36 @@ export default function Sidebar() {
       setActiveId(id);
     } catch {}
     router.push(`/boards/${id}`);
+  };
+
+  const handleCreateWorkspace = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const workspaceName = newWorkspaceName.trim();
+    if (!workspaceName) return;
+
+    setCreatingWorkspace(true);
+    try {
+      // Call backend to create workspace
+      const newWorkspace = await createWorkspace({ name: workspaceName });
+      
+      // Add new workspace to list
+      setWorkspaces([...workspaces, newWorkspace]);
+      
+      // Show success message
+      setFeedback(`Workspace "${newWorkspace.name}" créé avec succès`);
+      
+      // Close modal and reset form
+      setShowCreateWorkspaceModal(false);
+      setNewWorkspaceName('');
+      
+      // Clear feedback after 3 seconds
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la création';
+      setFeedback(errorMessage);
+    } finally {
+      setCreatingWorkspace(false);
+    }
   };
 
   
@@ -263,8 +296,17 @@ export default function Sidebar() {
               
               {/* Empty state */}
               {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
-                <div className="p-2 text-sm text-gray-500 text-center">
-                  No workspaces found
+                <div className="space-y-2">
+                  <p className="p-2 text-sm text-gray-500 text-center">Aucun workspace</p>
+                  <button
+                    onClick={() => setShowCreateWorkspaceModal(true)}
+                    className="w-full p-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Créer un workspace
+                  </button>
                 </div>
               )}
               
@@ -341,6 +383,57 @@ export default function Sidebar() {
       <div aria-live="polite" className="sr-only">
         {feedback}
       </div>
+
+      {/* Create Workspace Modal */}
+      {showCreateWorkspaceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Créer un nouveau workspace</h2>
+            
+            <form onSubmit={handleCreateWorkspace} className="space-y-4">
+              <div>
+                <label htmlFor="workspace-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom du workspace
+                </label>
+                <input
+                  id="workspace-name"
+                  type="text"
+                  value={newWorkspaceName}
+                  onChange={(e) => setNewWorkspaceName(e.target.value)}
+                  placeholder="Ex: Mon équipe"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                  disabled={creatingWorkspace}
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateWorkspaceModal(false);
+                    setNewWorkspaceName('');
+                  }}
+                  disabled={creatingWorkspace}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingWorkspace || !newWorkspaceName.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {creatingWorkspace && (
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  )}
+                  {creatingWorkspace ? 'Création...' : 'Créer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
