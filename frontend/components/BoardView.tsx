@@ -21,109 +21,19 @@ type Board = {
 };
 
 export default function BoardView({ board }: { board: Board }) {
-  const [lists, setLists] = useState(board.lists || []);
+  // Use lists directly from props - BoardPage is the single source of truth
+  const lists = board.lists || [];
 
+  // Log pour debug
   useEffect(() => {
-    const handleListCreate = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { title } = customEvent.detail;
-      const newList = {
-        id: (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString(),
-        title,
-        cards: [],
-      };
-      setLists([...lists, newList]);
-    };
-
-    const handleListCopied = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { newListTitle, cards } = customEvent.detail;
-      const newList = {
-        id: (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString(),
-        title: newListTitle,
-        cards: cards,
-      };
-      setLists([...lists, newList]);
-    };
-
-    const handleListMoved = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { listId, newPosition } = customEvent.detail;
-      
-      // Trouver la liste à déplacer
-      const listIndex = lists.findIndex(l => l.id === listId);
-      if (listIndex === -1) return;
-      
-      // Créer un nouveau tableau sans la liste
-      const updatedLists = lists.filter(l => l.id !== listId);
-      
-      // Insérer la liste à la nouvelle position
-      const position = Math.min(newPosition, updatedLists.length);
-      updatedLists.splice(position, 0, lists[listIndex]);
-      
-      setLists(updatedLists);
-    };
-
-    const handleMoveAllCards = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { sourceListId, targetListId, cards: cardsToMove } = customEvent.detail;
-      
-      // Trouver les listes source et cible
-      const updatedLists = lists.map(list => {
-        if (list.id === sourceListId) {
-          // Vider la liste source
-          return { ...list, cards: [] };
-        }
-        if (list.id === targetListId) {
-          // Ajouter les cartes à la liste cible
-          return { ...list, cards: [...(list.cards || []), ...cardsToMove] };
-        }
-        return list;
+    console.log('🎨 BoardView: board.lists changed, count:', lists.length);
+    lists.forEach((l, idx) => {
+      console.log(`  List ${idx}:`, l.id, l.title, 'cards:', l.cards?.length);
+      l.cards?.forEach((c, cidx) => {
+        console.log(`    Card ${cidx}:`, c.id, c.title);
       });
-      
-      setLists(updatedLists);
-    };
-
-    const handleCardCreated = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { listId, card } = customEvent.detail;
-      
-      // Ajouter la carte à la liste correspondante
-      const updatedLists = lists.map(list => {
-        if (list.id === listId) {
-          return { ...list, cards: [...(list.cards || []), card] };
-        }
-        return list;
-      });
-      
-      setLists(updatedLists);
-    };
-
-    const handleListDeleted = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { listId } = customEvent.detail;
-      
-      // Supprimer la liste
-      const updatedLists = lists.filter(list => list.id !== listId);
-      setLists(updatedLists);
-    };
-
-    window.addEventListener('epitrello:list-create', handleListCreate);
-    window.addEventListener('epitrello:list-copied', handleListCopied);
-    window.addEventListener('epitrello:list-moved', handleListMoved);
-    window.addEventListener('epitrello:move-all-cards', handleMoveAllCards);
-    window.addEventListener('epitrello:card-created', handleCardCreated);
-    window.addEventListener('epitrello:list-deleted', handleListDeleted);
-
-    return () => {
-      window.removeEventListener('epitrello:list-create', handleListCreate);
-      window.removeEventListener('epitrello:list-copied', handleListCopied);
-      window.removeEventListener('epitrello:list-moved', handleListMoved);
-      window.removeEventListener('epitrello:move-all-cards', handleMoveAllCards);
-      window.removeEventListener('epitrello:card-created', handleCardCreated);
-      window.removeEventListener('epitrello:list-deleted', handleListDeleted);
-    };
-  }, [lists]);
+    });
+  }, [board, lists]);
 
   return (
     <div className="p-4" id="main-board-content">
@@ -158,6 +68,7 @@ function AddListInline() {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -175,16 +86,38 @@ function AddListInline() {
     setTimeout(() => buttonRef.current?.focus(), 0);
   };
 
-  const submit = () => {
+  const submit = async () => {
     const title = value?.trim();
     if (!title) {
       setError(true);
       setTimeout(() => setError(false), 500);
       return;
     }
+    setLoading(true);
     window.dispatchEvent(new CustomEvent("epitrello:list-create", { detail: { title } }));
+    // Don't close yet - let the parent handle success/failure
+    // close() will be called by the parent via a success event
+  };
+  
+  const handleSuccess = () => {
+    setLoading(false);
     close();
   };
+  
+  const handleError = () => {
+    setLoading(false);
+    setError(true);
+    setTimeout(() => setError(false), 500);
+  };
+  
+  useEffect(() => {
+    window.addEventListener('epitrello:list-create-success', handleSuccess);
+    window.addEventListener('epitrello:list-create-error', handleError);
+    return () => {
+      window.removeEventListener('epitrello:list-create-success', handleSuccess);
+      window.removeEventListener('epitrello:list-create-error', handleError);
+    };
+  }, []);
 
   return (
     <div>
@@ -227,9 +160,10 @@ function AddListInline() {
           <div className="mt-2 flex items-center gap-2">
             <button
               onClick={submit}
-              className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 active:bg-indigo-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
+              disabled={loading}
+              className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 active:bg-indigo-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add list
+              {loading ? 'Creating...' : 'Add list'}
             </button>
             <button
               onClick={close}

@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, registerEnumType } from '@nestjs/graphql';
 import { Visibility } from '@prisma/client';
 import { BoardMemberWithUser } from './board-member.entity';
+import { List } from '../../lists/entities/list.entity';
 
 // Register the Visibility enum for GraphQL
 registerEnumType(Visibility, {
@@ -36,6 +37,9 @@ export class Board {
 
   @Field(() => [BoardMemberWithUser], { nullable: true })
   members?: BoardMemberWithUser[];
+
+  @Field(() => [List], { nullable: true })
+  lists?: List[];
 
   @Field()
   createdAt: Date;

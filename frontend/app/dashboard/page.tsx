@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getMyWorkspaces } from '@/lib/actions/workspaces';
+import { getMyWorkspaces, getWorkspaceBoards, GqlBoard } from '@/lib/actions/workspaces';
+import { createBoard as createBoardAction, Visibility } from '@/lib/actions/boards';
 
 type Board = {
   id: string;
@@ -16,12 +17,13 @@ type Board = {
 
 type Workspace = { id: string; title: string };
 
-const BOARDS_KEY = 'epitrello_boards';
 const WORKSPACES_KEY = 'epitrello_workspaces';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [boards, setBoards] = useState<Board[]>([]);
+  const [workspaceBoards, setWorkspaceBoards] = useState<Record<string, Board[]>>({});
+  const [boardsLoading, setBoardsLoading] = useState<Record<string, boolean>>({});
+  const [boardsError, setBoardsError] = useState<Record<string, string | null>>({});
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
   const [workspacesError, setWorkspacesError] = useState<string | null>(null);
@@ -31,46 +33,43 @@ export default function DashboardPage() {
   const [newBoardNameByWorkspace, setNewBoardNameByWorkspace] = useState<Record<string, string>>({});
   const [newBoardDescByWorkspace, setNewBoardDescByWorkspace] = useState<Record<string, string>>({});
   const [newBoardVisibilityByWorkspace, setNewBoardVisibilityByWorkspace] = useState<Record<string, 'personal' | 'workspace' | 'public' | undefined>>({});
-  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; boardId: string | null; boardName: string }>({
+  const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; boardId: string | null; boardName: string; workspaceId: string | null }>({
     show: false,
     boardId: null,
     boardName: '',
+    workspaceId: null,
   });
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [loadingBoards] = useState(false); // placeholder if needed later
-
-  const createBoard = (workspaceId?: string, name?: string, desc?: string, visibility?: 'personal' | 'workspace' | 'public') => {
+  const createBoard = async (workspaceId?: string, name?: string, desc?: string, visibility?: 'personal' | 'workspace' | 'public') => {
     const boardName = (name ?? newBoardName).trim();
     if (!boardName) return;
 
-    const backgrounds = [
-      'bg-gradient-to-br from-amber-400 to-orange-500',
-      'bg-gradient-to-br from-sky-400 to-blue-500',
-      'bg-gradient-to-br from-emerald-400 to-green-500',
-      'bg-gradient-to-br from-violet-400 to-purple-500',
-      'bg-gradient-to-br from-rose-400 to-pink-500',
-      'bg-gradient-to-br from-cyan-400 to-teal-500',
-    ];
-
-    const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
-
-    const newBoard: Board = {
-      id: String(Date.now()),
-      name: boardName,
-      description: (desc ?? newBoardDescription).trim() || undefined,
-      background: randomBackground,
-      members: 1,
-      workspaceId: workspaceId || (workspaces[0] && workspaces[0].id),
-      visibility: visibility ?? undefined,
+    const visMap: Record<'personal' | 'workspace' | 'public', Visibility> = {
+      personal: 'PRIVATE',
+      workspace: 'WORKSPACE',
+      public: 'PUBLIC',
     };
-    const next = [newBoard, ...boards];
-    setBoards(next);
-    try { localStorage.setItem(BOARDS_KEY, JSON.stringify(next)); } catch {}
+
+    const newBoard = await createBoardAction({
+      title: boardName,
+      description: (desc ?? newBoardDescription).trim() || undefined,
+      visibility: visibility ? visMap[visibility] : undefined,
+      workspaceId: workspaceId || (workspaces[0] && workspaces[0].id),
+    });
+
+    setWorkspaceBoards((prev) => ({
+      ...prev,
+      [newBoard.workspaceId || (workspaceId as string)]: [
+        { id: newBoard.id, name: newBoard.title, description: newBoard.description, background: newBoard.background, workspaceId: newBoard.workspaceId },
+        ...(prev[newBoard.workspaceId || (workspaceId as string)] || []),
+      ],
+    }));
+
     setNewBoardName('');
     setNewBoardDescription('');
   };
 
-  // load workspaces and boards from localStorage on mount
+  // load workspaces from backend (with localStorage fallback)
   useEffect(() => {
     const load = async () => {
       let wsSnapshot: Workspace[] = [];
@@ -99,58 +98,76 @@ export default function DashboardPage() {
       } finally {
         setLoadingWorkspaces(false);
       }
-
-      // Boards remain local for now
-      try {
-        const rawBoards = localStorage.getItem(BOARDS_KEY);
-        let b: Board[] = [];
-        if (rawBoards) {
-          b = JSON.parse(rawBoards) as Board[];
-        }
-        if (!b || b.length === 0) {
-          const firstWsId = wsSnapshot[0]?.id;
-          const samples: Board[] = firstWsId ? [
-            { id: 'b1', name: 'Project Alpha', description: 'Main project board', background: 'bg-gradient-to-br from-amber-400 to-orange-500', members: 3, workspaceId: firstWsId },
-            { id: 'b2', name: 'Sprint Q4', description: 'Current sprint tasks', background: 'bg-gradient-to-br from-sky-400 to-blue-500', members: 5, workspaceId: firstWsId },
-          ] : [];
-          b = samples;
-          if (samples.length > 0) {
-            try { localStorage.setItem(BOARDS_KEY, JSON.stringify(samples)); } catch {}
-          }
-        }
-        setBoards(b);
-      } catch (e) {
-        // ignore
-      }
     };
 
     load();
   }, []);
 
-  const deleteBoard = (id: string) => {
-    const board = boards.find(b => b.id === id);
-    if (board) {
-      setDeleteConfirm({
-        show: true,
-        boardId: id,
-        boardName: board.name,
+  // Fetch boards for each workspace from backend
+  useEffect(() => {
+    const loadBoardsForWs = async (wsId: string) => {
+      setBoardsLoading((p) => ({ ...p, [wsId]: true }));
+      setBoardsError((p) => ({ ...p, [wsId]: null }));
+      try {
+        const gqlBoards: GqlBoard[] = await getWorkspaceBoards(wsId);
+        const mapped: Board[] = (gqlBoards || []).map((b) => ({
+          id: b.id,
+          name: b.title,
+          description: b.description || undefined,
+          background: b.background,
+          members: b.members ? b.members.length : undefined,
+          workspaceId: b.workspaceId,
+        }));
+        setWorkspaceBoards((prev) => ({ ...prev, [wsId]: mapped }));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load boards';
+        setBoardsError((p) => ({ ...p, [wsId]: msg }));
+        setWorkspaceBoards((p) => ({ ...p, [wsId]: [] }));
+      } finally {
+        setBoardsLoading((p) => ({ ...p, [wsId]: false }));
+      }
+    };
+
+    if (workspaces.length > 0) {
+      workspaces.forEach((ws) => {
+        if (!workspaceBoards[ws.id] && !boardsLoading[ws.id]) {
+          loadBoardsForWs(ws.id);
+        }
       });
+    }
+  }, [workspaces, workspaceBoards, boardsLoading]);
+
+  const deleteBoard = (id: string) => {
+    let foundWorkspace: string | null = null;
+    let foundName = '';
+    for (const [wsId, list] of Object.entries(workspaceBoards)) {
+      const b = list.find((x) => x.id === id);
+      if (b) {
+        foundWorkspace = wsId;
+        foundName = b.name;
+        break;
+      }
+    }
+    if (foundWorkspace) {
+      setDeleteConfirm({ show: true, boardId: id, boardName: foundName, workspaceId: foundWorkspace });
     }
   };
 
   const confirmDeleteBoard = () => {
-    if (deleteConfirm.boardId) {
-      const next = boards.filter(board => board.id !== deleteConfirm.boardId);
-      setBoards(next);
-      try { localStorage.setItem(BOARDS_KEY, JSON.stringify(next)); } catch {}
-      setFeedback(`Board "${deleteConfirm.boardName}" has been deleted`);
+    if (deleteConfirm.boardId && deleteConfirm.workspaceId) {
+      setWorkspaceBoards((prev) => {
+        const wsId = deleteConfirm.workspaceId || '';
+        const nextWsBoards = (prev[wsId] || []).filter((b) => b.id !== deleteConfirm.boardId);
+        return { ...prev, [wsId]: nextWsBoards };
+      });
+      setFeedback(`Board "${deleteConfirm.boardName}" has been deleted (frontend only)`);
       setTimeout(() => setFeedback(null), 3000);
     }
-    setDeleteConfirm({ show: false, boardId: null, boardName: '' });
+    setDeleteConfirm({ show: false, boardId: null, boardName: '', workspaceId: null });
   };
 
   const cancelDeleteBoard = () => {
-    setDeleteConfirm({ show: false, boardId: null, boardName: '' });
+    setDeleteConfirm({ show: false, boardId: null, boardName: '', workspaceId: null });
   };
 
   return (
@@ -171,7 +188,9 @@ export default function DashboardPage() {
 
           <div className='space-y-6'>
             {workspaces.map((ws) => {
-              const wsBoards = boards.filter(b => b.workspaceId === ws.id);
+              const wsBoards = workspaceBoards[ws.id] || [];
+              const wsBoardsLoading = boardsLoading[ws.id];
+              const wsBoardsError = boardsError[ws.id];
               return (
                 <div key={ws.id} className='bg-white rounded-lg shadow-sm p-4'>
                   <div className='flex items-start justify-between gap-4 mb-3'>
@@ -224,18 +243,40 @@ export default function DashboardPage() {
                           </div>
                           <div className='flex gap-2'>
                             <button
-                              onClick={() => {
-                                createBoard(
-                                  ws.id,
-                                  newBoardNameByWorkspace[ws.id],
-                                  newBoardDescByWorkspace[ws.id],
-                                  newBoardVisibilityByWorkspace[ws.id]
-                                );
-                                // clear inputs and close
-                                setNewBoardNameByWorkspace((s) => ({ ...s, [ws.id]: '' }));
-                                setNewBoardDescByWorkspace((s) => ({ ...s, [ws.id]: '' }));
-                                setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: undefined }));
-                                setCreatingFor(null);
+                              onClick={async () => {
+                                try {
+                                  await createBoard(
+                                    ws.id,
+                                    newBoardNameByWorkspace[ws.id],
+                                    newBoardDescByWorkspace[ws.id],
+                                    newBoardVisibilityByWorkspace[ws.id]
+                                  );
+                                  // refresh boards for this workspace
+                                  setBoardsLoading((p) => ({ ...p, [ws.id]: true }));
+                                  try {
+                                    const gqlBoards: GqlBoard[] = await getWorkspaceBoards(ws.id);
+                                    const mapped: Board[] = (gqlBoards || []).map((b) => ({
+                                      id: b.id,
+                                      name: b.title,
+                                      description: b.description || undefined,
+                                      background: b.background,
+                                      members: b.members ? b.members.length : undefined,
+                                      workspaceId: b.workspaceId,
+                                    }));
+                                    setWorkspaceBoards((prev) => ({ ...prev, [ws.id]: mapped }));
+                                  } finally {
+                                    setBoardsLoading((p) => ({ ...p, [ws.id]: false }));
+                                  }
+                                  // clear inputs and close
+                                  setNewBoardNameByWorkspace((s) => ({ ...s, [ws.id]: '' }));
+                                  setNewBoardDescByWorkspace((s) => ({ ...s, [ws.id]: '' }));
+                                  setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: undefined }));
+                                  setCreatingFor(null);
+                                } catch (err) {
+                                  const msg = err instanceof Error ? err.message : 'Failed to create board';
+                                  setFeedback(msg);
+                                  setTimeout(() => setFeedback(null), 3000);
+                                }
                               }}
                               className='px-3 py-1 bg-indigo-600 text-white rounded text-sm'
                             >
@@ -255,21 +296,58 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       )}
-                      {wsBoards.length === 0 ? (
+                      {wsBoardsLoading && (
+                        <div className='text-gray-500 text-sm flex items-center gap-2'>
+                          <span className='h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin' />
+                          Chargement des boards...
+                        </div>
+                      )}
+                      {!wsBoardsLoading && wsBoardsError && (
+                        <div className='text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 flex items-center gap-3'>
+                          <span className='font-semibold'>Erreur backend :</span>
+                          <span className='whitespace-pre-wrap break-words'>{wsBoardsError}</span>
+                          <button
+                            onClick={async () => {
+                              setBoardsError((p) => ({ ...p, [ws.id]: null }));
+                              setBoardsLoading((p) => ({ ...p, [ws.id]: true }));
+                              try {
+                                const gqlBoards: GqlBoard[] = await getWorkspaceBoards(ws.id);
+                                const mapped: Board[] = (gqlBoards || []).map((b) => ({
+                                  id: b.id,
+                                  name: b.title,
+                                  description: b.description || undefined,
+                                  background: b.background,
+                                  members: b.members ? b.members.length : undefined,
+                                  workspaceId: b.workspaceId,
+                                }));
+                                setWorkspaceBoards((prev) => ({ ...prev, [ws.id]: mapped }));
+                              } catch (err) {
+                                const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load boards';
+                                setBoardsError((p) => ({ ...p, [ws.id]: msg }));
+                              } finally {
+                                setBoardsLoading((p) => ({ ...p, [ws.id]: false }));
+                              }
+                            }}
+                            className='px-2 py-1 bg-red-600 text-white rounded text-xs'
+                          >
+                            Réessayer
+                          </button>
+                        </div>
+                      )}
+                      {!wsBoardsLoading && !wsBoardsError && wsBoards.length === 0 && (
                         <div className='text-gray-500 text-sm'>No boards in this workspace</div>
-                      ) : (
-                        wsBoards.map((board) => (
-                          <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[200px] h-32 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-gray-200'}`}>
-                            <div className='relative h-full'>
-                              <div className='absolute inset-0 bg-black bg-opacity-20' />
-                              <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
-                                <div className='text-sm font-semibold truncate'>{board.name}</div>
-                                {board.members ? <div className='text-xs'>{board.members} {board.members === 1 ? 'member' : 'members'}</div> : null}
-                              </div>
+                      )}
+                      {!wsBoardsLoading && !wsBoardsError && wsBoards.length > 0 && wsBoards.map((board) => (
+                        <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[200px] h-32 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-gray-200'}`}>
+                          <div className='relative h-full'>
+                            <div className='absolute inset-0 bg-black bg-opacity-20' />
+                            <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
+                              <div className='text-sm font-semibold truncate'>{board.name}</div>
+                              {board.members ? <div className='text-xs'>{board.members} {board.members === 1 ? 'member' : 'members'}</div> : null}
                             </div>
                           </div>
-                        ))
-                      )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

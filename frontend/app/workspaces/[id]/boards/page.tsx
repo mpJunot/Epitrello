@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import CreateBoardModal from '@/components/CreateBoardModal';
-import { getWorkspaceBoards, GqlBoard } from '@/lib/actions/workspaces';
+import { getWorkspaceBoards, GqlBoard, getWorkspace } from '@/lib/actions/workspaces';
 import { createBoard, Visibility } from '@/lib/actions/boards';
 
 type Board = { id: string; name: string; description?: string; background?: string; members?: number; workspaceId?: string };
@@ -33,8 +33,22 @@ export default function WorkspaceBoardsPage() {
           workspaceId: b.workspaceId,
         }));
         setBoards(uiBoards);
+
+        // Fetch workspace name from backend; fallback to localStorage if it fails
+        try {
+          const ws = await getWorkspace(workspaceId);
+          setWorkspaceName(ws.name || 'Workspace');
+        } catch (e) {
+          try {
+            const rawWs = localStorage.getItem('epitrello_workspaces');
+            const wsLocal = rawWs ? JSON.parse(rawWs) : [];
+            const found = (wsLocal || []).find((w: any) => w.id === workspaceId);
+            if (found) setWorkspaceName(found.title || found.name || 'Workspace');
+          } catch (_) {}
+        }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to load boards';
+        const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load boards';
+        console.error('Failed to load workspace boards', err);
         setError(msg);
         setBoards([]);
       } finally {
@@ -43,14 +57,6 @@ export default function WorkspaceBoardsPage() {
     };
 
     loadBoards();
-
-    // Workspace name still from localStorage for now (not required to connect)
-    try {
-      const rawWs = localStorage.getItem('epitrello_workspaces');
-      const ws = rawWs ? JSON.parse(rawWs) : [];
-      const found = (ws || []).find((w: any) => w.id === workspaceId);
-      if (found) setWorkspaceName(found.title || 'Workspace');
-    } catch (e) {}
   }, [workspaceId]);
 
   return (
@@ -75,8 +81,11 @@ export default function WorkspaceBoardsPage() {
           )}
           {!loading && error && (
             <div className="col-span-full bg-red-50 border border-red-200 text-red-700 p-4 rounded">
-              <div className="flex items-center justify-between">
-                <span>Erreur: {error}</span>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="font-semibold">Erreur backend</div>
+                  <div className="mt-1 whitespace-pre-wrap break-words text-sm">{error}</div>
+                </div>
                 <button onClick={() => {
                   setError(null);
                   setLoading(true);
@@ -94,7 +103,8 @@ export default function WorkspaceBoardsPage() {
                       }));
                       setBoards(uiBoards);
                     } catch (err) {
-                      const msg = err instanceof Error ? err.message : 'Failed to load boards';
+                      const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load boards';
+                      console.error('Failed to load workspace boards (retry)', err);
                       setError(msg);
                       setBoards([]);
                     } finally {

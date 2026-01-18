@@ -1,4 +1,5 @@
 import { ObjectType, Field, ID, Int } from '@nestjs/graphql';
+import { Card } from '../../cards/entities/card.entity';
 
 @ObjectType()
 export class List {
@@ -16,6 +17,9 @@ export class List {
 
   @Field()
   isArchived: boolean;
+
+  @Field(() => [Card], { nullable: true })
+  cards?: Card[];
 
   @Field()
   createdAt: Date;
