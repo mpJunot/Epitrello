@@ -12,31 +12,16 @@ jobs:
   cleanup-storage:
     name: Cleanup Cloud Storage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: List old objects
-        run: |
-          gsutil ls -l gs://${{ secrets.GCP_PROJECT_ID }}-epitrello-storage/ | head -20
 
       - name: Delete old objects (older than 90 days)
         run: |
@@ -50,22 +35,8 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -101,22 +72,8 @@ jobs:
       id-token: write
 
     steps:
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}

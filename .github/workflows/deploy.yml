@@ -21,7 +21,7 @@ env:
   GCP_REGION: europe-west1
 
 jobs:
-  detect-changes:
+  changes:
     name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
@@ -46,7 +46,7 @@ jobs:
 
       - name: Detect changes
         id: filter
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         with:
           filters: |
             backend:
@@ -62,8 +62,8 @@ jobs:
   test-backend:
     name: Test Backend
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.terraform == 'true'
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.terraform == 'true'
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
@@ -99,8 +99,8 @@ jobs:
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.terraform == 'true'
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.terraform == 'true'
 
     steps:
       - name: Checkout code
@@ -127,8 +127,8 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: always() && (needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.frontend == 'true')
+    needs: changes
+    if: always() && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true')
     permissions:
       contents: read
       security-events: write
@@ -155,8 +155,8 @@ jobs:
   terraform-validate:
     name: Validate Terraform
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.terraform == 'true'
+    needs: changes
+    if: needs.changes.outputs.terraform == 'true'
 
     steps:
       - name: Checkout
@@ -182,8 +182,8 @@ jobs:
   build-backend:
     name: Build Backend Docker Image
     runs-on: ubuntu-latest
-    needs: [detect-changes, test-backend]
-    if: needs.detect-changes.outputs.backend == 'true' && (needs.test-backend.result == 'success' || needs.test-backend.result == 'skipped')
+    needs: [changes, test-backend]
+    if: needs.changes.outputs.backend == 'true' && needs.test-backend.result == 'success'
     permissions:
       contents: read
       id-token: write
@@ -229,8 +229,8 @@ jobs:
   build-frontend:
     name: Build Frontend Docker Image
     runs-on: ubuntu-latest
-    needs: [detect-changes, test-frontend]
-    if: needs.detect-changes.outputs.frontend == 'true' && (needs.test-frontend.result == 'success' || needs.test-frontend.result == 'skipped')
+    needs: [changes, test-frontend]
+    if: needs.changes.outputs.frontend == 'true' && needs.test-frontend.result == 'success'
     permissions:
       contents: read
       id-token: write
@@ -249,7 +249,7 @@ jobs:
         id: backend-url
         uses: ./.github/actions/get-backend-url
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           production_api_url: ${{ secrets.PRODUCTION_API_URL }}
@@ -287,9 +287,9 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [detect-changes, terraform-validate]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    needs: [changes, terraform-validate, test-backend, test-frontend]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success'
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -316,7 +316,7 @@ jobs:
       - name: Setup Terraform variables
         uses: ./.github/actions/setup-terraform-vars
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           region: ${{ env.GCP_REGION }}
           db_name: ${{ secrets.DB_NAME }}
@@ -348,7 +348,7 @@ jobs:
       - name: Save plan
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-plan-${{ needs.detect-changes.outputs.environment }}
+          name: terraform-plan-${{ needs.changes.outputs.environment }}
           path: ${{ env.TF_WORKING_DIR }}/tfplan
           retention-days: 1
 
@@ -356,9 +356,9 @@ jobs:
     name: Apply Terraform
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: [detect-changes, terraform-plan]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.terraform == 'true' && needs.terraform-plan.result == 'success'
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    needs: [changes, terraform-plan]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-plan.result == 'success'
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -372,8 +372,8 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -381,7 +381,7 @@ jobs:
       - name: Download plan
         uses: actions/download-artifact@v4
         with:
-          name: terraform-plan-${{ needs.detect-changes.outputs.environment }}
+          name: terraform-plan-${{ needs.changes.outputs.environment }}
           path: ${{ env.TF_WORKING_DIR }}
 
       - name: Validate required secrets
@@ -399,7 +399,6 @@ jobs:
             echo "ERROR: DB_PASSWORD secret is not set"
             exit 1
           fi
-          echo "All required database secrets are set"
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -408,7 +407,7 @@ jobs:
       - name: Setup Terraform variables
         uses: ./.github/actions/setup-terraform-vars
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           region: ${{ env.GCP_REGION }}
           db_name: ${{ secrets.DB_NAME }}
@@ -429,15 +428,9 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
           source /tmp/terraform_vars.sh
-          # Check if bucket exists and is not in state
-          if terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
-            echo "Bucket already in Terraform state"
-          else
-            echo "Attempting to import existing bucket..."
+          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
             terraform import "${TF_VARS[@]}" \
-              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || {
-              echo "Bucket import failed or bucket doesn't exist, will be created"
-            }
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
           fi
 
       - name: Terraform Apply
@@ -446,17 +439,14 @@ jobs:
           source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
-              echo "Plan is stale, regenerating..."
               terraform refresh "${TF_VARS[@]}" || true
               terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
               terraform apply -auto-approve tfplan || exit 1
             elif grep -q "Your previous request to create the named bucket succeeded" /tmp/apply.log; then
-              echo "Bucket already exists, importing..."
               terraform import "${TF_VARS[@]}" \
                 google_storage_bucket.terraform_state epitrello-terraform-state || true
               terraform apply -auto-approve tfplan || exit 1
             else
-              echo "Apply failed, see logs above"
               exit 1
             fi
           }
@@ -464,9 +454,9 @@ jobs:
   run-migrations:
     name: Run Database Migrations
     runs-on: ubuntu-latest
-    needs: [detect-changes, terraform-apply]
+    needs: [changes, terraform-apply]
     if: github.event_name != 'pull_request' && needs.terraform-apply.result == 'success'
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -478,7 +468,7 @@ jobs:
       - name: Run migrations
         uses: ./.github/actions/run-migrations
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -487,9 +477,9 @@ jobs:
   deploy-backend:
     name: Deploy Backend to Cloud Run
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-backend, terraform-apply, run-migrations]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.backend == 'true' && needs.build-backend.result == 'success' && needs.terraform-apply.result == 'success' && (needs.run-migrations.result == 'success' || needs.run-migrations.result == 'skipped')
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    needs: [changes, build-backend, terraform-apply, run-migrations]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.backend == 'true' && needs.build-backend.result == 'success' && needs.terraform-apply.result == 'success' && needs.run-migrations.result == 'success'
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -506,13 +496,10 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
+          ENV=${{ needs.changes.outputs.environment }}
           IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
-
-          echo "Deploying image: $IMAGE"
-          echo "Service: $SERVICE_NAME"
 
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
@@ -522,9 +509,9 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-frontend, terraform-apply]
-    if: github.event_name != 'pull_request' && needs.detect-changes.outputs.frontend == 'true' && needs.build-frontend.result == 'success' && needs.terraform-apply.result == 'success'
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    needs: [changes, build-frontend, terraform-apply]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.frontend == 'true' && needs.build-frontend.result == 'success' && needs.terraform-apply.result == 'success'
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -543,7 +530,7 @@ jobs:
         id: backend-url
         uses: ./.github/actions/get-backend-url
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           production_api_url: ${{ secrets.PRODUCTION_API_URL }}
@@ -551,15 +538,11 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          ENV=${{ needs.detect-changes.outputs.environment }}
+          ENV=${{ needs.changes.outputs.environment }}
           IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-frontend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-frontend"
           BACKEND_URL="${{ steps.backend-url.outputs.url }}"
-
-          echo "Deploying image: $IMAGE"
-          echo "Service: $SERVICE_NAME"
-          echo "Backend URL: $BACKEND_URL"
 
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
@@ -570,9 +553,9 @@ jobs:
   deploy-docs:
     name: Deploy GraphQL Documentation
     runs-on: ubuntu-latest
-    needs: [detect-changes, terraform-apply, build-backend]
+    needs: [changes, terraform-apply, build-backend]
     if: github.event_name != 'pull_request' && needs.terraform-apply.result == 'success' && needs.build-backend.result == 'success'
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -601,9 +584,6 @@ jobs:
           JWT_SECRET: dummy-secret-for-schema-generation-only
         run: |
           timeout 30 node -e "const { NestFactory } = require('@nestjs/core'); const { AppModule } = require('./dist/app.module'); (async () => { const app = await NestFactory.create(AppModule, { logger: false }); await app.close(); })().catch(() => process.exit(0));" || true
-          if [ -f "src/graphql/schema.gql" ]; then
-            echo "Schema generated: $(wc -l < src/graphql/schema.gql) lines"
-          fi
 
       - name: Generate GraphQL documentation
         working-directory: backend
@@ -614,11 +594,10 @@ jobs:
         id: bucket
         shell: bash
         run: |
-          ENV="${{ needs.detect-changes.outputs.environment }}"
+          ENV="${{ needs.changes.outputs.environment }}"
           PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
           BUCKET_NAME="${PROJECT_ID}-${ENV}-epitrello-docs"
           echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
-          echo "Documentation bucket: $BUCKET_NAME"
 
       - name: Upload documentation to GCS
         if: success()
@@ -626,43 +605,16 @@ jobs:
         run: |
           BUCKET="${{ steps.bucket.outputs.bucket_name }}"
           if [ -d "docs/graphql" ]; then
-            echo "Uploading documentation to gs://${BUCKET}/"
             gcloud storage rsync --recursive docs/graphql/ gs://${BUCKET}/
-          else
-            echo "Documentation directory not found, skipping upload"
           fi
         continue-on-error: true
-
-  smoke-tests:
-    name: Smoke Tests
-    runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-frontend]
-    if: (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run smoke tests
-        run: |
-          # Add actual smoke tests here
-          # curl -f ${{ secrets.STAGING_API_URL }}/health || exit 1
 
   notify:
     name: Notify Deployment
     runs-on: ubuntu-latest
-    needs:
-      [
-        detect-changes,
-        terraform-apply,
-        run-migrations,
-        deploy-backend,
-        deploy-frontend,
-        deploy-docs,
-        smoke-tests,
-      ]
-    if: always() && (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped') && (needs.deploy-backend.result == 'success' || needs.deploy-backend.result == 'skipped') && (needs.deploy-frontend.result == 'success' || needs.deploy-frontend.result == 'skipped')
-    environment: ${{ needs.detect-changes.outputs.environment }}
+    needs: [changes, deploy-backend, deploy-frontend, deploy-docs]
+    if: always() && needs.deploy-backend.result == 'success' && needs.deploy-frontend.result == 'success'
+    environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -681,7 +633,7 @@ jobs:
         id: backend-url
         uses: ./.github/actions/get-backend-url
         with:
-          environment: ${{ needs.detect-changes.outputs.environment }}
+          environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
@@ -689,28 +641,23 @@ jobs:
         id: frontend-url
         shell: bash
         run: |
-          ENV="${{ needs.detect-changes.outputs.environment }}"
+          ENV="${{ needs.changes.outputs.environment }}"
           SERVICE_NAME="${ENV}-epitrello-frontend"
           URL=$(gcloud run services describe $SERVICE_NAME \
             --region ${{ env.GCP_REGION }} \
             --project ${{ secrets.GCP_PROJECT_ID }} \
             --format="value(status.url)" 2>/dev/null || echo "")
           echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
 
       - name: Deployment Summary
         run: |
           echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Environment: ${{ needs.detect-changes.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment: ${{ needs.changes.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | URL |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|-----|" >> $GITHUB_STEP_SUMMARY
           echo "| Terraform | ${{ needs.terraform-apply.result }} | - |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | ${{ needs.deploy-backend.result }} | ${{ steps.backend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | ${{ needs.deploy-frontend.result }} | ${{ steps.frontend-url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Deployment status
-        run: |
-          echo "Terraform: ${{ needs.terraform-apply.result }}"
-          echo "Backend: ${{ needs.deploy-backend.result }}"
-          echo "Frontend: ${{ needs.deploy-frontend.result }}"

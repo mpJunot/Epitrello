@@ -35,6 +35,15 @@ describe('CardsService', () => {
       findUnique: jest.fn(),
       create: jest.fn(),
       delete: jest.fn(),
+      findMany: jest.fn(),
+    },
+    label: {
+      findUnique: jest.fn(),
+    },
+    cardLabel: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -170,6 +179,18 @@ describe('CardsService', () => {
       });
 
       await expect(service.create(input, mockUser.id)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException when board does not exist', async () => {
+      const input = {
+        listId: 'list-1',
+        title: 'New Card',
+      };
+
+      mockPrismaService.list.findUnique.mockResolvedValue({ boardId: 'board-1' });
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.create(input, mockUser.id)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -400,6 +421,24 @@ describe('CardsService', () => {
 
       await expect(service.reorder(input, mockUser.id)).rejects.toThrow(BadRequestException);
     });
+
+    it('should throw NotFoundException if cards are missing', async () => {
+      const input = {
+        listId: 'list-1',
+        cardPositions: [
+          { id: 'card-1', position: 0 },
+          { id: 'card-2', position: 1 },
+        ],
+      };
+
+      const mockCards = [{ ...mockCard, id: 'card-1', listId: 'list-1' }];
+
+      mockPrismaService.list.findUnique.mockResolvedValue({ boardId: 'board-1' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.card.findMany.mockResolvedValue(mockCards);
+
+      await expect(service.reorder(input, mockUser.id)).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('assignMember', () => {
@@ -466,6 +505,22 @@ describe('CardsService', () => {
 
       await expect(service.assignMember(input, mockUser.id)).rejects.toThrow(ConflictException);
     });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      const input = {
+        cardId: 'card-1',
+        userId: 'user-2',
+      };
+
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(service.assignMember(input, mockUser.id)).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('unassignMember', () => {
@@ -516,6 +571,154 @@ describe('CardsService', () => {
       mockPrismaService.cardAssignee.findUnique.mockResolvedValue(null);
 
       await expect(service.unassignMember(input, mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('addLabelToCard', () => {
+    it('should add a label to a card', async () => {
+      mockPrismaService.card.findUnique
+        .mockResolvedValueOnce({
+          ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce(mockCard);
+      mockPrismaService.label.findUnique.mockResolvedValue({ id: 'label-1', boardId: 'board-1' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue(null);
+      mockPrismaService.cardLabel.create.mockResolvedValue({
+        id: 'card-label-1',
+        cardId: 'card-1',
+        labelId: 'label-1',
+      });
+
+      const result = await service.addLabelToCard('card-1', 'label-1', mockUser.id);
+
+      expect(result).toBeDefined();
+      expect(prismaService.cardLabel.create).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when label is from different board', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.label.findUnique.mockResolvedValue({ id: 'label-1', boardId: 'board-2' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw NotFoundException when label does not exist', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.label.findUnique.mockResolvedValue(null);
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw ConflictException when label is already applied', async () => {
+      mockPrismaService.card.findUnique
+        .mockResolvedValueOnce({
+          ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce(mockCard);
+      mockPrismaService.label.findUnique.mockResolvedValue({ id: 'label-1', boardId: 'board-1' });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue({
+        id: 'card-label-1',
+        cardId: 'card-1',
+        labelId: 'label-1',
+      });
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should throw NotFoundException when card does not exist', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.addLabelToCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('removeLabelFromCard', () => {
+    it('should remove a label from a card', async () => {
+      mockPrismaService.card.findUnique
+        .mockResolvedValueOnce({
+          ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce(mockCard);
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue({
+        id: 'card-label-1',
+        cardId: 'card-1',
+        labelId: 'label-1',
+      });
+      mockPrismaService.cardLabel.delete.mockResolvedValue({});
+
+      const result = await service.removeLabelFromCard('card-1', 'label-1', mockUser.id);
+
+      expect(result).toBeDefined();
+      expect(prismaService.cardLabel.delete).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when label is not applied', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValueOnce({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.cardLabel.findUnique.mockResolvedValue(null);
+
+      await expect(service.removeLabelFromCard('card-1', 'label-1', mockUser.id)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findByListIds', () => {
+    it('should group cards by list id', async () => {
+      mockPrismaService.card.findMany.mockResolvedValue([
+        { id: 'card-1', listId: 'list-1' },
+        { id: 'card-2', listId: 'list-2' },
+        { id: 'card-3', listId: 'list-1' },
+      ]);
+
+      const result = await service.findByListIds(['list-1', 'list-2']);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].map((card) => card.id)).toEqual(['card-1', 'card-3']);
+      expect(result[1].map((card) => card.id)).toEqual(['card-2']);
+      expect(prismaService.card.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('findAssigneesByCardIds', () => {
+    it('should group assignees by card id', async () => {
+      mockPrismaService.cardAssignee.findMany.mockResolvedValue([
+        { id: 'assignee-1', cardId: 'card-1' },
+        { id: 'assignee-2', cardId: 'card-2' },
+        { id: 'assignee-3', cardId: 'card-1' },
+      ]);
+
+      const result = await service.findAssigneesByCardIds(['card-1', 'card-2']);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].map((assignee) => assignee.id)).toEqual(['assignee-1', 'assignee-3']);
+      expect(result[1].map((assignee) => assignee.id)).toEqual(['assignee-2']);
+      expect(prismaService.cardAssignee.findMany).toHaveBeenCalled();
     });
   });
 });
