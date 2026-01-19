@@ -11,8 +11,11 @@ export default function AccountSettingsPage() {
       const raw = localStorage.getItem('epitrello_user');
       if (raw) {
         const u = JSON.parse(raw);
+        setTimeout(() => {
         setName(u.name || '');
         setEmail(u.email || '');
+      }, 0);
+
       }
     } catch (e) {}
   }, []);
