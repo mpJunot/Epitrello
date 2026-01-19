@@ -47,12 +47,16 @@ module "secrets" {
   resend_api_key                = var.resend_api_key
   google_client_id              = var.google_client_id
   google_client_secret          = var.google_client_secret
+  google_callback_url           = var.google_callback_url
   microsoft_client_id           = var.microsoft_client_id
   microsoft_client_secret       = var.microsoft_client_secret
+  microsoft_callback_url        = var.microsoft_callback_url
   apple_client_id               = var.apple_client_id
   apple_client_secret           = var.apple_client_secret
+  apple_callback_url            = var.apple_callback_url
   slack_client_id               = var.slack_client_id
   slack_client_secret           = var.slack_client_secret
+  slack_callback_url            = var.slack_callback_url
   backend_service_account_email = module.service_accounts.backend_service_account_email
   labels                        = local.common_labels
 
