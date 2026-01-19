@@ -246,20 +246,6 @@ export default function Sidebar() {
                   <span>Home</span>
                 </button>
               </li>
-
-              <li>
-                <button
-                  onClick={() => (activeId ? router.push(`/boards/${activeId}`) : router.push('/dashboard'))}
-                  className={`w-full flex items-center gap-3 p-2 rounded text-sm ${
-                    pathname?.startsWith("/boards/") ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"
-                  }`}
-                >
-                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                    <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
-                  </svg>
-                  <span>Boards</span>
-                </button>
-              </li>
             </ul>
           </div>
         )}
@@ -269,6 +255,19 @@ export default function Sidebar() {
           {!collapsed && (
             <div className="mb-3">
               <div className="text-xs text-gray-500 uppercase mb-2">Workspaces</div>
+
+              {/* Add workspace button */}
+              <div className="mb-2">
+                <button
+                  onClick={() => setShowCreateWorkspaceModal(true)}
+                  className="w-full p-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Ajouter un workspace
+                </button>
+              </div>
               
               {/* Loading state */}
               {loadingWorkspaces && (
@@ -298,15 +297,6 @@ export default function Sidebar() {
               {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
                 <div className="space-y-2">
                   <p className="p-2 text-sm text-gray-500 text-center">Aucun workspace</p>
-                  <button
-                    onClick={() => setShowCreateWorkspaceModal(true)}
-                    className="w-full p-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
-                    Créer un workspace
-                  </button>
                 </div>
               )}
               
