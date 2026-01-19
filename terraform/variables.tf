@@ -196,6 +196,37 @@ variable "slack_client_secret" {
   default     = ""
 }
 
+# ===================================
+# OAuth Callback URLs (optional)
+# ===================================
+variable "google_callback_url" {
+  description = "Google OAuth callback URL. Format: https://{backend-url}/auth/google/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "microsoft_callback_url" {
+  description = "Microsoft OAuth callback URL. Format: https://{backend-url}/auth/microsoft/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "apple_callback_url" {
+  description = "Apple OAuth callback URL. Format: https://{backend-url}/auth/apple/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
+variable "slack_callback_url" {
+  description = "Slack OAuth callback URL. Format: https://{backend-url}/auth/slack/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
+  type        = string
+  sensitive   = false
+  default     = ""
+}
+
 
 # ===================================
 # Frontend (Cloud Run) Configuration
