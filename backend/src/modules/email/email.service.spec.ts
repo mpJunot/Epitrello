@@ -108,6 +108,39 @@ describe('EmailService', () => {
       process.env.RESEND_API_KEY = 'test-api-key';
     });
 
+    it('should fallback to default sender and frontend url', async () => {
+      process.env.RESEND_API_KEY = '';
+      process.env.EMAIL_FROM = '';
+      process.env.FRONTEND_URL = '';
+
+      const testService = new EmailService();
+      const emailData = {
+        email: 'user@example.com',
+        token: 'reset-token-123',
+      };
+
+      await testService.sendPasswordResetEmail(emailData as any);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+
+      process.env.RESEND_API_KEY = 'test-api-key';
+      process.env.EMAIL_FROM = 'test@example.com';
+      process.env.FRONTEND_URL = 'http://localhost:3000';
+    });
+
+    it('should log warning if resend client is missing', async () => {
+      (service as any).resend = null;
+      const emailData = {
+        email: 'user@example.com',
+        userName: 'Test User',
+        token: 'reset-token-123',
+      };
+
+      await service.sendPasswordResetEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+    });
+
     it('should handle errors when sending email', async () => {
       const emailData = {
         email: 'user@example.com',
@@ -201,6 +234,24 @@ describe('EmailService', () => {
       process.env.RESEND_API_KEY = 'test-api-key';
     });
 
+    it('should log warning if resend client is missing', async () => {
+      (service as any).resend = null;
+      const emailData = {
+        invitationId: 'invitation-123',
+        inviteeEmail: 'invitee@example.com',
+        inviteeName: 'Invitee User',
+        inviterName: 'Admin User',
+        workspaceName: 'Test Workspace',
+        workspaceLogoUrl: undefined,
+        role: 'MEMBER',
+        expiresAt: new Date('2025-12-31'),
+      };
+
+      await service.sendWorkspaceInvitationEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+    });
+
     it('should handle errors when sending invitation email', async () => {
       const emailData = {
         invitationId: 'invitation-123',
@@ -268,6 +319,19 @@ describe('EmailService', () => {
       process.env.RESEND_API_KEY = 'test-api-key';
     });
 
+    it('should log warning if resend client is missing', async () => {
+      (service as any).resend = null;
+      const emailData = {
+        email: 'newuser@example.com',
+        name: 'New User',
+        verificationToken: 'verification-token-123',
+      };
+
+      await service.sendEmailVerificationEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+    });
+
     it('should handle errors when sending verification email', async () => {
       const emailData = {
         email: 'newuser@example.com',
@@ -326,6 +390,18 @@ describe('EmailService', () => {
       expect(Logger.prototype.warn).toHaveBeenCalled();
 
       process.env.RESEND_API_KEY = 'test-api-key';
+    });
+
+    it('should log warning if resend client is missing', async () => {
+      (service as any).resend = null;
+      const emailData = {
+        email: 'welcomeuser@example.com',
+        name: 'Welcome User',
+      };
+
+      await service.sendWelcomeEmail(emailData);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
     });
 
     it('should handle errors when sending welcome email', async () => {

@@ -70,22 +70,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -128,12 +114,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -148,10 +128,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
@@ -177,22 +153,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -244,12 +206,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -264,10 +220,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
@@ -295,22 +247,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Validate GCP credentials
-        run: |
-          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then
-            echo "ERROR: GCP_SERVICE_ACCOUNT secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
-            echo "ERROR: GCP_WORKLOAD_IDENTITY_PROVIDER secret is not set"
-            exit 1
-          fi
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v2
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
@@ -353,12 +291,6 @@ jobs:
       - name: Build DATABASE_URL
         id: build-db-url
         run: |
-          # Debug: Check if outputs are available
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "PUBLIC_IP: ${{ steps.db.outputs.public_ip }}"
-          echo "PASSWORD_SET: ${{ steps.db-password.outputs.password != '' }}"
-
           # Validate required values
           if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
             echo "ERROR: Public IP is empty"
@@ -373,10 +305,6 @@ jobs:
           PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
           DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
           echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
-          echo "Database URL constructed (password hidden)"
-          echo "DB_HOST: ${{ steps.db.outputs.public_ip }}"
-          echo "DB_NAME: ${{ steps.db.outputs.db_name }}"
-          echo "DB_USER: ${{ steps.db.outputs.db_user }}"
 
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
