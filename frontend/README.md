@@ -1,4 +1,4 @@
-# Epitrello Frontend
+# Epitrello Frontend read.me
 
 Next.js-based React application for the Epitrello project management platform.
 
