@@ -1,39 +1,69 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { Label, UserRef, Checklist, DueDate, Comment, Card } from "./CardModal/types";
+import DescriptionSection from "./CardModal/DescriptionSection";
+import ChecklistsSection from "./CardModal/ChecklistsSection";
+import ActivitySection from "./CardModal/ActivitySection";
+import AddToCardMenu from "./CardModal/AddToCardMenu";
+import ActionsMenu from "./CardModal/ActionsMenu";
 
-type Label = { id: string; name?: string; color?: string };
-type UserRef = { id: string; name?: string; avatar?: string; email?: string };
-type ChecklistItem = {
-  id: string;
-  text: string;
-  checked: boolean;
-};
-type Checklist = {
-  id: string;
-  title: string;
-  items: ChecklistItem[];
-};
-type DueDate = {
-  date: string;
-  isComplete: boolean;
-};
-type Comment = {
-  id: string;
-  text: string;
-  author: UserRef;
-  createdAt: string;
-};
-type Card = {
-  id: string;
-  title: string;
-  description?: string;
-  labels?: Label[];
-  assignees?: UserRef[];
-  checklists?: Checklist[];
-  dueDate?: DueDate;
-  comments?: Comment[];
-};
+// Typed event names for board interactions
+type BoardEventName =
+  | "epitrello:card-title-updated"
+  | "epitrello:card-description-updated"
+  | "epitrello:card-members-updated"
+  | "epitrello:card-labels-updated"
+  | "epitrello:card-checklists-updated"
+  | "epitrello:card-duedate-updated"
+  | "epitrello:card-comments-updated"
+  | "epitrello:card-moved"
+  | "epitrello:card-copied"
+  | "epitrello:card-archived"
+  | "epitrello:card-deleted";
+
+// Centralized CustomEvent emitter with logging and error safety
+function emitEvent(name: BoardEventName, detail: Record<string, unknown>) {
+  try {
+    console.log("📤 CardModal:", name, detail);
+    window.dispatchEvent(new CustomEvent(name, { detail }));
+  } catch (err) {
+    console.error("CardModal: failed to dispatch event", name, err);
+  }
+}
+
+// Pure helpers (hoisted): formatting + calculations
+function getChecklistProgress(checklist: Checklist) {
+  if (checklist.items.length === 0) return 0;
+  const checkedCount = checklist.items.filter((item) => item.checked).length;
+  return Math.round((checkedCount / checklist.items.length) * 100);
+}
+
+function formatDueDate(dateStr: string) {
+  const date = new Date(dateStr);
+  const options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  };
+  return date.toLocaleDateString("en-US", options);
+}
+
+function formatCommentDate(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
 
 interface CardModalProps {
   card: Card;
@@ -138,7 +168,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const moveMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Mettre à jour le titre si la carte change
   useEffect(() => {
@@ -288,12 +317,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     
     // Notifier le changement (événement custom pour plus tard)
     if (trimmedTitle !== card.title) {
-      console.log('📤 CardModal: Dispatching card-title-updated event:', { cardId: card.id, title: trimmedTitle });
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-title-updated", {
-          detail: { cardId: card.id, title: trimmedTitle },
-        })
-      );
+      emitEvent("epitrello:card-title-updated", { cardId: card.id, title: trimmedTitle });
     }
   };
 
@@ -309,11 +333,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     
     // Notifier le changement
     if (description !== (card.description || "")) {
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-description-updated", {
-          detail: { cardId: card.id, description },
-        })
-      );
+      emitEvent("epitrello:card-description-updated", { cardId: card.id, description });
     }
   };
 
@@ -332,29 +352,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const toggleMember = (member: UserRef) => {
     const isAssigned = assignedMembers.some((m) => m.id === member.id);
     
-    if (isAssigned) {
-      // Supprimer
-      const updated = assignedMembers.filter((m) => m.id !== member.id);
-      setAssignedMembers(updated);
-      
-      // Notifier le changement
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-members-updated", {
-          detail: { cardId: card.id, members: updated },
-        })
-      );
-    } else {
-      // Ajouter
-      const updated = [...assignedMembers, member];
-      setAssignedMembers(updated);
-      
-      // Notifier le changement
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-members-updated", {
-          detail: { cardId: card.id, members: updated },
-        })
-      );
-    }
+    const updated = isAssigned
+      ? assignedMembers.filter((m) => m.id !== member.id)
+      : [...assignedMembers, member];
+    setAssignedMembers(updated);
+    emitEvent("epitrello:card-members-updated", { cardId: card.id, members: updated });
   };
 
   // Vérifier si un membre est assigné
@@ -366,29 +368,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const toggleLabel = (label: Label) => {
     const isAssigned = assignedLabels.some((l) => l.id === label.id);
     
-    if (isAssigned) {
-      // Supprimer
-      const updated = assignedLabels.filter((l) => l.id !== label.id);
-      setAssignedLabels(updated);
-      
-      // Notifier le changement
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-labels-updated", {
-          detail: { cardId: card.id, labels: updated },
-        })
-      );
-    } else {
-      // Ajouter
-      const updated = [...assignedLabels, label];
-      setAssignedLabels(updated);
-      
-      // Notifier le changement
-      window.dispatchEvent(
-        new CustomEvent("epitrello:card-labels-updated", {
-          detail: { cardId: card.id, labels: updated },
-        })
-      );
-    }
+    const updated = isAssigned
+      ? assignedLabels.filter((l) => l.id !== label.id)
+      : [...assignedLabels, label];
+    setAssignedLabels(updated);
+    emitEvent("epitrello:card-labels-updated", { cardId: card.id, labels: updated });
   };
 
   // Vérifier si un label est assigné
@@ -412,12 +396,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     setNewChecklistTitle("");
     setOpenMenu(null);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-checklists-updated", {
-        detail: { cardId: card.id, checklists: updated },
-      })
-    );
+    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
   };
 
   // Ajouter un item à une checklist
@@ -445,12 +424,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     setChecklists(updated);
     setNewItemText("");
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-checklists-updated", {
-        detail: { cardId: card.id, checklists: updated },
-      })
-    );
+    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
   };
 
   // Toggle item checklist
@@ -469,12 +443,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
     setChecklists(updated);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-checklists-updated", {
-        detail: { cardId: card.id, checklists: updated },
-      })
-    );
+    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
   };
 
   // Supprimer une checklist
@@ -490,12 +459,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     );
   };
 
-  // Calculer la progression d'une checklist
-  const getChecklistProgress = (checklist: Checklist) => {
-    if (checklist.items.length === 0) return 0;
-    const checkedCount = checklist.items.filter((item) => item.checked).length;
-    return Math.round((checkedCount / checklist.items.length) * 100);
-  };
 
   // Sauvegarder la date d'échéance
   const saveDueDate = () => {
@@ -509,12 +472,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     setDueDate(newDueDate);
     setOpenMenu(null);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-duedate-updated", {
-        detail: { cardId: card.id, dueDate: newDueDate },
-      })
-    );
+    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: newDueDate });
   };
 
   // Toggle complete sur la date
@@ -528,24 +486,14 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
     setDueDate(updated);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-duedate-updated", {
-        detail: { cardId: card.id, dueDate: updated },
-      })
-    );
+    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: updated });
   };
 
   // Supprimer la date d'échéance
   const removeDueDate = () => {
     setDueDate(undefined);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-duedate-updated", {
-        detail: { cardId: card.id, dueDate: undefined },
-      })
-    );
+    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: undefined });
   };
 
   // Déterminer le statut de la date
@@ -565,16 +513,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     return "upcoming";
   };
 
-  // Formater la date pour l'affichage
-  const formatDueDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const options: Intl.DateTimeFormatOptions = { 
-      month: 'short', 
-      day: 'numeric',
-      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-    };
-    return date.toLocaleDateString('en-US', options);
-  };
 
   // Ajouter un commentaire
   const addComment = () => {
@@ -592,12 +530,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     setComments(updated);
     setNewComment("");
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-comments-updated", {
-        detail: { cardId: card.id, comments: updated },
-      })
-    );
+    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
   };
 
   // Commencer l'édition d'un commentaire
@@ -619,12 +552,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     setEditingCommentId(null);
     setEditingCommentText("");
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-comments-updated", {
-        detail: { cardId: card.id, comments: updated },
-      })
-    );
+    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
   };
 
   // Annuler l'édition
@@ -638,30 +566,9 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     const updated = comments.filter((c) => c.id !== commentId);
     setComments(updated);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-comments-updated", {
-        detail: { cardId: card.id, comments: updated },
-      })
-    );
+    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
   };
 
-  // Formater la date du commentaire
-  const formatCommentDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return "just now";
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
 
   // Actions
   const moveCard = () => {
@@ -669,11 +576,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   };
 
   const moveCardToList = (listName: string) => {
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-moved", {
-        detail: { cardId: card.id, toList: listName },
-      })
-    );
+    emitEvent("epitrello:card-moved", { cardId: card.id, toList: listName });
     onClose();
   };
 
@@ -683,31 +586,18 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       id: `card-${Date.now()}`,
       title: `${card.title} (copy)`,
     };
-
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-copied", {
-        detail: { cardId: card.id, copiedCard },
-      })
-    );
+    emitEvent("epitrello:card-copied", { cardId: card.id, copiedCard });
     onClose();
   };
 
   const archiveCard = () => {
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-archived", {
-        detail: { cardId: card.id },
-      })
-    );
+    emitEvent("epitrello:card-archived", { cardId: card.id });
     setShowArchiveConfirm(false);
     onClose();
   };
 
   const deleteCard = () => {
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-deleted", {
-        detail: { cardId: card.id },
-      })
-    );
+    emitEvent("epitrello:card-deleted", { cardId: card.id });
     setShowDeleteConfirm(false);
     onClose();
   };
@@ -938,371 +828,57 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
               )}
 
               {/* Description */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h7"
-                    />
-                  </svg>
-                  <h3 className="text-sm font-semibold text-gray-700">Description</h3>
-                </div>
-                <div className="ml-7">
-                  {!isEditingDescription ? (
-                    <div
-                      onClick={() => setIsEditingDescription(true)}
-                      className="cursor-pointer"
-                    >
-                      {card.description ? (
-                        <p className="text-sm text-gray-600 whitespace-pre-wrap bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded transition-colors min-h-[80px]">
-                          {card.description}
-                        </p>
-                      ) : (
-                        <button className="text-sm text-gray-500 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded transition-colors w-full text-left min-h-[80px]">
-                          Add a more detailed description...
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <textarea
-                        ref={descriptionTextareaRef}
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            e.preventDefault();
-                            cancelEditDescription();
-                          }
-                        }}
-                        placeholder="Add a more detailed description..."
-                        className="w-full min-h-[120px] p-3 rounded border-2 border-indigo-500 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                      />
-                      <div className="mt-2 flex items-center gap-2">
-                        <button
-                          onClick={saveDescription}
-                          className="px-4 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 active:bg-indigo-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEditDescription}
-                          className="px-4 py-2 text-sm text-gray-600 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <DescriptionSection
+                cardDescription={card.description}
+                isEditing={isEditingDescription}
+                description={description}
+                onChange={setDescription}
+                onStartEdit={() => setIsEditingDescription(true)}
+                onSave={saveDescription}
+                onCancel={cancelEditDescription}
+                textareaRef={descriptionTextareaRef}
+              />
 
               {/* Checklists */}
-              {checklists.map((checklist) => {
-                const progress = getChecklistProgress(checklist);
-                const checkedCount = checklist.items.filter((item) => item.checked).length;
-                
-                return (
-                  <div key={checklist.id}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <svg
-                          className="w-5 h-5 text-gray-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                          />
-                        </svg>
-                        <h3 className="text-sm font-semibold text-gray-700">{checklist.title}</h3>
-                      </div>
-                      <button
-                        onClick={() => deleteChecklist(checklist.id)}
-                        className="text-sm text-gray-500 hover:text-red-600 transition-colors"
-                        title="Delete checklist"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                    <div className="ml-7">
-                      {/* Barre de progression */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-600">
-                            {checkedCount}/{checklist.items.length}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-700">{progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-300 ${
-                              progress === 100 ? 'bg-green-500' : 'bg-indigo-500'
-                            }`}
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Items */}
-                      <div className="space-y-2">
-                        {checklist.items.map((item) => (
-                          <label
-                            key={item.id}
-                            className="flex items-start gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer group transition-colors"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={item.checked}
-                              onChange={() => toggleChecklistItem(checklist.id, item.id)}
-                              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span
-                              className={`text-sm flex-1 ${
-                                item.checked
-                                  ? 'text-gray-400 line-through'
-                                  : 'text-gray-700'
-                              }`}
-                            >
-                              {item.text}
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-
-                      {/* Add item */}
-                      {addingItemToChecklist === checklist.id ? (
-                        <div className="mt-3">
-                          <input
-                            type="text"
-                            value={newItemText}
-                            onChange={(e) => setNewItemText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                addChecklistItem(checklist.id);
-                              } else if (e.key === 'Escape') {
-                                setAddingItemToChecklist(null);
-                                setNewItemText('');
-                              }
-                            }}
-                            placeholder="Add an item..."
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-2"
-                            autoFocus
-                          />
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => addChecklistItem(checklist.id)}
-                              className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
-                            >
-                              Add
-                            </button>
-                            <button
-                              onClick={() => {
-                                setAddingItemToChecklist(null);
-                                setNewItemText('');
-                              }}
-                              className="px-3 py-1.5 text-sm text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setAddingItemToChecklist(checklist.id)}
-                          className="mt-2 text-sm text-gray-600 hover:bg-gray-100 px-3 py-1.5 rounded transition-colors"
-                        >
-                          + Add an item
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              <ChecklistsSection
+                checklists={checklists}
+                addingItemToChecklist={addingItemToChecklist}
+                newItemText={newItemText}
+                onDeleteChecklist={deleteChecklist}
+                onToggleItem={toggleChecklistItem}
+                onStartAddItem={(id) => setAddingItemToChecklist(id)}
+                onAddItem={addChecklistItem}
+                onCancelAddItem={() => {
+                  setAddingItemToChecklist(null);
+                  setNewItemText("");
+                }}
+                onChangeNewItemText={setNewItemText}
+                getProgress={getChecklistProgress}
+              />
 
               {/* Activity section */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                    />
-                  </svg>
-                  <h3 className="text-sm font-semibold text-gray-700">Activity</h3>
-                </div>
-
-                {/* Add Comment */}
-                <div className="ml-7 mb-4">
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
-                      {currentUser.avatar ? (
-                        <img src={currentUser.avatar} alt={currentUser.name || "User"} className="w-full h-full rounded-full object-cover" />
-                      ) : (
-                        (currentUser.name || "User")
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <textarea
-                        ref={commentTextareaRef}
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Write a comment..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        rows={3}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                            e.preventDefault();
-                            addComment();
-                          }
-                        }}
-                      />
-                      {newComment.trim() && (
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={addComment}
-                            className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => setNewComment("")}
-                            className="px-3 py-1.5 text-gray-600 text-sm rounded hover:bg-gray-100 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Comments List */}
-                <div className="ml-7 space-y-3">
-                  {comments.length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No comments yet</p>
-                  ) : (
-                    comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-2 items-start group">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-medium">
-                          {comment.author.avatar ? (
-                            <img src={comment.author.avatar} alt={comment.author.name || "User"} className="w-full h-full rounded-full object-cover" />
-                          ) : (
-                            (comment.author.name || "User")
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">{comment.author.name || "User"}</span>
-                            <span className="text-xs text-gray-500">{formatCommentDate(comment.createdAt)}</span>
-                          </div>
-
-                          {editingCommentId === comment.id ? (
-                            <div>
-                              <textarea
-                                value={editingCommentText}
-                                onChange={(e) => setEditingCommentText(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                rows={3}
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                                    e.preventDefault();
-                                    saveEditComment(comment.id);
-                                  } else if (e.key === "Escape") {
-                                    e.preventDefault();
-                                    cancelEditComment();
-                                  }
-                                }}
-                              />
-                              <div className="flex gap-2 mt-2">
-                                <button
-                                  onClick={() => saveEditComment(comment.id)}
-                                  className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={cancelEditComment}
-                                  className="px-3 py-1.5 text-gray-600 text-sm rounded hover:bg-gray-100 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-gray-50 px-3 py-2 rounded-md text-sm text-gray-700 whitespace-pre-wrap break-words">
-                              {comment.text}
-                            </div>
-                          )}
-
-                          {editingCommentId !== comment.id && comment.author.id === currentUser.id && (
-                            <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => startEditComment(comment)}
-                                className="text-xs text-gray-500 hover:text-gray-700 underline"
-                              >
-                                Edit
-                              </button>
-                              <span className="text-xs text-gray-300">•</span>
-                              <button
-                                onClick={() => deleteComment(comment.id)}
-                                className="text-xs text-gray-500 hover:text-red-600 underline"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <ActivitySection
+                currentUser={currentUser}
+                comments={comments}
+                newComment={newComment}
+                onChangeNewComment={setNewComment}
+                onAddComment={addComment}
+                onStartEditComment={startEditComment}
+                editingCommentId={editingCommentId}
+                editingCommentText={editingCommentText}
+                onEditCommentTextChange={setEditingCommentText}
+                onSaveEditComment={saveEditComment}
+                onCancelEditComment={cancelEditComment}
+                onDeleteComment={deleteComment}
+                formatCommentDate={formatCommentDate}
+                commentTextareaRef={commentTextareaRef}
+              />
 
               {/* Historique (optionnel) */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <svg
-                    className="w-5 h-5 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <h3 className="text-sm font-semibold text-gray-700">History</h3>
                 </div>
@@ -1314,301 +890,36 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
             {/* Colonne droite - Actions (~30%) */}
             <div className="lg:w-[30%] space-y-4">
-              {/* Add to card */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Add to card
-                </h3>
-                <div className="space-y-2">
-                  {/* Members */}
-                  <div className="relative" ref={(el) => { menuRefs.current['members'] = el; }}>
-                    <button
-                      onClick={() => toggleMenu('members')}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      Members
-                    </button>
-                    {openMenu === 'members' && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Members</h4>
-                        <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
-                          {availableMembers.map((member) => {
-                            const initials = member.name
-                              ? member.name
-                                  .split(" ")
-                                  .map((s) => s[0])
-                                  .slice(0, 2)
-                                  .join("")
-                              : (member.email || "U")[0].toUpperCase();
-                            const isAssigned = isMemberAssigned(member.id);
-                            
-                            return (
-                              <button
-                                key={member.id}
-                                onClick={() => toggleMember(member)}
-                                className={`w-full flex items-center gap-2 px-2 py-2 rounded text-left transition-colors ${
-                                  isAssigned
-                                    ? 'bg-indigo-50 hover:bg-indigo-100'
-                                    : 'hover:bg-gray-100'
-                                }`}
-                              >
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white ${
-                                  isAssigned ? 'bg-indigo-500' : 'bg-gray-400'
-                                }`}>
-                                  {member.avatar ? (
-                                    <img
-                                      src={member.avatar}
-                                      alt={member.name}
-                                      className="w-full h-full object-cover rounded-full"
-                                    />
-                                  ) : (
-                                    initials
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 truncate">
-                                    {member.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500 truncate">
-                                    {member.email}
-                                  </div>
-                                </div>
-                                {isAssigned && (
-                                  <svg className="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <AddToCardMenu
+                openMenu={openMenu}
+                toggleMenu={toggleMenu}
+                menuRefs={menuRefs}
+                availableMembers={availableMembers}
+                assignedMembers={assignedMembers}
+                isMemberAssigned={isMemberAssigned}
+                toggleMember={toggleMember}
+                availableLabels={availableLabels}
+                assignedLabels={assignedLabels}
+                isLabelAssigned={isLabelAssigned}
+                toggleLabel={toggleLabel}
+                newChecklistTitle={newChecklistTitle}
+                setNewChecklistTitle={setNewChecklistTitle}
+                createChecklist={createChecklist}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                dueDate={dueDate}
+                saveDueDate={saveDueDate}
+                removeDueDate={removeDueDate}
+              />
 
-                  {/* Labels */}
-                  <div className="relative" ref={(el) => { menuRefs.current['labels'] = el; }}>
-                    <button
-                      onClick={() => toggleMenu('labels')}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                      Labels
-                    </button>
-                    {openMenu === 'labels' && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Labels</h4>
-                        <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                          {availableLabels.map((label) => {
-                            const isAssigned = isLabelAssigned(label.id);
-                            
-                            return (
-                              <button
-                                key={label.id}
-                                onClick={() => toggleLabel(label)}
-                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md ${label.color} text-white text-sm font-medium hover:opacity-90 transition-all ${
-                                  isAssigned ? 'ring-2 ring-indigo-500 ring-offset-2' : ''
-                                }`}
-                              >
-                                <span className="flex-1 text-left">{label.name || "Untitled"}</span>
-                                {isAssigned && (
-                                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <button className="w-full text-left text-sm text-gray-700 hover:bg-gray-100 px-3 py-2 rounded transition-colors">
-                            Create new label
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Checklist */}
-                  <div className="relative" ref={(el) => { menuRefs.current['checklist'] = el; }}>
-                    <button
-                      onClick={() => toggleMenu('checklist')}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      Checklist
-                    </button>
-                    {openMenu === 'checklist' && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Add Checklist</h4>
-                        <input
-                          type="text"
-                          value={newChecklistTitle}
-                          onChange={(e) => setNewChecklistTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              createChecklist();
-                            } else if (e.key === 'Escape') {
-                              setOpenMenu(null);
-                              setNewChecklistTitle('');
-                            }
-                          }}
-                          placeholder="Checklist title..."
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-2"
-                        />
-                        <button
-                          onClick={createChecklist}
-                          className="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Dates */}
-                  <div className="relative" ref={(el) => { menuRefs.current['dates'] = el; }}>
-                    <button
-                      onClick={() => toggleMenu('dates')}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      Dates
-                    </button>
-                    {openMenu === 'dates' && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-3">Dates</h4>
-                        <label className="block text-xs text-gray-600 mb-1">Due date</label>
-                        <input
-                          type="date"
-                          value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400 mb-3"
-                        />
-                        <button
-                          onClick={saveDueDate}
-                          disabled={!selectedDate}
-                          className="w-full px-3 py-2 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                        >
-                          Save
-                        </button>
-                        {dueDate && (
-                          <button
-                            onClick={removeDueDate}
-                            className="w-full mt-2 px-3 py-2 bg-red-50 text-red-600 text-sm rounded hover:bg-red-100 transition-colors"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Attachment */}
-                  <div className="relative" ref={(el) => { menuRefs.current['attachment'] = el; }}>
-                    <button
-                      onClick={() => toggleMenu('attachment')}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 active:bg-gray-300 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                      Attachment
-                    </button>
-                    {openMenu === 'attachment' && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Attach from...</h4>
-                        <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors">
-                          Computer
-                        </button>
-                        <button className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors">
-                          Link
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div>
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Actions
-                </h3>
-                <div className="space-y-2">
-                  {/* Move Button */}
-                  <div className="relative" ref={moveMenuRef}>
-                    <button
-                      onClick={moveCard}
-                      className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                      Move
-                    </button>
-                    {showMoveMenu && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-10 animate-fade-in">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">Select a list</h4>
-                        <div className="space-y-1">
-                          {["To Do", "In Progress", "Review", "Done"].map((listName) => (
-                            <button
-                              key={listName}
-                              onClick={() => moveCardToList(listName)}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                            >
-                              {listName}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Copy Button */}
-                  <button
-                    onClick={copyCard}
-                    className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copy
-                  </button>
-
-                  {/* Archive Button */}
-                  <button
-                    onClick={() => setShowArchiveConfirm(true)}
-                    className="w-full text-left text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                    </svg>
-                    Archive
-                  </button>
-
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full text-left text-sm text-red-600 bg-red-50 hover:bg-red-100 px-3 py-2 rounded transition-colors flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-red-400"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    Delete
-                  </button>
-                </div>
-              </div>
+              <ActionsMenu
+                showMoveMenu={showMoveMenu}
+                onToggleMove={moveCard}
+                onMoveCardToList={moveCardToList}
+                onCopyCard={copyCard}
+                onRequestArchive={() => setShowArchiveConfirm(true)}
+                onRequestDelete={() => setShowDeleteConfirm(true)}
+              />
             </div>
           </div>
         </div>
