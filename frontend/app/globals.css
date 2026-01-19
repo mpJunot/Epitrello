@@ -82,6 +82,17 @@ body {
   }
 }
 
+@keyframes dragPlaceholder {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(0.98);
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
@@ -100,6 +111,10 @@ body {
 
 .animate-shake {
   animation: shake 0.5s ease-in-out;
+}
+
+.animate-drag-placeholder {
+  animation: dragPlaceholder 1s ease-in-out infinite;
 }
 
 /* Flou du board quand la modale est ouverte */

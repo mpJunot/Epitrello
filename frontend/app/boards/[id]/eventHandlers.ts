@@ -43,17 +43,26 @@ export function createListEventHandlers(
   async function handleListMove(e: any) {
     const detail = e?.detail;
     if (!detail) return;
-    const { sourceIndex, targetIndex } = detail;
+    const { listId, newPosition } = detail;
 
     let updatedLists: List[] = [];
+    let originalLists: List[] = [];
+
+    // Optimistic UI update
     setLists((prevLists) => {
+      originalLists = [...prevLists];
+      const sourceIndex = prevLists.findIndex((l) => l.id === listId);
+      
+      if (sourceIndex === -1 || sourceIndex === newPosition) return prevLists;
+
       const updated = [...prevLists];
       const [moved] = updated.splice(sourceIndex, 1);
-      updated.splice(targetIndex, 0, moved);
+      updated.splice(newPosition, 0, moved);
       updatedLists = updated;
       return updated;
     });
 
+    // Backend sync with rollback
     (async () => {
       try {
         const positions = updatedLists.map((l, idx) => ({ id: l.id, position: idx }));
@@ -61,6 +70,8 @@ export function createListEventHandlers(
         logAction('✅', 'Lists reordered');
       } catch (err) {
         handleAsyncError(err, 'reorder lists');
+        // Rollback on failure
+        setLists(() => originalLists);
       }
     })();
   }
@@ -68,35 +79,62 @@ export function createListEventHandlers(
   async function handleListCopy(e: any) {
     const detail = e?.detail;
     if (!detail) return;
-    const { listId, title } = detail;
+    const { sourceListId, newListTitle } = detail;
 
+    const tempListId = `temp-list-${Date.now()}`;
+    let cardsToCreate: Card[] = [];
+
+    // Create temporary list with temporary cards (optimistic update)
     setLists((prevLists) => {
-      const source = prevLists.find((l) => l.id === listId);
-      if (!source) return prevLists;
+      const sourceList = prevLists.find((l) => l.id === sourceListId);
+      if (!sourceList) return prevLists;
+
+      cardsToCreate = sourceList.cards || [];
       const newList: List = {
-        id: `temp-${Date.now()}`,
-        title,
-        cards: (source.cards || []).map((c) => ({
+        id: tempListId,
+        title: newListTitle,
+        cards: cardsToCreate.map((c, idx) => ({
           ...c,
-          id: `temp-card-${Date.now()}-${Math.random()}`,
+          id: `temp-card-${Date.now()}-${idx}`,
         })),
       };
       return [...prevLists, newList];
     });
 
+    // If no cards to create, exit early
+    if (!cardsToCreate) return;
+
     (async () => {
       try {
-        const newList = await createList({ boardId, title });
+        // 1. Create the new list
+        const newList = await createList({ boardId, title: newListTitle });
         if (!newList) throw new Error('Failed to copy list');
-        logAction('✅', 'List copied');
+
+        // 2. Create all cards in the new list
+        const createdCards: Card[] = [];
+        for (let i = 0; i < cardsToCreate.length; i++) {
+          const sourceCard = cardsToCreate[i];
+          const newCard = await createCard({
+            listId: newList.id,
+            title: sourceCard.title,
+            description: sourceCard.description,
+            position: i,
+          });
+          createdCards.push(newCard);
+        }
+
+        // 3. Replace temp list with real list and cards
         setLists((prev) =>
           prev.map((l) =>
-            l.id.startsWith('temp-') ? { ...newList, cards: l.cards } : l
+            l.id === tempListId ? { ...newList, cards: createdCards } : l
           )
         );
+
+        logAction('✅', `List copied with ${createdCards.length} card(s)`);
       } catch (err) {
         handleAsyncError(err, 'copy list');
-        setLists((prev) => prev.filter((l) => !l.id.startsWith('temp-')));
+        // Rollback: remove temporary list
+        setLists((prev) => prev.filter((l) => l.id !== tempListId));
       }
     })();
   }
@@ -160,6 +198,30 @@ export function createListEventHandlers(
 export function createCardEventHandlers(
   setLists: Dispatch<SetStateAction<List[]>>
 ) {
+  // Store full board snapshot before drag for exact rollback
+  let boardSnapshot: List[] = [];
+
+  function handleDragStart(e: any) {
+    const detail = e?.detail;
+    if (!detail) return;
+    
+    const { cardId } = detail;
+    
+    // CRITICAL: Reject temporary cards before capturing snapshot
+    if (cardId?.startsWith('temp-')) {
+      console.warn('⚠️ Cannot drag temporary card:', cardId, '- card still being created');
+      return; // Don't capture snapshot
+    }
+    
+    // Capture full board state before any mutations
+    setLists((prevLists) => {
+      boardSnapshot = JSON.parse(JSON.stringify(prevLists)); // Deep clone
+      return prevLists; // No mutation
+    });
+    
+    console.log('📸 Snapshot captured:', boardSnapshot.length, 'lists');
+  }
+
   async function handleCardCreate(e: any) {
     const detail = e?.detail;
     if (!detail) return;
@@ -209,37 +271,98 @@ export function createCardEventHandlers(
   async function handleCardMove(e: any) {
     const detail = e?.detail;
     if (!detail) return;
-    const { cardId, sourceListId, targetListId, targetIndex } = detail;
+    const { cardId, sourceListId, targetListId, targetIndex, fromIndex } = detail;
 
-    setLists((prevLists) => {
-      const sourceList = prevLists.find((l) => l.id === sourceListId);
-      const movedCard = sourceList?.cards?.find((c) => c.id === cardId);
-
-      if (!movedCard) return prevLists;
-
-      return prevLists.map((l) => {
-        if (l.id === sourceListId) {
-          return { ...l, cards: (l.cards || []).filter((c) => c.id !== cardId) };
-        }
-        if (l.id === targetListId) {
-          const newCards = [...(l.cards || [])];
-          newCards.splice(targetIndex, 0, movedCard);
-          return { ...l, cards: newCards };
-        }
-        return l;
-      });
+    console.log('🎯 handleCardMove called with:', {
+      cardId,
+      sourceListId,
+      targetListId,
+      targetIndex,
+      fromIndex,
+      isTemp: cardId?.startsWith('temp-')
     });
 
-    (async () => {
-      try {
-        if (sourceListId !== targetListId) {
-          await moveCard({ cardId, targetListId });
-        }
-        logAction('✅', 'Card moved');
-      } catch (err) {
-        handleAsyncError(err, 'move card');
+    // CRITICAL: Reject temporary cards to prevent "Card not found" errors
+    if (cardId?.startsWith('temp-')) {
+      console.warn('⚠️ Cannot move temporary card:', cardId, '- card still being created');
+      return;
+    }
+
+    // Optimistic UI update - single source of truth
+    setLists((prevLists) => {
+      const sourceList = prevLists.find((l) => l.id === sourceListId);
+      const targetList = prevLists.find((l) => l.id === targetListId);
+      const movedCard = sourceList?.cards?.find((c) => c.id === cardId);
+
+      console.log('🔍 Card lookup:', {
+        cardId,
+        foundInSource: !!movedCard,
+        sourceListCards: sourceList?.cards?.map(c => ({ id: c.id, title: c.title })),
+        targetListCards: targetList?.cards?.map(c => ({ id: c.id, title: c.title }))
+      });
+
+      if (!movedCard) {
+        console.error('❌ Card not found in source list:', {
+          cardId,
+          sourceListId,
+          sourceListExists: !!sourceList,
+          cardsInSource: sourceList?.cards?.length || 0
+        });
+        return prevLists;
       }
-    })();
+
+      const isSameList = sourceListId === targetListId;
+
+      if (isSameList) {
+        // Same list: reorder cards array
+        return prevLists.map((l) => {
+          if (l.id === sourceListId) {
+            const newCards = [...(l.cards || [])];
+            const [removed] = newCards.splice(fromIndex, 1);
+            newCards.splice(targetIndex, 0, removed);
+            return { ...l, cards: newCards };
+          }
+          return l;
+        });
+      } else {
+        // Different lists: remove from source, insert into target
+        return prevLists.map((l) => {
+          if (l.id === sourceListId) {
+            return { ...l, cards: (l.cards || []).filter((c) => c.id !== cardId) };
+          }
+          if (l.id === targetListId) {
+            const newCards = [...(l.cards || [])];
+            newCards.splice(targetIndex, 0, movedCard);
+            return { ...l, cards: newCards };
+          }
+          return l;
+        });
+      }
+    });
+
+    // Single backend call with final positions
+    console.log('📤 Calling backend moveCard with:', {
+      cardId,
+      targetListId,
+      position: targetIndex,
+      isTemp: cardId?.startsWith('temp-')
+    });
+
+    try {
+      await moveCard({ cardId, targetListId, position: targetIndex });
+      logAction('✅', 'Card moved');
+    } catch (err) {
+      console.error('❌ Backend moveCard failed:', err);
+      handleAsyncError(err, 'move card');
+      
+      // Restore exact pre-drag snapshot
+      if (boardSnapshot.length > 0) {
+        console.log('🔄 Restoring snapshot after failed move');
+        setLists(() => JSON.parse(JSON.stringify(boardSnapshot)));
+      } else {
+        console.warn('⚠️ No snapshot available for rollback');
+      }
+    }
   }
 
   async function handleCardTitleUpdate(e: any) {
@@ -321,6 +444,7 @@ export function createCardEventHandlers(
   }
 
   return {
+    handleDragStart,
     handleCardCreate,
     handleCardMove,
     handleCardTitleUpdate,
