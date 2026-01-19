@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import CardItem from "./CardItem";
 
+// Type definitions
 type Label = { id: string; name?: string; color?: string };
 type UserRef = { id: string; name?: string; avatar?: string; email?: string };
 type Card = {
@@ -13,47 +14,125 @@ type Card = {
   assignees?: UserRef[];
 };
 
+type ListColumnProps = {
+  list: { id: string; title: string; cards?: Card[] };
+  totalListsCount?: number;
+  allLists?: { id: string; title: string; cards?: Card[] }[];
+};
+
+// Helper functions for event dispatching
+const dispatchCustomEvent = (eventName: string, detail: any) => {
+  try {
+    window.dispatchEvent(new CustomEvent(eventName, { detail }));
+  } catch (error) {
+    console.error(`Error dispatching ${eventName}:`, error);
+  }
+};
+
+const generateId = () => {
+  return (crypto as any)?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+};
+
+// Custom hook for managing menu visibility with click outside and escape key
+const useMenuVisibility = (isOpen: boolean, menuRef: React.RefObject<HTMLElement>, buttonRef?: React.RefObject<HTMLElement>) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const isOutsideMenu = menuRef.current && !menuRef.current.contains(target);
+      const isOutsideButton = !buttonRef?.current || !buttonRef.current.contains(target);
+      
+      if (isOutsideMenu && isOutsideButton) {
+        // We can't directly close the menu here, parent component handles state
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        // Parent component handles closing
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen, menuRef, buttonRef]);
+};
+
 export default function ListColumn({ 
   list, 
   totalListsCount = 1,
   allLists = []
-}: { 
-  list: { id: string; title: string; cards?: Card[] }; 
-  totalListsCount?: number;
-  allLists?: { id: string; title: string; cards?: Card[] }[];
-}) {
+}: ListColumnProps) {
+  // Core state
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
+  const [ignoreParentSync, setIgnoreParentSync] = useState(false);
+  
+  // Title editing state
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title || "Untitled");
-  const [ignoreParentSync, setIgnoreParentSync] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Drag & drop state
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  
+  // Card composer state
+  const [addingCard, setAddingCard] = useState(false);
+  const [cardText, setCardText] = useState("");
+  const [cardError, setCardError] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  
+  // Column actions menu state
+  const [showActions, setShowActions] = useState(false);
+  const [isHoveringColumn, setIsHoveringColumn] = useState(false);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  
+  // Submenu states
+  const [showCopyMenu, setShowCopyMenu] = useState(false);
+  const [copyListName, setCopyListName] = useState("");
+  const copyNameInputRef = useRef<HTMLInputElement | null>(null);
+  
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const [movePosition, setMovePosition] = useState("0");
+  
+  const [showMoveAllCardsMenu, setShowMoveAllCardsMenu] = useState(false);
+  const [targetListId, setTargetListId] = useState("");
+  
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [activeSortOption, setActiveSortOption] = useState<string | null>(null);
+  
+  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
-  // keep local cards in sync if parent updates the list prop (but not during drag or immediately after a local reorder)
+  // Sync local cards with parent prop updates
   useEffect(() => {
     if (ignoreParentSync) return;
 
     const incoming = list.cards || [];
-    
-    // Compare IDs AND content (title, description) to detect changes
     const localSignature = cards.map((c) => `${c.id}:${c.title}:${c.description || ''}`).join('|');
     const incomingSignature = incoming.map((c) => `${c.id}:${c.title}:${c.description || ''}`).join('|');
 
-    // If the order and content are identical, skip
     if (localSignature === incomingSignature) return;
-
-    // If we just performed a local change (<400ms), skip one cycle to avoid overwriting local reorder
     if (Date.now() - lastLocalChange < 400) return;
 
     console.log('🔄 ListColumn: Updating cards from parent for list:', list.id, list.title);
     setCards(incoming);
   }, [list.cards, ignoreParentSync, cards, lastLocalChange, list.id, list.title]);
 
-  // keep title in sync if parent updates
+  // Sync title with parent updates
   useEffect(() => {
     setTitle(list.title || "Untitled");
   }, [list.title]);
 
+  // Focus management
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();
@@ -61,76 +140,12 @@ export default function ListColumn({
     }
   }, [editing]);
 
-  // Handle external card moves (from other lists)
   useEffect(() => {
-    const handleCardMove = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { cardId, fromListId, toListId, toIndex } = customEvent.detail;
-      
-      if (toListId === list.id && fromListId !== list.id) {
-        // A card is being moved TO this list FROM another list
-        // We need to find the card in the global state and add it
-        // This is a placeholder - actual implementation depends on parent component
-      }
-      
-      if (fromListId === list.id && toListId !== list.id) {
-        // A card is being moved FROM this list TO another list
-        const newCards = cards.filter(c => c.id !== cardId);
-        setCards(newCards);
-      }
-    };
-
-    window.addEventListener('epitrello:card-move', handleCardMove);
-    return () => window.removeEventListener('epitrello:card-move', handleCardMove);
-  }, [list.id, cards]);
-
-  // Drag & drop state
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  const addCard = () => {
-    // legacy placeholder (no-op) kept for compatibility; real add uses composer
-    return;
-  };
-
-  // Card composer state
-  const [addingCard, setAddingCard] = useState(false);
-  const [cardText, setCardText] = useState("");
-  const [cardError, setCardError] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const addButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  // Column actions menu state
-  const [showActions, setShowActions] = useState(false);
-  const [isHoveringColumn, setIsHoveringColumn] = useState(false);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
-  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
-
-  // Copy list submenu state
-  const [showCopyMenu, setShowCopyMenu] = useState(false);
-  const [copyListName, setCopyListName] = useState("");
-  const copyNameInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Move list submenu state
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const [movePosition, setMovePosition] = useState("0");
-
-  // Move all cards submenu state
-  const [showMoveAllCardsMenu, setShowMoveAllCardsMenu] = useState(false);
-  const [targetListId, setTargetListId] = useState("");
-
-  // Sort submenu state
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const [activeSortOption, setActiveSortOption] = useState<string | null>(null);
-
-  // Delete list submenu state
-  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
-
-  useEffect(() => {
-    if (addingCard && textareaRef.current) textareaRef.current.focus();
+    if (addingCard && textareaRef.current) {
+      textareaRef.current.focus();
+    }
   }, [addingCard]);
 
-  // Focus on copy list name input when submenu opens
   useEffect(() => {
     if (showCopyMenu && copyNameInputRef.current) {
       copyNameInputRef.current.focus();
@@ -138,183 +153,65 @@ export default function ListColumn({
     }
   }, [showCopyMenu]);
 
-  // Gérer la fermeture du menu d'actions
-  useEffect(() => {
-    if (!showActions) return;
+  // Handle menu closing with click outside and escape key
+  const createMenuCloseHandler = (menuOpen: boolean, setMenuOpen: (open: boolean) => void) => {
+    useEffect(() => {
+      if (!menuOpen) return;
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      // Fermer si on clique en dehors du menu et du bouton
-      if (
-        actionsMenuRef.current &&
-        !actionsMenuRef.current.contains(target) &&
-        actionsButtonRef.current &&
-        !actionsButtonRef.current.contains(target)
-      ) {
-        setShowActions(false);
-      }
-    };
+      const handleClickOutside = (e: MouseEvent) => {
+        const target = e.target as Node;
+        const isClickInMenu = actionsMenuRef.current?.contains(target);
+        const isClickInButton = actionsButtonRef.current?.contains(target);
+        
+        if (!isClickInMenu && !isClickInButton) {
+          setMenuOpen(false);
+        }
+      };
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowActions(false);
-      }
-    };
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setMenuOpen(false);
+        }
+      };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscape);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showActions]);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscape);
+      };
+    }, [menuOpen, setMenuOpen]);
+  };
 
-  // Gérer la fermeture du sous-menu de copie
-  useEffect(() => {
-    if (!showCopyMenu) return;
+  createMenuCloseHandler(showActions, setShowActions);
+  createMenuCloseHandler(showCopyMenu, setShowCopyMenu);
+  createMenuCloseHandler(showMoveMenu, setShowMoveMenu);
+  createMenuCloseHandler(showMoveAllCardsMenu, setShowMoveAllCardsMenu);
+  createMenuCloseHandler(showSortMenu, setShowSortMenu);
+  createMenuCloseHandler(showDeleteMenu, setShowDeleteMenu);
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
-        setShowCopyMenu(false);
-      }
-    };
+  // Card operations
 
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowCopyMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showCopyMenu]);
-
-  // Gérer la fermeture du sous-menu de déplacement
-  useEffect(() => {
-    if (!showMoveMenu) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
-        setShowMoveMenu(false);
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowMoveMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showMoveMenu]);
-
-  // Gérer la fermeture du sous-menu de déplacement de toutes les cartes
-  useEffect(() => {
-    if (!showMoveAllCardsMenu) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
-        setShowMoveAllCardsMenu(false);
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowMoveAllCardsMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showMoveAllCardsMenu]);
-
-  // Gérer la fermeture du sous-menu de tri
-  useEffect(() => {
-    if (!showSortMenu) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
-        setShowSortMenu(false);
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowSortMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showSortMenu]);
-
-  // Gérer la fermeture du sous-menu de suppression
-  useEffect(() => {
-    if (!showDeleteMenu) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (actionsMenuRef.current && !actionsMenuRef.current.contains(target)) {
-        setShowDeleteMenu(false);
-      }
-    };
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowDeleteMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [showDeleteMenu]);
-
+  // Card operations
   const submitCard = () => {
-    const title = (cardText || "").trim();
-    if (!title) {
-      // Validation échouée : afficher erreur avec shake
+    const trimmedTitle = (cardText || "").trim();
+    if (!trimmedTitle) {
       setCardError(true);
       setTimeout(() => setCardError(false), 500);
       return;
     }
-    const id = (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
-    const c: Card = { id, title, description: "" };
-    const next = [...cards, c];
-    setCards(next);
+    
+    const newCard: Card = {
+      id: generateId(),
+      title: trimmedTitle,
+      description: ""
+    };
+    
+    setCards([...cards, newCard]);
     setLastLocalChange(Date.now());
-    try { window.dispatchEvent(new CustomEvent("epitrello:card-created", { detail: { listId: list.id, card: c } })); } catch (e) {}
-    // clear textarea and keep focus for multiple cards
+    dispatchCustomEvent("epitrello:card-created", { listId: list.id, card: newCard });
+    
     setCardText("");
     setCardError(false);
     setTimeout(() => textareaRef.current?.focus(), 0);
@@ -323,10 +220,27 @@ export default function ListColumn({
   const cancelAdd = () => {
     setAddingCard(false);
     setCardText("");
-    // return focus to the add button after close
     setTimeout(() => addButtonRef.current?.focus(), 0);
   };
 
+  // List operations
+  const saveTitle = () => {
+    const trimmedTitle = (title || "").trim();
+    if (!trimmedTitle) {
+      setTitle(list.title || "Untitled");
+      setEditing(false);
+      return;
+    }
+
+    setTitle(trimmedTitle);
+    setEditing(false);
+    
+    if (trimmedTitle !== (list.title || "")) {
+      dispatchCustomEvent("epitrello:list-updated", { listId: list.id, title: trimmedTitle });
+    }
+  };
+
+  // Menu action handlers
   const openCopyMenu = () => {
     setShowActions(false);
     setCopyListName(`${title} (copy)`);
@@ -334,9 +248,7 @@ export default function ListColumn({
   };
 
   const openMoveMenu = () => {
-    // Vérifier s'il y a d'autres listes disponibles
     if (totalListsCount <= 1) {
-      // Ne pas ouvrir le menu s'il n'y a qu'une seule liste
       setShowActions(false);
       return;
     }
@@ -346,9 +258,7 @@ export default function ListColumn({
   };
 
   const openMoveAllCardsMenu = () => {
-    // Vérifier s'il y a d'autres listes disponibles
     if (totalListsCount <= 1) {
-      // Ne pas ouvrir le menu s'il n'y a qu'une seule liste
       setShowActions(false);
       return;
     }
@@ -358,7 +268,6 @@ export default function ListColumn({
   };
 
   const openSortMenu = () => {
-    // Ne pas ouvrir si la liste est vide
     if (cards.length === 0) {
       setShowActions(false);
       return;
@@ -367,27 +276,26 @@ export default function ListColumn({
     setShowSortMenu(true);
   };
 
+  const openDeleteMenu = () => {
+    setShowActions(false);
+    setShowDeleteMenu(true);
+  };
+
   const createCopyList = () => {
     const newListName = copyListName.trim();
     if (!newListName) return;
 
-    // Copier les cartes
     const copiedCards = cards.map(card => ({
       ...card,
-      id: (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString() + Math.random(),
+      id: generateId(),
     }));
 
-    // Dispatcher un événement pour créer la nouvelle liste
-    window.dispatchEvent(
-      new CustomEvent('epitrello:list-copied', {
-        detail: {
-          sourceListId: list.id,
-          newListTitle: newListName,
-          cards: copiedCards,
-          boardId: 'current', // Toujours le board courant
-        },
-      })
-    );
+    dispatchCustomEvent('epitrello:list-copied', {
+      sourceListId: list.id,
+      newListTitle: newListName,
+      cards: copiedCards,
+      boardId: 'current',
+    });
 
     setShowCopyMenu(false);
     setCopyListName("");
@@ -396,16 +304,11 @@ export default function ListColumn({
   const moveList = () => {
     const position = parseInt(movePosition, 10);
     
-    // Dispatcher un événement pour déplacer la liste
-    window.dispatchEvent(
-      new CustomEvent('epitrello:list-moved', {
-        detail: {
-          listId: list.id,
-          newPosition: position,
-          boardId: 'current', // TODO: Gérer plusieurs boards
-        },
-      })
-    );
+    dispatchCustomEvent('epitrello:list-moved', {
+      listId: list.id,
+      newPosition: position,
+      boardId: 'current',
+    });
 
     setShowMoveMenu(false);
   };
@@ -413,37 +316,18 @@ export default function ListColumn({
   const moveAllCards = () => {
     if (!targetListId) return;
 
-    // Dispatcher un événement pour déplacer toutes les cartes
-    window.dispatchEvent(
-      new CustomEvent('epitrello:move-all-cards', {
-        detail: {
-          sourceListId: list.id,
-          targetListId: targetListId,
-          cards: [...cards], // Conserver l'ordre actuel
-        },
-      })
-    );
+    dispatchCustomEvent('epitrello:move-all-cards', {
+      sourceListId: list.id,
+      targetListId: targetListId,
+      cards: [...cards],
+    });
 
-    // Vider la colonne source
     setCards([]);
     setShowMoveAllCardsMenu(false);
   };
 
-  const openDeleteMenu = () => {
-    setShowActions(false);
-    setShowDeleteMenu(true);
-  };
-
   const deleteList = () => {
-    // Dispatcher un événement pour supprimer la liste
-    window.dispatchEvent(
-      new CustomEvent('epitrello:list-deleted', {
-        detail: {
-          listId: list.id,
-        },
-      })
-    );
-
+    dispatchCustomEvent('epitrello:list-deleted', { listId: list.id });
     setShowDeleteMenu(false);
   };
 
@@ -454,32 +338,23 @@ export default function ListColumn({
     
     switch (sortOption) {
       case 'date-newest':
-        // Trier par date de création (plus récent en premier)
-        // Assumer que les cartes ont un id qui reflète l'ordre de création
         sortedCards.reverse();
         break;
       
       case 'date-oldest':
-        // Trier par date de création (plus ancien en premier)
-        // Ordre naturel
+        // Natural order
         break;
       
       case 'due-date':
-        // Trier par date d'échéance
-        // TODO: Implémenter quand les cartes auront un champ dueDate
-        sortedCards.sort((a, b) => {
-          // Placeholder: trier par titre pour l'instant
-          return a.title.localeCompare(b.title);
-        });
+        // TODO: Implement when cards have dueDate field
+        sortedCards.sort((a, b) => a.title.localeCompare(b.title));
         break;
       
       case 'alpha-asc':
-        // Trier alphabétiquement A → Z
         sortedCards.sort((a, b) => a.title.localeCompare(b.title));
         break;
       
       case 'alpha-desc':
-        // Trier alphabétiquement Z → A
         sortedCards.sort((a, b) => b.title.localeCompare(a.title));
         break;
     }
@@ -489,31 +364,21 @@ export default function ListColumn({
     setShowSortMenu(false);
   };
 
-  const saveTitle = () => {
-    const nextTitle = (title || "").trim();
-    if (!nextTitle) {
-      // do not accept empty titles: revert to previous and close
-      setTitle(list.title || "Untitled");
-      setEditing(false);
-      return;
-    }
-
-    setTitle(nextTitle);
-    setEditing(false);
-    // notify others that the list title changed (only if different)
-    if (nextTitle !== (list.title || "")) {
-      window.dispatchEvent(new CustomEvent("epitrello:list-updated", { detail: { listId: list.id, title: nextTitle } }));
-    }
-  };
-
-  // drag handlers
+  // Drag & drop handlers
   const handleCardDragStart = (e: React.DragEvent, cardId: string, fromIndex?: number) => {
     setIgnoreParentSync(true);
+    
     try {
-      e.dataTransfer.setData('application/json', JSON.stringify({ cardId, fromListId: list.id, fromIndex }));
+      e.dataTransfer.setData('application/json', JSON.stringify({ 
+        cardId, 
+        fromListId: list.id, 
+        fromIndex 
+      }));
       e.dataTransfer.effectAllowed = 'move';
-    } catch (err) {}
-    // visual
+    } catch (error) {
+      console.error('Error setting drag data:', error);
+    }
+    
     const el = e.currentTarget as HTMLElement;
     el.classList.add('opacity-70', 'scale-105');
   };
@@ -527,71 +392,83 @@ export default function ListColumn({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    
     const raw = e.dataTransfer.getData('application/json');
+    if (!raw) {
+      setDragOverIndex(null);
+      return;
+    }
 
     try {
-      const data = raw ? JSON.parse(raw) : null;
-      if (data && data.cardId) {
-        const provisionalIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
-        const isIntralistMove = data.fromListId === list.id;
-
-        // If moving within the same list, update local state directly and adjust indices safely
-        if (isIntralistMove) {
-          console.log('Moving card within same list');
-          const fromIndex = typeof data.fromIndex === 'number' ? data.fromIndex : cards.findIndex((c) => c.id === data.cardId);
-          console.log('fromIndex:', fromIndex, 'toIndex:', provisionalIndex);
-          if (fromIndex !== -1) {
-            let toIndex = provisionalIndex;
-            if (toIndex === fromIndex) {
-              console.log('No move needed, same index');
-              setIgnoreParentSync(false);
-              setDragOverIndex(null);
-              return; // no move needed
-            }
-            // When removing an earlier item, the target index shifts by -1
-            console.log('Adjusted toIndex before move:', toIndex);
-            if (fromIndex < toIndex) {
-              toIndex = Math.max(0, toIndex - 1);
-            }
-            console.log('Final toIndex after adjustment:', toIndex);
-            const newCards = [...cards];
-            const [card] = newCards.splice(fromIndex, 1);
-            newCards.splice(toIndex, 0, card);
-            console.log('New card order:', newCards.map(c => c.id));
-            setCards(newCards);
-            setLastLocalChange(Date.now());
-            // Emit move event so parent can sync reorder
-            window.dispatchEvent(
-              new CustomEvent('epitrello:card-move', {
-                detail: { cardId: data.cardId, fromListId: list.id, toListId: list.id, toIndex },
-              })
-            );
-            setIgnoreParentSync(false);
-          }
-        } else {
-          // For inter-list moves, dispatch event and let parent handle it
-          window.dispatchEvent(
-            new CustomEvent('epitrello:card-move', {
-              detail: { cardId: data.cardId, fromListId: data.fromListId, toListId: list.id, toIndex: provisionalIndex },
-            })
-          );
-          setIgnoreParentSync(false);
-        }
+      const data = JSON.parse(raw);
+      if (!data?.cardId) {
+        setDragOverIndex(null);
+        return;
       }
-    } catch (err) {
-      // swallow
+
+      const provisionalIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
+      const isIntralistMove = data.fromListId === list.id;
+
+      if (isIntralistMove) {
+        const fromIndex = typeof data.fromIndex === 'number' 
+          ? data.fromIndex 
+          : cards.findIndex((c) => c.id === data.cardId);
+          
+        if (fromIndex === -1) {
+          setIgnoreParentSync(false);
+          setDragOverIndex(null);
+          return;
+        }
+
+        let toIndex = provisionalIndex;
+        if (toIndex === fromIndex) {
+          setIgnoreParentSync(false);
+          setDragOverIndex(null);
+          return;
+        }
+
+        // Adjust target index when moving from earlier position
+        if (fromIndex < toIndex) {
+          toIndex = Math.max(0, toIndex - 1);
+        }
+
+        const newCards = [...cards];
+        const [card] = newCards.splice(fromIndex, 1);
+        newCards.splice(toIndex, 0, card);
+        
+        setCards(newCards);
+        setLastLocalChange(Date.now());
+        
+        dispatchCustomEvent('epitrello:card-move', {
+          cardId: data.cardId,
+          fromListId: list.id,
+          toListId: list.id,
+          toIndex,
+        });
+        
+        setIgnoreParentSync(false);
+      } else {
+        dispatchCustomEvent('epitrello:card-move', {
+          cardId: data.cardId,
+          fromListId: data.fromListId,
+          toListId: list.id,
+          toIndex: provisionalIndex,
+        });
+        
+        setIgnoreParentSync(false);
+      }
+    } catch (error) {
+      console.error('Error handling drop:', error);
     } finally {
       setDragOverIndex(null);
     }
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
-    // Only set isDragOver to false if leaving the entire column area
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
+    const { clientX, clientY } = e;
     
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
       setIsDragOver(false);
       setDragOverIndex(null);
     }
