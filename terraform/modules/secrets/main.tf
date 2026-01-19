@@ -397,3 +397,150 @@ resource "google_secret_manager_secret_iam_member" "slack_client_secret_access" 
 
   depends_on = [google_secret_manager_secret.slack_client_secret]
 }
+
+# ===================================
+# OAuth Callback URLs
+# ===================================
+resource "google_secret_manager_secret" "google_callback_url" {
+  count = var.google_callback_url != "" ? 1 : 0
+
+  secret_id = "${var.project_id}-google-callback-url"
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+
+  labels = var.labels
+}
+
+resource "google_secret_manager_secret_version" "google_callback_url_version" {
+  count = var.google_callback_url != "" ? 1 : 0
+
+  secret      = google_secret_manager_secret.google_callback_url[0].id
+  secret_data = var.google_callback_url
+
+  depends_on = [google_secret_manager_secret.google_callback_url]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "google_callback_url_access" {
+  count = var.google_callback_url != "" ? 1 : 0
+
+  secret_id = google_secret_manager_secret.google_callback_url[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.backend_service_account_email}"
+
+  depends_on = [google_secret_manager_secret.google_callback_url]
+}
+
+resource "google_secret_manager_secret" "microsoft_callback_url" {
+  count = var.microsoft_callback_url != "" ? 1 : 0
+
+  secret_id = "${var.project_id}-microsoft-callback-url"
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+
+  labels = var.labels
+}
+
+resource "google_secret_manager_secret_version" "microsoft_callback_url_version" {
+  count = var.microsoft_callback_url != "" ? 1 : 0
+
+  secret      = google_secret_manager_secret.microsoft_callback_url[0].id
+  secret_data = var.microsoft_callback_url
+
+  depends_on = [google_secret_manager_secret.microsoft_callback_url]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "microsoft_callback_url_access" {
+  count = var.microsoft_callback_url != "" ? 1 : 0
+
+  secret_id = google_secret_manager_secret.microsoft_callback_url[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.backend_service_account_email}"
+
+  depends_on = [google_secret_manager_secret.microsoft_callback_url]
+}
+
+resource "google_secret_manager_secret" "apple_callback_url" {
+  count = var.apple_callback_url != "" ? 1 : 0
+
+  secret_id = "${var.project_id}-apple-callback-url"
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+
+  labels = var.labels
+}
+
+resource "google_secret_manager_secret_version" "apple_callback_url_version" {
+  count = var.apple_callback_url != "" ? 1 : 0
+
+  secret      = google_secret_manager_secret.apple_callback_url[0].id
+  secret_data = var.apple_callback_url
+
+  depends_on = [google_secret_manager_secret.apple_callback_url]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "apple_callback_url_access" {
+  count = var.apple_callback_url != "" ? 1 : 0
+
+  secret_id = google_secret_manager_secret.apple_callback_url[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.backend_service_account_email}"
+
+  depends_on = [google_secret_manager_secret.apple_callback_url]
+}
+
+resource "google_secret_manager_secret" "slack_callback_url" {
+  count = var.slack_callback_url != "" ? 1 : 0
+
+  secret_id = "${var.project_id}-slack-callback-url"
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+
+  labels = var.labels
+}
+
+resource "google_secret_manager_secret_version" "slack_callback_url_version" {
+  count = var.slack_callback_url != "" ? 1 : 0
+
+  secret      = google_secret_manager_secret.slack_callback_url[0].id
+  secret_data = var.slack_callback_url
+
+  depends_on = [google_secret_manager_secret.slack_callback_url]
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
+resource "google_secret_manager_secret_iam_member" "slack_callback_url_access" {
+  count = var.slack_callback_url != "" ? 1 : 0
+
+  secret_id = google_secret_manager_secret.slack_callback_url[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.backend_service_account_email}"
+
+  depends_on = [google_secret_manager_secret.slack_callback_url]
+}
