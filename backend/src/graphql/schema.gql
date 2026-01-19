@@ -8,6 +8,19 @@ input AddBoardMemberInput {
   userId: ID!
 }
 
+input AddChecklistItemInput {
+  checklistId: ID!
+  content: String!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+}
+
+input AddLabelToCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+
 input AssignMemberToCardInput {
   cardId: ID!
   userId: ID!
@@ -46,11 +59,13 @@ type BoardMemberWithUser {
 }
 
 type Card {
+  checklists: [Checklist!]
   coverUrl: String
   createdAt: DateTime!
   description: String
   dueDate: DateTime
   id: ID!
+  labels: [Label!]
   listId: ID!
   position: Float!
   startDate: DateTime
@@ -59,6 +74,26 @@ type Card {
 }
 
 input CardPosition {
+  id: ID!
+  position: Float!
+}
+
+type Checklist {
+  cardId: ID!
+  id: ID!
+  items: [ChecklistItem!]
+  title: String!
+}
+
+type ChecklistItem {
+  checked: Boolean!
+  checklistId: ID!
+  content: String!
+  id: ID!
+  position: Float!
+}
+
+input ChecklistItemPositionInput {
   id: ID!
   position: Float!
 }
@@ -83,6 +118,17 @@ input CreateCardInput {
   position: Float
   startDate: DateTime
   title: String!
+}
+
+input CreateChecklistInput {
+  cardId: ID!
+  title: String!
+}
+
+input CreateLabelInput {
+  boardId: ID!
+  color: String!
+  name: String
 }
 
 input CreateListInput {
@@ -129,6 +175,13 @@ input InviteMemberInput {
   inviteeEmail: String!
   role: String = "MEMBER"
   workspaceId: String!
+}
+
+type Label {
+  boardId: ID!
+  color: String!
+  id: ID!
+  name: String
 }
 
 type List {
@@ -188,6 +241,12 @@ type Mutation {
   """Add a member to a board. Only board ADMIN can add members."""
   addBoardMember(input: AddBoardMemberInput!): BoardMemberWithUser!
 
+  """Add an item to a checklist."""
+  addChecklistItem(input: AddChecklistItemInput!): ChecklistItem!
+
+  """Add a label to a card. User must have access to the board."""
+  addLabelToCard(input: AddLabelToCardInput!): Card!
+
   """Archive a board. User must be ADMIN or MEMBER."""
   archiveBoard(id: ID!): Board!
 
@@ -212,6 +271,12 @@ type Mutation {
   """
   createCard(input: CreateCardInput!): Card!
 
+  """Create a new checklist for a card."""
+  createChecklist(input: CreateChecklistInput!): Checklist!
+
+  """Create a new label for a board. User must have access to the board."""
+  createLabel(input: CreateLabelInput!): Label!
+
   """
   Create a new list. Position is calculated automatically if not provided.
   """
@@ -228,6 +293,15 @@ type Mutation {
 
   """Delete a card. User must have access to the board."""
   deleteCard(id: ID!): Boolean!
+
+  """Delete a checklist."""
+  deleteChecklist(id: ID!): Boolean!
+
+  """Delete a checklist item."""
+  deleteChecklistItem(id: ID!): Boolean!
+
+  """Delete a label. User must have access to the board."""
+  deleteLabel(id: ID!): Boolean!
 
   """Delete a list. Cards are automatically deleted via cascade."""
   deleteList(id: ID!): Boolean!
@@ -270,6 +344,9 @@ type Mutation {
   """Remove a member from a board. Only board ADMIN can remove members."""
   removeBoardMember(boardId: ID!, userId: ID!): Boolean!
 
+  """Remove a label from a card. User must have access to the board."""
+  removeLabelFromCard(input: RemoveLabelFromCardInput!): Card!
+
   """Remove a member from a workspace. Only ADMIN can remove members."""
   removeMember(input: RemoveMemberInput!): Boolean!
 
@@ -277,6 +354,9 @@ type Mutation {
   Reorder multiple cards within the same list. All cards must belong to the same list.
   """
   reorderCards(input: ReorderCardsInput!): [Card!]!
+
+  """Reorder items in a checklist."""
+  reorderChecklistItems(input: ReorderChecklistItemsInput!): [ChecklistItem!]!
 
   """
   Reorder multiple lists at once. All lists must belong to the same board.
@@ -303,6 +383,15 @@ type Mutation {
   """Update a card. User must have access to the board."""
   updateCard(input: UpdateCardInput!): Card!
 
+  """Update a checklist title."""
+  updateChecklist(input: UpdateChecklistInput!): Checklist!
+
+  """Update a checklist item (content, checked, position)."""
+  updateChecklistItem(input: UpdateChecklistItemInput!): ChecklistItem!
+
+  """Update a label. User must have access to the board."""
+  updateLabel(input: UpdateLabelInput!): Label!
+
   """Update a list. User must have access to the board."""
   updateList(input: UpdateListInput!): List!
 
@@ -325,8 +414,17 @@ type Query {
   """Get a board by ID. Access based on visibility and membership."""
   board(id: ID!): Board!
 
+  """List all labels for a board. User must have access to the board."""
+  boardLabels(boardId: ID!): [Label!]!
+
   """Get a card by ID. User must have access to the board."""
   card(id: ID!): Card!
+
+  """List all checklists for a card. User must have access to the board."""
+  cardChecklists(cardId: ID!): [Checklist!]!
+
+  """Get a checklist by ID. User must have access to the board."""
+  checklist(id: ID!): Checklist!
 
   """Get a list by ID. User must have access to the board."""
   list(id: ID!): List!
@@ -374,6 +472,11 @@ input RegisterInput {
   password: String!
 }
 
+input RemoveLabelFromCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+
 input RemoveMemberInput {
   userId: String!
   workspaceId: String!
@@ -382,6 +485,11 @@ input RemoveMemberInput {
 input ReorderCardsInput {
   cardPositions: [CardPosition!]!
   listId: ID!
+}
+
+input ReorderChecklistItemsInput {
+  checklistId: ID!
+  itemPositions: [ChecklistItemPositionInput!]!
 }
 
 input ReorderListsInput {
@@ -431,6 +539,24 @@ input UpdateCardInput {
   position: Float
   startDate: DateTime
   title: String
+}
+
+input UpdateChecklistInput {
+  id: ID!
+  title: String
+}
+
+input UpdateChecklistItemInput {
+  checked: Boolean
+  content: String
+  id: ID!
+  position: Float
+}
+
+input UpdateLabelInput {
+  color: String
+  id: ID!
+  name: String
 }
 
 input UpdateListInput {

@@ -23,6 +23,7 @@ module.exports = {
   ],
   coverageDirectory: '../coverage',
   coverageReporters: ['json', 'lcov', 'text', 'clover', 'json-summary'],
+  coverageProvider: 'v8',
   // Note: Coverage thresholds are checked in CI/CD workflows
   // to avoid false failures when not all modules have tests yet.
   // Individual module coverage is verified in the CI pipeline.
