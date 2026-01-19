@@ -93,6 +93,30 @@ variable "slack_client_secret" {
   default     = ""
 }
 
+variable "google_callback_url" {
+  description = "Google OAuth callback URL"
+  type        = string
+  default     = ""
+}
+
+variable "microsoft_callback_url" {
+  description = "Microsoft OAuth callback URL"
+  type        = string
+  default     = ""
+}
+
+variable "apple_callback_url" {
+  description = "Apple OAuth callback URL"
+  type        = string
+  default     = ""
+}
+
+variable "slack_callback_url" {
+  description = "Slack OAuth callback URL"
+  type        = string
+  default     = ""
+}
+
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
