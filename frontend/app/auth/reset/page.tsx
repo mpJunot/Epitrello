@@ -7,7 +7,7 @@ import * as z from "zod";
 
 const ResetSchema = z
   .object({
-    password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+    password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
     confirm: z.string().min(1, "Veuillez confirmer le mot de passe"),
   })
   .refine((d) => d.password === d.confirm, { path: ["confirm"], message: "Les mots de passe ne correspondent pas" });

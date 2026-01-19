@@ -17,6 +17,7 @@ export function useEventListeners(
       'epitrello:list-copied': listHandlers.handleListCopy,
       'epitrello:move-all-cards': listHandlers.handleMoveAllCards,
       'epitrello:list-deleted': listHandlers.handleListDelete,
+      'epitrello:drag-start': cardHandlers.handleDragStart,
       'epitrello:card-created': cardHandlers.handleCardCreate,
       'epitrello:card-move': cardHandlers.handleCardMove,
       'epitrello:card-title-updated': cardHandlers.handleCardTitleUpdate,
