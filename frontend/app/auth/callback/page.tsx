@@ -51,7 +51,7 @@ export default function OAuthCallbackPage() {
         {message ? (
           <p className="text-red-600">{message}</p>
         ) : (
-          <p>Finalisation de l'authentification, redirection...</p>
+          <p>Finalisation de l authentification, redirection...</p>
         )}
       </div>
     </div>

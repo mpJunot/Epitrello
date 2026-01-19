@@ -76,8 +76,8 @@ export default function RegisterPage() {
       if (typeof window !== "undefined") {
         window.location.href = "/auth/register/success";
       }
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'inscription");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");
     }
   };
 
