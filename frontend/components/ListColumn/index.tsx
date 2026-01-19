@@ -91,7 +91,7 @@ export default function ListColumn({
     
     setCards([...cards, newCard]);
     setLastLocalChange(Date.now());
-    dispatchCustomEvent("epitrello:card-created", { listId: list.id, card: newCard });
+    dispatchCustomEvent("epitrello:card-created", { listId: list.id, title: trimmedTitle });
   };
 
   const handleCancelAdd = () => {
@@ -192,31 +192,77 @@ export default function ListColumn({
 
   // Drag & drop handlers
   const handleCardDragStart = (e: React.DragEvent, cardId: string, fromIndex?: number) => {
-    setIgnoreParentSync(true);
+    console.log('🎬 Drag start:', {
+      cardId,
+      isTemp: cardId?.startsWith('temp-'),
+      fromIndex,
+      listId: list.id
+    });
+
+    // CRITICAL: Extra safety check - should not reach here due to draggable=false, but just in case
+    if (cardId?.startsWith('temp-')) {
+      console.warn('⚠️ Attempted to drag temporary card:', cardId);
+      e.preventDefault();
+      return;
+    }
     
     try {
-      e.dataTransfer.setData('application/json', JSON.stringify({ 
+      const fromIndexCalculated = typeof fromIndex === 'number' ? fromIndex : cards.findIndex((c) => c.id === cardId);
+      
+      const dragData = { 
         cardId, 
         fromListId: list.id, 
-        fromIndex 
-      }));
+        fromIndex: fromIndexCalculated
+      };
+      e.dataTransfer.setData('application/json', JSON.stringify(dragData));
       e.dataTransfer.effectAllowed = 'move';
+      
+      console.log('📦 Drag data set:', dragData);
+
+      // Dispatch snapshot event - store full board state before drag
+      dispatchCustomEvent('epitrello:drag-start', {
+        cardId,
+        fromListId: list.id,
+        fromIndex: fromIndexCalculated
+      });
+      
+      // Set drag image for better UX
+      const draggedCard = cards.find(c => c.id === cardId);
+      if (draggedCard && e.currentTarget instanceof HTMLElement) {
+        const clone = e.currentTarget.cloneNode(true) as HTMLElement;
+        clone.style.opacity = '0.8';
+        clone.style.transform = 'rotate(5deg)';
+        document.body.appendChild(clone);
+        e.dataTransfer.setDragImage(clone, 0, 0);
+        setTimeout(() => document.body.removeChild(clone), 0);
+      }
     } catch (error) {
       console.error('Error setting drag data:', error);
     }
-    
-    const el = e.currentTarget as HTMLElement;
-    el.classList.add('opacity-70', 'scale-105');
   };
 
   const handleCardDragOver = (e: React.DragEvent, overIndex?: number) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(true);
-    setDragOverIndex(typeof overIndex === 'number' ? overIndex : null);
+    
+    // Calculate precise drop index based on mouse position
+    if (typeof overIndex === 'number') {
+      const cardElements = e.currentTarget.parentElement?.querySelectorAll('[draggable="true"]');
+      if (cardElements && cardElements[overIndex]) {
+        const rect = cardElements[overIndex].getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        const adjustedIndex = e.clientY > midpoint ? overIndex + 1 : overIndex;
+        setDragOverIndex(adjustedIndex);
+      } else {
+        setDragOverIndex(overIndex);
+      }
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragOver(false);
     
     const raw = e.dataTransfer.getData('application/json');
@@ -227,61 +273,43 @@ export default function ListColumn({
 
     try {
       const data = JSON.parse(raw);
+      console.log('📥 Drop data received:', {
+        cardId: data?.cardId,
+        fromListId: data?.fromListId,
+        toListId: list.id,
+        isTemp: data?.cardId?.startsWith('temp-')
+      });
+
       if (!data?.cardId) {
         setDragOverIndex(null);
         return;
       }
 
-      const provisionalIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
+      // Calculate target index (defaults to end of list if not hovering over card)
+      let targetIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
+      const fromIndex = data.fromIndex;
       const isIntralistMove = data.fromListId === list.id;
-
-      if (isIntralistMove) {
-        const fromIndex = typeof data.fromIndex === 'number' 
-          ? data.fromIndex 
-          : cards.findIndex((c) => c.id === data.cardId);
-          
-        if (fromIndex === -1) {
-          setIgnoreParentSync(false);
-          setDragOverIndex(null);
-          return;
-        }
-
-        let toIndex = provisionalIndex;
-        if (toIndex === fromIndex) {
-          setIgnoreParentSync(false);
-          setDragOverIndex(null);
-          return;
-        }
-
-        if (fromIndex < toIndex) {
-          toIndex = Math.max(0, toIndex - 1);
-        }
-
-        const newCards = [...cards];
-        const [card] = newCards.splice(fromIndex, 1);
-        newCards.splice(toIndex, 0, card);
-        
-        setCards(newCards);
-        setLastLocalChange(Date.now());
-        
-        dispatchCustomEvent('epitrello:card-move', {
-          cardId: data.cardId,
-          fromListId: list.id,
-          toListId: list.id,
-          toIndex,
-        });
-        
-        setIgnoreParentSync(false);
-      } else {
-        dispatchCustomEvent('epitrello:card-move', {
-          cardId: data.cardId,
-          fromListId: data.fromListId,
-          toListId: list.id,
-          toIndex: provisionalIndex,
-        });
-        
-        setIgnoreParentSync(false);
+      
+      // Early exit if no actual movement
+      if (isIntralistMove && (fromIndex === -1 || targetIndex === fromIndex)) {
+        setDragOverIndex(null);
+        return;
       }
+
+      // Adjust target index if moving down in same list
+      if (isIntralistMove && fromIndex < targetIndex) {
+        targetIndex = Math.max(0, targetIndex - 1);
+      }
+
+      // Dispatch single event for ALL drops - parent handler manages state
+      // No local state mutation here - optimistic update happens in eventHandler
+      dispatchCustomEvent('epitrello:card-move', {
+        cardId: data.cardId,
+        sourceListId: data.fromListId,
+        targetListId: list.id,
+        targetIndex: targetIndex,
+        fromIndex: fromIndex,
+      });
     } catch (error) {
       console.error('Error handling drop:', error);
     } finally {
@@ -290,9 +318,11 @@ export default function ListColumn({
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const { clientX, clientY } = e;
     
+    // Only clear if truly leaving the column bounds
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
       setIsDragOver(false);
       setDragOverIndex(null);
@@ -301,13 +331,28 @@ export default function ListColumn({
 
   return (
     <div
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(true);
+        // If no specific card index, default to end of list
+        if (dragOverIndex === null && cards.length > 0) {
+          setDragOverIndex(cards.length);
+        } else if (cards.length === 0) {
+          setDragOverIndex(0);
+        }
+      }}
       onDrop={handleDrop}
-      onDragEnter={() => setIsDragOver(true)}
+      onDragEnter={(e) => {
+        e.stopPropagation();
+        setIsDragOver(true);
+      }}
       onDragLeave={handleDragLeave}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
-      className={`w-[272px] min-w-[272px] flex-shrink-0 ${isDragOver ? 'bg-white ring-2 ring-indigo-200' : 'bg-gray-100'} rounded-md shadow-sm flex flex-col animate-slide-in`}
+      className={`w-[272px] min-w-[272px] flex-shrink-0 rounded-md shadow-sm flex flex-col animate-slide-in transition-all duration-200 ${
+        isDragOver ? 'bg-indigo-50 ring-2 ring-indigo-300 shadow-lg' : 'bg-gray-100'
+      }`}
       style={{ height: '100%', maxHeight: '100%' }}
     >
       {/* Header */}
@@ -426,10 +471,15 @@ export default function ListColumn({
 
       {/* Cards area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-3 custom-scrollbar" style={{ minHeight: 0 }}>
+        {cards.length === 0 && dragOverIndex === 0 && (
+          <div className="h-20 border-2 border-dashed border-indigo-300 bg-indigo-50 rounded-md flex items-center justify-center animate-drag-placeholder">
+            <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
+          </div>
+        )}
         {cards.map((c, i) => (
           <div key={`${c.id}-${i}`} className="relative animate-fade-in">
             {dragOverIndex === i && (
-              <div className="absolute -top-2 left-0 right-0 h-1 bg-indigo-200 rounded" />
+              <div className="mb-2 h-2 bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder" />
             )}
             <CardItem
               card={c}
@@ -440,7 +490,9 @@ export default function ListColumn({
             />
           </div>
         ))}
-        {dragOverIndex === cards.length && <div className="h-1 bg-indigo-200 rounded" />}
+        {dragOverIndex === cards.length && cards.length > 0 && (
+          <div className="h-2 bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder" />
+        )}
       </div>
 
       {/* Footer */}

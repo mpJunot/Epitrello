@@ -64,33 +64,58 @@ export default function CardItem({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    // Prevent dragging temporary cards (not yet created on backend)
+    if (card.id.startsWith('temp-')) {
+      e.preventDefault();
+      return;
+    }
+    
     setIsDragging(true);
+    e.stopPropagation();
     if (onDragStart) {
       onDragStart(e, card.id, index);
+    }
+    
+    // Add visual feedback
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.4';
     }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     setIsDragging(false);
-    // cleanup any inline drag styles if present
-    const el = e.currentTarget as HTMLElement;
-    el.classList.remove("opacity-70", "scale-105");
+    
+    // Restore visual state
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+      e.currentTarget.classList.remove("opacity-70", "scale-105");
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onDragOver) {
+      onDragOver(e, index);
+    }
   };
 
   return (
     <>
       <div
         ref={cardRef}
-        draggable={!isModalOpen}
+        draggable={!isModalOpen && !card.id.startsWith('temp-')}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragOver={(e) => {
-          e.preventDefault();
-          onDragOver && onDragOver(e, index);
-        }}
-        className="bg-white rounded p-3 shadow-sm hover:shadow-md hover:cursor-pointer select-none transition-all duration-200 hover:scale-[1.02]"
+        onDragOver={handleDragOver}
+        className={`bg-white rounded p-3 shadow-sm hover:shadow-md select-none transition-all duration-200 ${
+          card.id.startsWith('temp-') 
+            ? 'opacity-60 cursor-not-allowed' 
+            : `hover:cursor-pointer ${isDragging ? 'opacity-40 scale-95' : 'hover:scale-[1.02]'}`
+        }`}
         onClick={handleClick}
         tabIndex={0}
+        title={card.id.startsWith('temp-') ? 'Saving card...' : undefined}
       >
         <div className="flex items-start justify-between gap-2">
           <div>
