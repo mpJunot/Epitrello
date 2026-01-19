@@ -18,8 +18,14 @@ export function createListEventHandlers(
       if (!newList) throw new Error('Failed to create list');
       logAction('✅', 'List created');
       setLists((prev) => [...prev, { ...newList, cards: [] }]);
+      
+      // Notify UI component of success
+      window.dispatchEvent(new CustomEvent('epitrello:list-create-success'));
     } catch (err) {
       handleAsyncError(err, 'create list');
+      
+      // Notify UI component of error
+      window.dispatchEvent(new CustomEvent('epitrello:list-create-error'));
     }
   }
 
