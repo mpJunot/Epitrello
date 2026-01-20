@@ -22,7 +22,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { rememberMe: false },
@@ -217,16 +217,16 @@ export default function LoginPage() {
                   onClick={() => {
                     console.log('Google OAuth login');
                     // Redirect to backend OAuth start endpoint for Google.
-                    // Use NEXT_PUBLIC_BACKEND_URL if available (strip /graphql),
+                    // Use NEXT_PUBLIC_API_URL if available (strip /graphql),
                     // otherwise fallback to http://localhost:4000
                     if (typeof window !== 'undefined') {
-                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const backend = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
                       console.log("url backend:", backend);
                       const target = `${backend}/auth/google`;
                       console.log("auth] redirecting to Google OAuth:", target);
                       try {
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -240,12 +240,12 @@ export default function LoginPage() {
                   onClick={() => {
                     // Redirect to backend OAuth start endpoint for Microsoft.
                     if (typeof window !== 'undefined') {
-                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const backend = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
                       const target = `${backend}/auth/microsoft`;
                       try {
                         console.log("[auth] redirecting to Microsoft OAuth:", target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -259,12 +259,12 @@ export default function LoginPage() {
                   onClick={() => {
                     // Redirect to backend OAuth start endpoint for Apple.
                     if (typeof window !== 'undefined') {
-                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const backend = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
                       const target = `${backend}/auth/apple`;
                       try {
                         console.log("[auth] redirecting to Apple OAuth:", target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -279,12 +279,12 @@ export default function LoginPage() {
                   onClick={() => {
                     // Redirect to backend OAuth start endpoint for Slack.
                     if (typeof window !== 'undefined') {
-                      const backend = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
+                      const backend = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/graphql').replace(/\/graphql\/?$/, '');
                       const target = `${backend}/auth/slack`;
                       try {
                         console.log('[auth] redirecting to Slack OAuth:', target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }

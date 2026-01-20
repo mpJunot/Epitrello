@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Label, UserRef, Checklist, DueDate, Comment, Card } from "./CardModal/types";
 import DescriptionSection from "./CardModal/DescriptionSection";
 import ChecklistsSection from "./CardModal/ChecklistsSection";
@@ -65,6 +65,16 @@ function formatCommentDate(dateStr: string) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function useSyncedState<T>(source: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [value, setValue] = useState(source);
+
+  useEffect(() => {
+    setValue(source);
+  }, [source]);
+
+  return [value, setValue];
+}
+
 interface CardModalProps {
   card: Card;
   listId?: string;
@@ -104,30 +114,30 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
   // État pour l'édition du titre
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [title, setTitle] = useState(card.title);
+  const [title, setTitle] = useSyncedState(card.title);
 
   // État pour l'édition de la description
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [description, setDescription] = useState(card.description || "");
+  const [description, setDescription] = useSyncedState(card.description || "");
 
   // État pour les membres assignés
-  const [assignedMembers, setAssignedMembers] = useState<UserRef[]>(card.assignees || []);
+  const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(card.assignees || []);
 
   // État pour les labels assignés
-  const [assignedLabels, setAssignedLabels] = useState<Label[]>(card.labels || []);
+  const [assignedLabels, setAssignedLabels] = useSyncedState<Label[]>(card.labels || []);
 
   // État pour les checklists
-  const [checklists, setChecklists] = useState<Checklist[]>(card.checklists || []);
+  const [checklists, setChecklists] = useSyncedState<Checklist[]>(card.checklists || []);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [addingItemToChecklist, setAddingItemToChecklist] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
 
   // État pour la date d'échéance
-  const [dueDate, setDueDate] = useState<DueDate | undefined>(card.dueDate);
+  const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(card.dueDate);
   const [selectedDate, setSelectedDate] = useState("");
 
   // État pour les commentaires
-  const [comments, setComments] = useState<Comment[]>(card.comments || []);
+  const [comments, setComments] = useSyncedState<Comment[]>(card.comments || []);
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
@@ -169,43 +179,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
 
-  // Mettre à jour le titre si la carte change
-  useEffect(() => {
-    console.log('🔄 CardModal: card.title changed to:', card.title);
-    setTitle(card.title);
-  }, [card.title]);
-
-  // Mettre à jour la description si la carte change
-  useEffect(() => {
-    console.log('🔄 CardModal: card.description changed to:', card.description);
-    setDescription(card.description || "");
-  }, [card.description]);
-
-  // Mettre à jour les membres si la carte change
-  useEffect(() => {
-    setAssignedMembers(card.assignees || []);
-  }, [card.assignees]);
-
-  // Mettre à jour les labels si la carte change
-  useEffect(() => {
-    setAssignedLabels(card.labels || []);
-  }, [card.labels]);
-
-  // Mettre à jour les checklists si la carte change
-  useEffect(() => {
-    setChecklists(card.checklists || []);
-  }, [card.checklists]);
-
-  // Mettre à jour la date d'échéance si la carte change
-  useEffect(() => {
-    setDueDate(card.dueDate);
-  }, [card.dueDate]);
-
-  // Mettre à jour les commentaires si la carte change
-  useEffect(() => {
-    setComments(card.comments || []);
-  }, [card.comments]);
-
   // Focus sur l'input quand on commence à éditer
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
@@ -237,6 +210,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenu]);
+
+  const cancelEditDescription = useCallback(() => {
+    setDescription(card.description || "");
+    setIsEditingDescription(false);
+  }, [card.description, setDescription]);
 
   // Gérer la fermeture avec Escape et focus trap
   useEffect(() => {
@@ -300,7 +278,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       document.removeEventListener("keydown", handleTab);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title]);
+  }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title, cancelEditDescription, setTitle]);
 
   // Sauvegarder le titre
   const saveTitle = () => {
@@ -335,12 +313,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     if (description !== (card.description || "")) {
       emitEvent("epitrello:card-description-updated", { cardId: card.id, description });
     }
-  };
-
-  // Annuler l'édition de la description
-  const cancelEditDescription = () => {
-    setDescription(card.description || "");
-    setIsEditingDescription(false);
   };
 
   // Toggle menu
@@ -760,6 +732,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                         >
                           <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white">
                             {user.avatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={user.avatar}
                                 alt={user.name}
@@ -893,13 +866,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
               <AddToCardMenu
                 openMenu={openMenu}
                 toggleMenu={toggleMenu}
-                menuRefs={menuRefs}
+                registerMenuRef={(key, el) => { menuRefs.current[key] = el; }}
                 availableMembers={availableMembers}
-                assignedMembers={assignedMembers}
                 isMemberAssigned={isMemberAssigned}
                 toggleMember={toggleMember}
                 availableLabels={availableLabels}
-                assignedLabels={assignedLabels}
                 isLabelAssigned={isLabelAssigned}
                 toggleLabel={toggleLabel}
                 newChecklistTitle={newChecklistTitle}
@@ -940,7 +911,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Archive card?</h3>
               <p className="text-sm text-gray-600 mb-6">
-                The card "{card.title}" will be archived. You can restore it later from the board's archive.
+                The card &quot;{card.title}&quot; will be archived. You can restore it later from the board&apos;s archive.
               </p>
               <div className="flex gap-3 justify-end">
                 <button
@@ -969,7 +940,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
             <div className="p-6">
               <h3 className="text-lg font-semibold text-red-600 mb-2">Delete card?</h3>
               <p className="text-sm text-gray-600 mb-6">
-                The card "{card.title}" will be permanently deleted. This action cannot be undone.
+                The card &quot;{card.title}&quot; will be permanently deleted. This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
                 <button

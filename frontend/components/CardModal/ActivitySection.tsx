@@ -47,6 +47,7 @@ export default function ActivitySection({
         <div className="flex gap-2 items-start">
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium">
             {currentUser.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={currentUser.avatar} alt={currentUser.name || "User"} className="w-full h-full rounded-full object-cover" />
             ) : (
               (currentUser.name || "User")
@@ -93,6 +94,7 @@ export default function ActivitySection({
             <div key={comment.id} className="flex gap-2 items-start group">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-medium">
                 {comment.author.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={comment.author.avatar} alt={comment.author.name || "User"} className="w-full h-full rounded-full object-cover" />
                 ) : (
                   (comment.author.name || "User")

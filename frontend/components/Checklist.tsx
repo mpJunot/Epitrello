@@ -12,7 +12,10 @@ export default function Checklist({ title, items: initial }: { title?: string; i
   const addItem = () => {
     const content = window.prompt("Checklist item");
     if (!content) return;
-    const id = (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Date.now().toString();
     setItems((p) => [...p, { id, content, checked: false }]);
   };
 

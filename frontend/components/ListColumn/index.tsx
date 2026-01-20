@@ -21,7 +21,6 @@ export default function ListColumn({
   // Core state
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
-  const [ignoreParentSync, setIgnoreParentSync] = useState(false);
   
   // Title editing state
   const [editing, setEditing] = useState(false);
@@ -52,8 +51,6 @@ export default function ListColumn({
 
   // Sync local cards with parent prop updates
   useEffect(() => {
-    if (ignoreParentSync) return;
-
     const incoming = list.cards || [];
     const localSignature = createCardsSignature(cards);
     const incomingSignature = createCardsSignature(incoming);
@@ -63,7 +60,7 @@ export default function ListColumn({
 
     console.log('🔄 ListColumn: Updating cards from parent for list:', list.id, list.title);
     setCards(incoming);
-  }, [list.cards, ignoreParentSync, cards, lastLocalChange, list.id, list.title]);
+  }, [list.cards, cards, lastLocalChange, list.id, list.title]);
 
   // Sync title with parent updates
   useEffect(() => {

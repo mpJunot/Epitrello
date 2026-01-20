@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getMyWorkspaces, getWorkspaceBoards, GqlBoard } from '@/lib/actions/workspaces';
 import { createBoard as createBoardAction, Visibility } from '@/lib/actions/boards';
@@ -25,8 +24,8 @@ export default function DashboardPage() {
   const [boardsLoading, setBoardsLoading] = useState<Record<string, boolean>>({});
   const [boardsError, setBoardsError] = useState<Record<string, string | null>>({});
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
-  const [workspacesError, setWorkspacesError] = useState<string | null>(null);
+  const [, setLoadingWorkspaces] = useState(true);
+  const [, setWorkspacesError] = useState<string | null>(null);
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardDescription, setNewBoardDescription] = useState('');
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
@@ -72,14 +71,12 @@ export default function DashboardPage() {
   // load workspaces from backend (with localStorage fallback)
   useEffect(() => {
     const load = async () => {
-      let wsSnapshot: Workspace[] = [];
       setLoadingWorkspaces(true);
       setWorkspacesError(null);
       try {
         // Fetch workspaces from backend
         const wsFromApi = await getMyWorkspaces();
         const mapped = wsFromApi.map((w) => ({ id: w.id, title: w.name }));
-        wsSnapshot = mapped;
         setWorkspaces(mapped);
         try { localStorage.setItem(WORKSPACES_KEY, JSON.stringify(mapped)); } catch {}
       } catch (error) {
@@ -89,10 +86,8 @@ export default function DashboardPage() {
         try {
           const rawWs = localStorage.getItem(WORKSPACES_KEY);
           const ws = rawWs ? JSON.parse(rawWs) as Workspace[] : [];
-          wsSnapshot = ws;
           setWorkspaces(ws);
-        } catch (e) {
-          wsSnapshot = [];
+        } catch {
           setWorkspaces([]);
         }
       } finally {
@@ -136,22 +131,6 @@ export default function DashboardPage() {
       });
     }
   }, [workspaces, workspaceBoards, boardsLoading]);
-
-  const deleteBoard = (id: string) => {
-    let foundWorkspace: string | null = null;
-    let foundName = '';
-    for (const [wsId, list] of Object.entries(workspaceBoards)) {
-      const b = list.find((x) => x.id === id);
-      if (b) {
-        foundWorkspace = wsId;
-        foundName = b.name;
-        break;
-      }
-    }
-    if (foundWorkspace) {
-      setDeleteConfirm({ show: true, boardId: id, boardName: foundName, workspaceId: foundWorkspace });
-    }
-  };
 
   const confirmDeleteBoard = () => {
     if (deleteConfirm.boardId && deleteConfirm.workspaceId) {

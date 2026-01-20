@@ -41,7 +41,6 @@ export default function OAuthCallbackPage() {
     } else {
       setMessage('No token found in callback');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
