@@ -1,4 +1,6 @@
-import DataLoader from 'dataloader';
+// import DataLoader from 'dataloader';
+import * as DataLoader from 'dataloader'; // ou
+
 import { Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Card } from '../entities/card.entity';
