@@ -4,15 +4,15 @@ set -euo pipefail
 # Playwright E2E runner for Epitrello
 # Automatically starts Docker services if not already running, then runs tests
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # Load .env.e2e if it exists
-if [[ -f frontend/.env.e2e ]]; then
-  echo "📦 Loading environment from frontend/.env.e2e"
+if [[ -f .env.e2e ]]; then
+  echo "📦 Loading environment from .env.e2e"
   set -a
   # shellcheck disable=SC1091
-  source frontend/.env.e2e
+  source .env.e2e
   set +a
 fi
 
@@ -53,8 +53,6 @@ echo ""
 echo "🧪 Running E2E tests..."
 echo ""
 
-cd "$ROOT_DIR/frontend"
-
 # Install browsers if needed
 if [[ "${INSTALL_BROWSERS:-0}" == "1" ]]; then
   pnpm exec playwright install --with-deps
@@ -73,7 +71,12 @@ if [[ -n "${TEST_FILTER:-}" ]]; then
   FILTER_ARGS=("${TEST_FILTER}")
 fi
 
-pnpm exec playwright test \
+# Run from frontend root using pnpm script
+FRONTEND_ROOT="$ROOT_DIR/.."
+cd "$FRONTEND_ROOT"
+
+# Use pnpm run to properly set up the environment
+pnpm run test:e2e \
   --project "$PROJECT" \
   "${FILTER_ARGS[@]}" \
   "${HEADLESS_FLAG[@]}"
