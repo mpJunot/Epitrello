@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       const graphqlEndpoint =
-        (process.env.NEXT_PUBLIC_BACKEND_URL as string) ||
+        (process.env.NEXT_PUBLIC_API_URL as string) ||
         'http://localhost:4000/graphql';
 
       const query = `mutation ForgotPassword($input: ForgotPasswordInput!) {\n        forgotPassword(input: $input) { message }\n      }`;

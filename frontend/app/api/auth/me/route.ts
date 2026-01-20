@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: false, error: "No token" }, { status: 401 });
     }
 
-    const graphqlEndpoint = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000/graphql";
+    const graphqlEndpoint = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
     const query = `query Me { me { id email name avatar createdAt updatedAt } }`;
 
     const res = await fetch(graphqlEndpoint, {
