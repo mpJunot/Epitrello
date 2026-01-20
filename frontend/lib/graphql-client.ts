@@ -5,14 +5,19 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/graphql';
 
+export interface GraphQLError {
+    message: string;
+    extensions?: unknown;
+}
+
 export interface GraphQLResponse<T> {
     data?: T;
-    errors?: Array<{ message: string }>;
+    errors?: GraphQLError[];
 }
 
 export async function graphqlRequest<T>(
     query: string,
-    variables?: Record<string, any>
+    variables?: Record<string, unknown>
 ): Promise<T> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
 
@@ -64,7 +69,7 @@ export async function graphqlRequest<T>(
 
         if (result.errors) {
             console.error('❌ GraphQL Errors détaillées:', JSON.stringify(result.errors, null, 2));
-            console.error('❌ Extensions complètes:', result.errors.map(e => (e as any).extensions));
+            console.error('❌ Extensions complètes:', result.errors.map(e => e.extensions));
             const errorMsg = result.errors.map(e => e.message).join(', ');
             throw new Error(errorMsg || 'GraphQL request failed');
         }

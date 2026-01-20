@@ -28,7 +28,7 @@ export const DeleteListMenu: React.FC<DeleteListMenuProps> = ({
             ⚠️ This action is irreversible
           </p>
           <p className="text-xs text-red-700">
-            Deleting this list will permanently remove <strong>"{listTitle}"</strong> and all its {cardsCount} card{cardsCount !== 1 ? 's' : ''}. This cannot be undone.
+            Deleting this list will permanently remove <strong>&quot;{listTitle}&quot;</strong> and all its {cardsCount} card{cardsCount !== 1 ? 's' : ''}. This cannot be undone.
           </p>
         </div>
 
