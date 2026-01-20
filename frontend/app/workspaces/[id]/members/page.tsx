@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 
 type Member = { id: string; name: string; email?: string };
@@ -8,25 +8,23 @@ type Member = { id: string; name: string; email?: string };
 export default function WorkspaceMembersPage() {
   const params = useParams();
   const workspaceId = params.id as string;
-  const [members, setMembers] = useState<Member[]>([]);
-
-  useEffect(() => {
+  const [members, setMembers] = useState<Member[]>(() => {
     try {
-      const raw = localStorage.getItem(`epitrello_workspace_members_${workspaceId}`);
-      const arr = raw ? JSON.parse(raw) as Member[] : null;
-      if (arr) {
-        setMembers(arr);
-        return;
-      }
-      // fallback: create sample members if none
+      const storageKey = `epitrello_workspace_members_${workspaceId}`;
+      const raw = localStorage.getItem(storageKey);
+      const arr = raw ? (JSON.parse(raw) as Member[]) : null;
+      if (arr) return arr;
+
       const sample: Member[] = [
         { id: String(Date.now() - 3000), name: 'Alice Dupont', email: 'alice@example.com' },
         { id: String(Date.now() - 2000), name: 'Bob Martin', email: 'bob@example.com' },
       ];
-      setMembers(sample);
-      try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(sample)); } catch (e) {}
-    } catch (e) { setMembers([]); }
-  }, [workspaceId]);
+      try { localStorage.setItem(storageKey, JSON.stringify(sample)); } catch (_error) {}
+      return sample;
+    } catch (_error) {
+      return [];
+    }
+  });
 
   const invite = () => {
     const email = window.prompt('Invite member email');

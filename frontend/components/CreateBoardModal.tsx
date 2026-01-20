@@ -1,36 +1,32 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 type Workspace = { id: string; title: string };
 
 export default function CreateBoardModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (payload: { name: string; workspaceId?: string; visibility?: string }) => void }) {
   const [name, setName] = useState("");
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
-  const [visibility, setVisibility] = useState<string>("personal");
-
-  useEffect(() => {
-    if (!open) return;
+  const loadWorkspaces = (): Workspace[] => {
     try {
       const raw = localStorage.getItem('epitrello_workspaces');
-      const ws = raw ? JSON.parse(raw) : [];
+      const ws = raw ? (JSON.parse(raw) as Workspace[]) : [];
       if (!ws || ws.length === 0) {
-        const defaults = [
+        const defaults: Workspace[] = [
           { id: String(Date.now() - 2000), title: 'Personal' },
           { id: String(Date.now() - 1000), title: 'Acme Corp' },
         ];
-        try { localStorage.setItem('epitrello_workspaces', JSON.stringify(defaults)); } catch (e) {}
-        setWorkspaces(defaults);
-        setWorkspaceId(defaults[0].id);
-      } else {
-        setWorkspaces(ws);
-        setWorkspaceId(ws[0]?.id);
+        try { localStorage.setItem('epitrello_workspaces', JSON.stringify(defaults)); } catch (_error) {}
+        return defaults;
       }
-    } catch (e) {
-      setWorkspaces([]);
+      return ws;
+    } catch (_error) {
+      return [];
     }
-  }, [open]);
+  };
+
+  const [workspaces] = useState<Workspace[]>(loadWorkspaces);
+  const [workspaceId, setWorkspaceId] = useState<string | undefined>(() => loadWorkspaces()[0]?.id);
+  const [visibility, setVisibility] = useState<string>("personal");
 
   const submit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();

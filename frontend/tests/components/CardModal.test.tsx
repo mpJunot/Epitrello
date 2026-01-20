@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CardModal from "../../components/CardModal";
 
-function waitForEvent<T = any>(name: string): Promise<T> {
+function waitForEvent<T = unknown>(name: string): Promise<T> {
   return new Promise((resolve) => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as T;
@@ -15,7 +15,7 @@ function waitForEvent<T = any>(name: string): Promise<T> {
   });
 }
 
-async function triggerAndWait<T = any>(name: string, action: () => Promise<void> | void) {
+async function triggerAndWait<T = unknown>(name: string, action: () => Promise<void> | void) {
   const pending = waitForEvent<T>(name);
   await action();
   return pending;
@@ -128,7 +128,7 @@ describe("CardModal", () => {
     const textarea = screen.getByPlaceholderText(/write a comment/i);
     await userEvent.type(textarea, "Hello world");
 
-    const detail = await triggerAndWait<{ cardId: string; comments: Array<any> }>(
+    const detail = await triggerAndWait<{ cardId: string; comments: Array<Record<string, unknown>> }>(
       "epitrello:card-comments-updated",
       async () => {
         fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
