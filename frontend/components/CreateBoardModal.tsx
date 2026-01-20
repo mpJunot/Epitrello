@@ -1,6 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
+import { toast } from "@/lib/toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Workspace = { id: string; title: string };
 
@@ -30,66 +49,77 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
 
   const submit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!name.trim()) return alert('Please provide a name');
+    if (!name.trim()) {
+      toast.error('Please provide a name');
+      return;
+    }
     onCreate({ name: name.trim(), workspaceId, visibility });
     setName("");
     onClose();
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <form onSubmit={submit} className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">Créer un nouveau tableau</h3>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create a new board</DialogTitle>
+          <DialogDescription>
+            Create a new board for your workspace
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="board-name">Name</Label>
+            <Input
+              id="board-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Board name"
+            />
+          </div>
 
-        <div className="mb-3">
-          <label className="block text-sm text-gray-700 mb-1">Nom</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-gray-900 placeholder-gray-400"
-            placeholder="Nom du tableau"
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="board-workspace">Workspace</Label>
+            <Select value={workspaceId} onValueChange={(value) => setWorkspaceId(value)}>
+              <SelectTrigger id="board-workspace">
+                <SelectValue placeholder="Select workspace" />
+              </SelectTrigger>
+              <SelectContent>
+                {workspaces.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>
+                    {w.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="mb-3">
-          <label className="block text-sm text-gray-700 mb-1">Workspace</label>
-          <select
-            value={workspaceId}
-            onChange={(e) => setWorkspaceId(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-gray-900"
-          >
-            {workspaces.map((w) => (
-              <option key={w.id} value={w.id} className="text-black">{w.title}</option>
-            ))}
-          </select>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="board-visibility">Visibility</Label>
+            <Select value={visibility} onValueChange={(value) => setVisibility(value)}>
+              <SelectTrigger id="board-visibility">
+                <SelectValue placeholder="Select visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="personal">Personal</SelectItem>
+                <SelectItem value="workspace">Workspace</SelectItem>
+                <SelectItem value="public">Public</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="mb-4">
-          <label className="block text-sm text-gray-700 mb-1">Visibilité</label>
-          <select
-            value={visibility}
-            onChange={(e) => setVisibility(e.target.value)}
-            className="w-full px-3 py-2 border rounded text-gray-900"
-          >
-            <option value="personal" className="text-black">Personal</option>
-            <option value="workspace" className="text-black">Workspace</option>
-            <option value="public" className="text-black">Public</option>
-          </select>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => { setName(''); onClose(); }}
-            className="px-3 py-1 bg-gray-100 text-gray-700 rounded"
-          >
-            Annuler
-          </button>
-          <button type="submit" className="px-3 py-1 bg-indigo-600 text-white rounded">Créer</button>
-        </div>
-      </form>
-    </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => { setName(''); onClose(); }}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Create</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
