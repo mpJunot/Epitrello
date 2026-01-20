@@ -4,18 +4,21 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const RegisterSchema = z
   .object({
-    name: z.string().min(1, "Nom requis"),
+    name: z.string().min(1, "Name required"),
     company: z.string().optional(),
-    email: z.string().min(1, "Email requis").email("Email invalide"),
-    password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
-    confirm: z.string().min(1, "Veuillez confirmer le mot de passe"),
+    email: z.string().min(1, "Email required").email("Invalid email"),
+    password: z.string().min(8, "Password must contain at least 8 characters"),
+    confirm: z.string().min(1, "Please confirm password"),
   })
   .refine((data) => data.password === data.confirm, {
     path: ["confirm"],
-    message: "Les mots de passe ne correspondent pas",
+    message: "Passwords do not match",
   });
 
 type RegisterForm = z.infer<typeof RegisterSchema>;
@@ -55,7 +58,7 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || `Erreur serveur: ${res.status}`);
+        throw new Error(text || `Server error: ${res.status}`);
       }
 
       const json = await res.json();
@@ -77,63 +80,63 @@ export default function RegisterPage() {
         window.location.href = "/auth/register/success";
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'inscription";
+      const message = err instanceof Error ? err.message : "Registration error";
       setError(message);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-trello-hover">
       <div className="max-w-md w-full">
         <div className="bg-white shadow rounded-2xl p-6">
           <h2 className="text-black text-lg font-semibold mb-4">Create an account</h2>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-600">Full name</label>
-              <input {...register("name")}
-                className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.name ? "border-red-500" : ""}`}
-                placeholder="Jean Dupont" />
+            <div className="space-y-2">
+              <Label>Full name</Label>
+              <Input {...register("name")}
+                className={errors.name ? "border-red-500" : ""}
+                placeholder="John Doe" />
               {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-600">Shop name (optional)</label>
-              <input {...register("company")} className="mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2" placeholder="Ma boutique" />
+            <div className="space-y-2">
+              <Label>Shop name (optional)</Label>
+              <Input {...register("company")} placeholder="My shop" />
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-600">Adresse e-mail</label>
-              <input {...register("email")} type="email" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.email ? "border-red-500" : ""}`} placeholder="vous@exemple.com" />
+            <div className="space-y-2">
+              <Label>Email address</Label>
+              <Input {...register("email")} type="email" className={errors.email ? "border-red-500" : ""} placeholder="you@example.com" />
               {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-600">Mot de passe</label>
-              <input {...register("password")} type="password" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.password ? "border-red-500" : ""}`} placeholder="••••••••" />
+            <div className="space-y-2">
+              <Label>Password</Label>
+              <Input {...register("password")} type="password" className={errors.password ? "border-red-500" : ""} placeholder="••••••••" />
               {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-600">Confirmer le mot de passe</label>
-              <input {...register("confirm")} type="password" className={`mt-1 block w-full rounded-md border-2 border-grey-300 text-black p-2 ${errors.confirm ? "border-red-500" : ""}`} placeholder="••••••••" />
+            <div className="space-y-2">
+              <Label>Confirm password</Label>
+              <Input {...register("confirm")} type="password" className={errors.confirm ? "border-red-500" : ""} placeholder="••••••••" />
               {errors.confirm && <p className="text-red-600 text-sm mt-1">{errors.confirm.message}</p>}
             </div>
 
             <div>
-              <button type="submit" disabled={isSubmitting} className="w-full rounded-lg px-4 py-2 bg-indigo-600 text-white">
-                {isSubmitting ? "Création..." : "Créer mon compte"}
-              </button>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? "Creating..." : "Create account"}
+              </Button>
             </div>
 
-            <p className='text-sm text-gray-600 text-center'>
+            <p className='text-sm text-trello-secondary text-center'>
               By creating an account, you accept our terms.
             </p>
           </form>
         </div>
 
-        <p className='text-center text-sm text-gray-600 mt-4'>
+        <p className='text-center text-sm text-trello-secondary mt-4'>
           Already have an account?{' '}
-          <a href='/auth/login' className='text-indigo-600'>
+          <a href='/auth/login' className='text-trello-blue'>
             Sign in
           </a>
         </p>
