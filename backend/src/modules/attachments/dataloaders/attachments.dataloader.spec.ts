@@ -1,12 +1,12 @@
 import { AttachmentsDataLoader } from './attachments.dataloader';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-jest.mock('dataloader', () => ({
-  __esModule: true,
-  default: jest.fn().mockImplementation((batchFn) => ({
-    loadMany: (keys: readonly string[]) => Promise.resolve(batchFn(keys)),
-  })),
-}));
+jest.mock('dataloader', () => {
+  return jest.fn().mockImplementation((batchFn) => ({
+    load: jest.fn((key: string) => Promise.resolve(batchFn([key])[0])),
+    loadMany: jest.fn((keys: readonly string[]) => Promise.resolve(batchFn(keys))),
+  }));
+});
 
 describe('AttachmentsDataLoader', () => {
   let dataloader: AttachmentsDataLoader;
