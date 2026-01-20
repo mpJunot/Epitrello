@@ -214,6 +214,15 @@ resource "google_cloud_run_v2_service" "backend" {
         value = "https://*.run.app"
       }
 
+      # Frontend URL (for OAuth redirects and email links)
+      dynamic "env" {
+        for_each = var.frontend_url != null && var.frontend_url != "" ? [1] : []
+        content {
+          name  = "FRONTEND_URL"
+          value = var.frontend_url
+        }
+      }
+
       # ===================================
       # Health Checks
       # ===================================
