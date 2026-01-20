@@ -1,4 +1,4 @@
-import DataLoader from 'dataloader';
+import DataLoader = require('dataloader');
 import { Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Card } from '../entities/card.entity';
@@ -7,7 +7,7 @@ import { Checklist } from '../../checklists/entities/checklist.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CardsDataLoader {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * DataLoader for loading cards by list IDs
