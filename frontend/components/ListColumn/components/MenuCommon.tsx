@@ -7,7 +7,7 @@ export const CloseIcon = () => (
 );
 
 export const CheckIcon = () => (
-  <Check className="w-4 h-4 text-indigo-600" />
+  <Check className="w-4 h-4 text-trello-blue" />
 );
 
 type MenuHeaderProps = {
@@ -16,8 +16,8 @@ type MenuHeaderProps = {
 };
 
 export const MenuHeader: React.FC<MenuHeaderProps> = ({ title, onClose }) => (
-  <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-    <h4 className="text-sm font-semibold text-gray-700">{title}</h4>
+  <div className="px-4 py-3 border-b border-trello-border flex items-center justify-between">
+    <h4 className="text-sm font-semibold text-trello">{title}</h4>
     <Button
       onClick={onClose}
       variant="ghost"

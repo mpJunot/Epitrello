@@ -351,7 +351,7 @@ export default function ListColumn({
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
       className={`w-[272px] min-w-[272px] shrink-0 rounded-md shadow-sm flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-trello-blue-light ring-2 ring-trello-blue shadow-lg' : 'bg-gray-100'
+        isDragOver ? 'bg-trello-blue-light ring-2 ring-trello-blue shadow-lg' : 'bg-trello-card-bg'
       }`}
       style={{ height: '100%', maxHeight: '100%' }}
     >
@@ -398,7 +398,7 @@ export default function ListColumn({
               aria-expanded={showActions}
               aria-haspopup="true"
             >
-              <MoreVertical className="w-4 h-4 text-gray-600" aria-hidden="true" />
+              <MoreVertical className="w-4 h-4 text-trello-text-secondary" aria-hidden="true" />
             </Button>
 
             {/* Menus */}
@@ -489,18 +489,18 @@ export default function ListColumn({
           </div>
         ))}
         {dragOverIndex === cards.length && cards.length > 0 && (
-          <div className="h-2 bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder" />
+          <div className="h-2 bg-gradient-to-r from-[var(--trello-blue)] to-[var(--trello-blue-hover)] rounded-full shadow-lg animate-drag-placeholder" />
         )}
       </div>
 
       {/* Footer */}
-      <div className="p-4 pt-3 border-t border-gray-200 shrink-0 bg-gray-100">
+      <div className="p-4 pt-3 border-t border-trello-border shrink-0 bg-trello-card-bg">
         {!addingCard ? (
           <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
             variant="ghost"
-            className="w-full justify-start bg-white hover:bg-gray-50"
+            className="w-full justify-start bg-trello-card-bg hover:bg-trello-hover"
           >
             + Add a card
           </Button>

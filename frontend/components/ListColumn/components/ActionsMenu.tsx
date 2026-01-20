@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from "@/components/ui/button";
 
 type ActionsMenuProps = {
   onClose: () => void;
@@ -26,14 +27,15 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   activeSortOption,
 }) => {
   return (
-    <div className="absolute right-0 top-full mt-1 w-60 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden" role="menu">
-      <div className="px-4 py-3 border-b border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-700">List actions</h4>
+    <div className="absolute right-0 top-full mt-1 w-60 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden" role="menu">
+      <div className="px-4 py-3 border-b border-trello-border">
+        <h4 className="text-sm font-semibold text-trello">List actions</h4>
       </div>
 
       <div className="py-1">
-        <button
-          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
           role="menuitem"
           onClick={() => {
             onClose();
@@ -41,22 +43,20 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           }}
         >
           Add card
-        </button>
-        
-        <button
-          className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors"
+        </Button>
+
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
           role="menuitem"
           onClick={onCopyList}
         >
           Copy list
-        </button>
+        </Button>
 
-        <button
-          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-            totalListsCount <= 1
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500'
-          }`}
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
           role="menuitem"
           onClick={onMoveList}
           disabled={totalListsCount <= 1}
@@ -64,14 +64,11 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           aria-disabled={totalListsCount <= 1}
         >
           Move list
-        </button>
+        </Button>
 
-        <button
-          className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-            totalListsCount <= 1 || cardsCount === 0
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500'
-          }`}
+        <Button
+          variant="ghost"
+          className="w-full justify-start"
           role="menuitem"
           onClick={onMoveAllCards}
           disabled={totalListsCount <= 1 || cardsCount === 0}
@@ -85,14 +82,11 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           aria-disabled={totalListsCount <= 1 || cardsCount === 0}
         >
           Move all cards in this list
-        </button>
+        </Button>
 
-        <button
-          className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between ${
-            cardsCount === 0
-              ? 'text-gray-400 cursor-not-allowed'
-              : 'text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500'
-          }`}
+        <Button
+          variant="ghost"
+          className="w-full justify-between"
           role="menuitem"
           onClick={onSort}
           disabled={cardsCount === 0}
@@ -101,19 +95,20 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
         >
           <span>Sort by…</span>
           {activeSortOption && cardsCount > 0 && (
-            <span className="text-xs text-indigo-600 font-medium" aria-label="Sort active">●</span>
+            <span className="text-xs text-trello-blue font-medium" aria-label="Sort active">●</span>
           )}
-        </button>
+        </Button>
 
-        <div className="border-t border-gray-200 my-1"></div>
+        <div className="border-t border-trello-border my-1"></div>
 
-        <button
-          className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 transition-colors"
+        <Button
+          variant="destructive"
+          className="w-full justify-start"
           role="menuitem"
           onClick={onDelete}
         >
           Delete list
-        </button>
+        </Button>
       </div>
     </div>
   );
