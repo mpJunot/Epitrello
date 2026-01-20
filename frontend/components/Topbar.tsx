@@ -62,7 +62,6 @@ export default function Topbar() {
 
   const onSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    // simple client-side emit; integrate with search route later
     console.log("Search for", query);
     setSearchOpen(false);
   };
@@ -70,7 +69,6 @@ export default function Topbar() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const createBoard = (payload?: { name?: string; workspaceId?: string; visibility?: string }) => {
-    // If called with payload (from modal), create board; otherwise open modal
     if (!payload) {
       setCreateOpen(true);
       return;
@@ -111,7 +109,6 @@ export default function Topbar() {
       localStorage.setItem('epitrello_boards', JSON.stringify(next));
       window.dispatchEvent(new Event('epitrello:boards-updated'));
 
-      // navigate to the newly created board page
       router.push(`/boards/${id}`);
     } catch (e) {
       console.error(e);
@@ -124,15 +121,13 @@ export default function Topbar() {
   }
 
   return (
-    <header className="w-full border-b bg-trello-card-bg">
+    <header className="w-full bg-trello-card-bg">
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {/* mobile menu button - purely visual/hook for later */}
           <Button aria-label="Open menu" variant="ghost" size="icon" className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>
 
-          {/* Logo / title */}
           <a href="/dashboard" className="flex items-center gap-2 no-underline">
             <div className="h-8 w-8 rounded flex items-center justify-center bg-trello-blue text-white font-bold">E</div>
             <span className="hidden sm:inline font-semibold text-trello">Epitrello</span>
@@ -257,7 +252,6 @@ export default function Topbar() {
                     variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();
-                      // Clear client-side stored user data (client-only logout)
                       try {
                         localStorage.removeItem('epitrello_user');
                         localStorage.removeItem('epitrello_notifications');

@@ -108,6 +108,30 @@ variable "slack_client_secret_secret_name" {
   default     = null
 }
 
+variable "google_callback_url" {
+  description = "Google OAuth callback URL (optional)"
+  type        = string
+  default     = null
+}
+
+variable "microsoft_callback_url" {
+  description = "Microsoft OAuth callback URL (optional)"
+  type        = string
+  default     = null
+}
+
+variable "apple_callback_url" {
+  description = "Apple OAuth callback URL (optional)"
+  type        = string
+  default     = null
+}
+
+variable "slack_callback_url" {
+  description = "Slack OAuth callback URL (optional)"
+  type        = string
+  default     = null
+}
+
 variable "storage_bucket" {
   description = "Cloud Storage bucket name"
   type        = string
