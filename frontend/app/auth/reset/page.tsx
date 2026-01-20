@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    const graphqlEndpoint = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000/graphql";
+    const graphqlEndpoint = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
     const query = `mutation ResetPassword($input: ResetPasswordInput!) { resetPassword(input: $input) { message } }`;
 
     try {
@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, variables: { input: { newPassword: data.password, token } } }),
       });
-      
+
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || `Erreur serveur: ${res.status}`);
