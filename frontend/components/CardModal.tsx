@@ -597,7 +597,9 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
           className="max-w-[768px] w-full max-h-[90vh] p-0 flex flex-col overflow-hidden"
           showCloseButton={false}
         >
-          {/* Header de la modale - fixe */}
+          <DialogTitle className="sr-only">{card.title}</DialogTitle>
+          <DialogDescription className="sr-only">Card details and actions</DialogDescription>
+
           <div className="p-6 border-b border-trello-border shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -606,7 +608,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                   <div className="flex-1 min-w-0">
                     {!isEditingTitle ? (
                       <h2
-                        id="modal-title"
                         className="text-xl font-semibold text-trello cursor-pointer hover:bg-trello-hover px-2 py-1 -mx-2 -my-1 rounded transition-colors"
                         onClick={() => setIsEditingTitle(true)}
                         title="Click to edit title"
@@ -644,13 +645,9 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
             </div>
           </div>
 
-          {/* Contenu de la modale avec scroll vertical interne */}
           <div className="p-6 overflow-y-auto flex-1 custom-scrollbar" style={{ minHeight: 0 }}>
-          {/* Layout 2 colonnes */}
           <div className="flex gap-6 flex-col lg:flex-row">
-            {/* Colonne gauche - Contenu principal (~70%) */}
             <div className="flex-1 lg:w-[70%] space-y-6">
-              {/* Labels */}
               {assignedLabels && assignedLabels.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-trello mb-2">Labels</h3>
@@ -674,7 +671,6 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                 </div>
               )}
 
-              {/* Members */}
               {assignedMembers && assignedMembers.length > 0 && (
                 <div>
                   <h3 className="text-sm font-semibold text-trello mb-2">Members</h3>
