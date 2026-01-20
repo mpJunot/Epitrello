@@ -6,9 +6,9 @@ interface ErrorStateProps {
 
 export function ErrorState({ error }: ErrorStateProps) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-trello-hover flex items-center justify-center">
       <div className="text-center">
-        <div className="text-gray-400 mb-4">
+        <div className="text-trello-text-secondary mb-4">
           <svg
             className="mx-auto h-12 w-12"
             fill="none"
@@ -23,15 +23,15 @@ export function ErrorState({ error }: ErrorStateProps) {
             />
           </svg>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+        <h2 className="text-xl font-semibold text-trello mb-2">
           Board not found
         </h2>
-        <p className="text-gray-500 mb-4">
+        <p className="text-trello-text-secondary mb-4">
           {error ?? "The board you're looking for doesn't exist or has been deleted."}
         </p>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700"
+          className="inline-flex items-center gap-2 rounded-md bg-trello-blue text-white px-4 py-2 text-sm hover:bg-trello-blue-hover"
         >
           ← Back to Dashboard
         </Link>

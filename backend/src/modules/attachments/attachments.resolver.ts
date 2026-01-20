@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import DataLoader from 'dataloader';
+import DataLoader = require('dataloader');
 import { Attachment } from './entities/attachment.entity';
 import { CreateAttachmentInput } from './dto/create-attachment.input';
 import { UpdateAttachmentInput } from './dto/update-attachment.input';

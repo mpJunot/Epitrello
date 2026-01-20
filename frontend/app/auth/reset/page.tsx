@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-trello-hover">
       <div className="max-w-md w-full">
-        <div className="bg-white shadow rounded-2xl p-6">
+        <div className="bg-trello-card-bg shadow rounded-2xl p-6">
           <h2 className="text-lg font-semibold mb-4">Reset password</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

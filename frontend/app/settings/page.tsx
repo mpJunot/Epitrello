@@ -40,7 +40,7 @@ export default function AccountSettingsPage() {
 
   return (
     <div className="min-h-screen bg-trello-hover p-6">
-      <div className="max-w-2xl mx-auto bg-white rounded shadow p-6">
+      <div className="max-w-2xl mx-auto bg-trello-card-bg rounded shadow p-6">
         <h1 className="text-xl font-semibold mb-4">Account settings</h1>
 
         <div className="mb-4 space-y-2">
