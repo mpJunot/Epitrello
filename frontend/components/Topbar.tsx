@@ -7,6 +7,7 @@ import { toast } from "@/lib/toast";
 import { Search, Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -123,7 +124,7 @@ export default function Topbar() {
   }
 
   return (
-    <header className="w-full border-b bg-white">
+    <header className="w-full border-b bg-trello-card-bg">
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* mobile menu button - purely visual/hook for later */}
@@ -199,6 +200,9 @@ export default function Topbar() {
             )}
           </Button>
 
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Profile menu */}
           <div className="relative" ref={profileRef}>
             <Button
@@ -214,7 +218,7 @@ export default function Topbar() {
             </Button>
 
             {openProfile && (
-              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-white border rounded shadow p-3 z-10 text-sm">
+              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-trello-card-bg border border-trello-border rounded shadow p-3 z-10 text-sm">
                 <div className="mb-2">
                   <div className="text-xs text-trello-secondary font-medium">Account</div>
                   <div className="mt-2">

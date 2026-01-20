@@ -1,6 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useFocusWhen } from '../hooks';
 import { MenuHeader } from './MenuCommon';
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 type CopyListMenuProps = {
   defaultName: string;
@@ -23,7 +26,7 @@ export const CopyListMenu: React.FC<CopyListMenuProps> = ({ defaultName, onClose
 
   return (
     <div
-      className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden"
+      className="absolute right-0 top-full mt-1 w-72 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden"
       role="dialog"
       aria-label="Copy list"
     >
@@ -31,10 +34,10 @@ export const CopyListMenu: React.FC<CopyListMenuProps> = ({ defaultName, onClose
 
       <div className="p-4 space-y-4">
         <div>
-          <label htmlFor="copy-list-name" className="block text-xs font-medium text-gray-700 mb-1.5">
+          <Label htmlFor="copy-list-name" className="block text-xs font-medium mb-1.5">
             List name
-          </label>
-          <input
+          </Label>
+          <Input
             id="copy-list-name"
             ref={inputRef}
             type="text"
@@ -46,20 +49,19 @@ export const CopyListMenu: React.FC<CopyListMenuProps> = ({ defaultName, onClose
                 handleSubmit();
               }
             }}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
             placeholder="Enter list name"
             aria-required="true"
           />
         </div>
 
-        <button
+        <Button
           onClick={handleSubmit}
           disabled={!listName.trim()}
-          className="w-full px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+          className="w-full"
           aria-disabled={!listName.trim()}
         >
           Create copy
-        </button>
+        </Button>
       </div>
     </div>
   );

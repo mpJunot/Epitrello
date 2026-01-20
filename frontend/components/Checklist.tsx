@@ -1,6 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 export default function Checklist({ title, items: initial }: { title?: string; items?: { id: string; content: string; checked?: boolean }[] }) {
   const [items, setItems] = useState(initial || []);
@@ -20,18 +23,20 @@ export default function Checklist({ title, items: initial }: { title?: string; i
   };
 
   return (
-    <div className="p-3 bg-gray-50 rounded">
-      {title && <div className="font-medium mb-2">{title}</div>}
+    <div className="p-3 bg-trello-hover rounded">
+      {title && <div className="font-medium mb-2 text-trello">{title}</div>}
       <div className="space-y-2">
         {items.map((it) => (
           <div key={it.id} className="flex items-center gap-2">
-            <input type="checkbox" checked={!!it.checked} onChange={() => toggle(it.id)} />
-            <div className={`text-sm ${it.checked ? 'line-through text-gray-400' : ''}`}>{it.content}</div>
+            <Checkbox checked={!!it.checked} onCheckedChange={() => toggle(it.id)} />
+            <Label className={`text-sm cursor-pointer ${it.checked ? 'line-through text-trello-text-secondary' : 'text-trello'}`}>
+              {it.content}
+            </Label>
           </div>
         ))}
       </div>
       <div className="mt-2">
-        <button onClick={addItem} className="text-sm text-indigo-600 hover:underline">+ Add item</button>
+        <Button onClick={addItem} variant="ghost" size="sm">+ Add item</Button>
       </div>
     </div>
   );
