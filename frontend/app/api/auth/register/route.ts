@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       password?: string;
     };
 
-    const graphqlEndpoint = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000/graphql";
+    const graphqlEndpoint = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
     const query = `mutation Register($input: RegisterInput!) { register(input: $input) { token user { id email name avatar } } }`;
 
     const res = await fetch(graphqlEndpoint, {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const maxAge = 60 * 60 * 24 * 7;
     const cookie = `token=${auth.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
 
-  const response = NextResponse.json({ ok: true, user: auth.user, token: auth.token }, { status: 201 });
+    const response = NextResponse.json({ ok: true, user: auth.user, token: auth.token }, { status: 201 });
     response.headers.append("Set-Cookie", cookie);
     return response;
   } catch (err) {
