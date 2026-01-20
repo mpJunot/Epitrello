@@ -494,17 +494,41 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Get Frontend URL
+        id: frontend-url
+        shell: bash
+        run: |
+          ENV=${{ needs.changes.outputs.environment }}
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
+
       - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.changes.outputs.environment }}
           IMAGE_TAG="${{ github.ref_name }}-${{ github.sha }}"
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
+          FRONTEND_URL="${{ steps.frontend-url.outputs.url }}"
 
-          gcloud run services update $SERVICE_NAME \
-            --image $IMAGE \
-            --region ${{ env.GCP_REGION }} \
-            --platform managed
+          if [ -n "$FRONTEND_URL" ]; then
+            echo "Updating backend with frontend URL: $FRONTEND_URL"
+            gcloud run services update $SERVICE_NAME \
+              --image $IMAGE \
+              --update-env-vars FRONTEND_URL=$FRONTEND_URL \
+              --region ${{ env.GCP_REGION }} \
+              --platform managed
+          else
+            echo "Warning: Frontend URL not available, deploying without FRONTEND_URL update"
+            gcloud run services update $SERVICE_NAME \
+              --image $IMAGE \
+              --region ${{ env.GCP_REGION }} \
+              --platform managed
+          fi
 
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
@@ -536,6 +560,19 @@ jobs:
           production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
+      - name: Get Frontend URL
+        id: frontend-url
+        shell: bash
+        run: |
+          ENV=${{ needs.changes.outputs.environment }}
+          SERVICE_NAME="${ENV}-epitrello-frontend"
+          URL=$(gcloud run services describe $SERVICE_NAME \
+            --region ${{ env.GCP_REGION }} \
+            --project ${{ secrets.GCP_PROJECT_ID }} \
+            --format="value(status.url)" 2>/dev/null || echo "")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
+
       - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.changes.outputs.environment }}
@@ -549,6 +586,22 @@ jobs:
             --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
             --region ${{ env.GCP_REGION }} \
             --platform managed
+
+      - name: Update Backend with Frontend URL
+        run: |
+          ENV=${{ needs.changes.outputs.environment }}
+          BACKEND_SERVICE_NAME="${ENV}-epitrello-backend"
+          FRONTEND_URL="${{ steps.frontend-url.outputs.url }}"
+
+          if [ -n "$FRONTEND_URL" ]; then
+            echo "Updating backend with frontend URL: $FRONTEND_URL"
+            gcloud run services update $BACKEND_SERVICE_NAME \
+              --update-env-vars FRONTEND_URL=$FRONTEND_URL \
+              --region ${{ env.GCP_REGION }} \
+              --platform managed
+          else
+            echo "Warning: Frontend URL not available, skipping backend update"
+          fi
 
   deploy-docs:
     name: Deploy GraphQL Documentation
