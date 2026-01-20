@@ -3,6 +3,10 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMyWorkspaces, getWorkspaceBoards, GqlBoard } from '@/lib/actions/workspaces';
 import { createBoard as createBoardAction, Visibility } from '@/lib/actions/boards';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type Board = {
   id: string;
@@ -150,20 +154,20 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50 p-6 text-gray-900'>
+    <div className='min-h-screen bg-trello-hover p-6 text-trello'>
       <header className='flex items-center justify-between mb-6'>
         <div className='flex items-center gap-4'>
-          <div className='h-10 w-10 rounded bg-indigo-600 flex items-center justify-center text-white font-bold'>
+          <div className='h-10 w-10 rounded bg-trello-blue flex items-center justify-center text-white font-bold'>
             E
           </div>
-          <h1 className='text-2xl font-semibold text-gray-900'>Epitrello — Boards</h1>
+          <h1 className='text-2xl font-semibold text-trello'>Epitrello — Boards</h1>
         </div>
-        
+
       </header>
 
       <main>
         <section>
-          <h2 className='text-lg font-medium mb-4 text-gray-900'>Workspaces</h2>
+          <h2 className='text-lg font-medium mb-4 text-trello'>Workspaces</h2>
 
           <div className='space-y-6'>
             {workspaces.map((ws) => {
@@ -174,54 +178,60 @@ export default function DashboardPage() {
                 <div key={ws.id} className='bg-white rounded-lg shadow-sm p-4'>
                   <div className='flex items-start justify-between gap-4 mb-3'>
                     <div>
-                      <h3 className='text-lg font-semibold text-gray-900'>{ws.title}</h3>
+                      <h3 className='text-lg font-semibold text-trello'>{ws.title}</h3>
                     </div>
                     <div className='flex items-center gap-2'>
-                      <button onClick={() => router.push(`/workspaces/${ws.id}/boards`)} className='text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200'>Boards</button>
-                      <button onClick={() => router.push(`/workspaces/${ws.id}/members`)} className='text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200'>Members</button>
-                      <button onClick={() => router.push(`/workspaces/${ws.id}/settings`)} className='text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200'>Settings</button>
-                      <button onClick={() => setCreatingFor(ws.id)} className='text-sm px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700'>New board</button>
+                      <Button onClick={() => router.push(`/workspaces/${ws.id}/boards`)} variant="secondary" size="sm">Boards</Button>
+                      <Button onClick={() => router.push(`/workspaces/${ws.id}/members`)} variant="secondary" size="sm">Members</Button>
+                      <Button onClick={() => router.push(`/workspaces/${ws.id}/settings`)} variant="secondary" size="sm">Settings</Button>
+                      <Button onClick={() => setCreatingFor(ws.id)} size="sm">New board</Button>
                     </div>
                   </div>
 
                   <div className='overflow-x-auto'>
                     <div className='flex gap-4 pb-2'>
                       {creatingFor === ws.id && (
-                        <div className='min-w-[280px] p-3 bg-white rounded border flex-shrink-0'>
-                          <input
+                        <div className='min-w-[280px] p-3 bg-white rounded border shrink-0'>
+                          <Input
                             value={newBoardNameByWorkspace[ws.id] ?? ''}
                             onChange={(e) => setNewBoardNameByWorkspace((s) => ({ ...s, [ws.id]: e.target.value }))}
                             placeholder='Board name'
-                            className='w-full mb-2 px-2 py-1 border rounded text-sm'
+                            className='w-full mb-2'
                           />
-                          <input
+                          <Input
                             value={newBoardDescByWorkspace[ws.id] ?? ''}
                             onChange={(e) => setNewBoardDescByWorkspace((s) => ({ ...s, [ws.id]: e.target.value }))}
                             placeholder='Description (optional)'
-                            className='w-full mb-2 px-2 py-1 border rounded text-sm'
+                            className='w-full mb-2'
                           />
                           <div className='mb-2'>
-                            <div className='text-xs text-gray-600 mb-1'>Visibility</div>
+                            <Label className='text-xs mb-1'>Visibility</Label>
                             <div className='flex gap-2'>
-                              <button
+                              <Button
                                 onClick={() => setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: 'personal' }))}
-                                className={`px-3 py-1 rounded text-sm ${newBoardVisibilityByWorkspace[ws.id] === 'personal' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+                                variant={newBoardVisibilityByWorkspace[ws.id] === 'personal' ? 'default' : 'secondary'}
+                                size="sm"
+                              >
                                 Personal
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: 'workspace' }))}
-                                className={`px-3 py-1 rounded text-sm ${newBoardVisibilityByWorkspace[ws.id] === 'workspace' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+                                variant={newBoardVisibilityByWorkspace[ws.id] === 'workspace' ? 'default' : 'secondary'}
+                                size="sm"
+                              >
                                 Workspace
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: 'public' }))}
-                                className={`px-3 py-1 rounded text-sm ${newBoardVisibilityByWorkspace[ws.id] === 'public' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+                                variant={newBoardVisibilityByWorkspace[ws.id] === 'public' ? 'default' : 'secondary'}
+                                size="sm"
+                              >
                                 Public
-                              </button>
+                              </Button>
                             </div>
                           </div>
                           <div className='flex gap-2'>
-                            <button
+                            <Button
                               onClick={async () => {
                                 try {
                                   await createBoard(
@@ -257,35 +267,36 @@ export default function DashboardPage() {
                                   setTimeout(() => setFeedback(null), 3000);
                                 }
                               }}
-                              className='px-3 py-1 bg-indigo-600 text-white rounded text-sm'
+                              size="sm"
                             >
                               Create
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={() => {
                                 setCreatingFor(null);
                                 setNewBoardNameByWorkspace((s) => ({ ...s, [ws.id]: '' }));
                                 setNewBoardDescByWorkspace((s) => ({ ...s, [ws.id]: '' }));
                                 setNewBoardVisibilityByWorkspace((s) => ({ ...s, [ws.id]: undefined }));
                               }}
-                              className='px-3 py-1 bg-gray-100 rounded text-sm'
+                              variant="secondary"
+                              size="sm"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       )}
                       {wsBoardsLoading && (
-                        <div className='text-gray-500 text-sm flex items-center gap-2'>
+                        <div className='text-trello-secondary text-sm flex items-center gap-2'>
                           <span className='h-4 w-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin' />
-                          Chargement des boards...
+                          Loading boards...
                         </div>
                       )}
                       {!wsBoardsLoading && wsBoardsError && (
                         <div className='text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2 flex items-center gap-3'>
-                          <span className='font-semibold'>Erreur backend :</span>
-                          <span className='whitespace-pre-wrap break-words'>{wsBoardsError}</span>
-                          <button
+                          <span className='font-semibold'>Backend error:</span>
+                          <span className='whitespace-pre-wrap wrap-break-word'>{wsBoardsError}</span>
+                          <Button
                             onClick={async () => {
                               setBoardsError((p) => ({ ...p, [ws.id]: null }));
                               setBoardsLoading((p) => ({ ...p, [ws.id]: true }));
@@ -307,17 +318,18 @@ export default function DashboardPage() {
                                 setBoardsLoading((p) => ({ ...p, [ws.id]: false }));
                               }
                             }}
-                            className='px-2 py-1 bg-red-600 text-white rounded text-xs'
+                            variant="destructive"
+                            size="sm"
                           >
-                            Réessayer
-                          </button>
+                            Retry
+                          </Button>
                         </div>
                       )}
                       {!wsBoardsLoading && !wsBoardsError && wsBoards.length === 0 && (
-                        <div className='text-gray-500 text-sm'>No boards in this workspace</div>
+                        <div className='text-trello-secondary text-sm'>No boards in this workspace</div>
                       )}
                       {!wsBoardsLoading && !wsBoardsError && wsBoards.length > 0 && wsBoards.map((board) => (
-                        <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[200px] h-32 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-gray-200'}`}>
+                        <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[200px] h-32 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-trello-border'}`}>
                           <div className='relative h-full'>
                             <div className='absolute inset-0 bg-black bg-opacity-20' />
                             <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
@@ -348,34 +360,32 @@ export default function DashboardPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <div className="flex items-center mb-4">
-              <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
+              <div className="shrink-0">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">Delete Board</h3>
+                <h3 className="text-lg font-medium text-trello">Delete Board</h3>
               </div>
             </div>
             <div className="mb-6">
-              <p className="text-sm text-gray-500">
-                Are you sure you want to delete <span className="font-semibold text-gray-900">&quot;{deleteConfirm.boardName}&quot;</span>?
+              <p className="text-sm text-trello-secondary">
+                Are you sure you want to delete <span className="font-semibold text-trello">&quot;{deleteConfirm.boardName}&quot;</span>?
                 This action cannot be undone.
               </p>
             </div>
             <div className="flex justify-end gap-3">
-              <button
+              <Button
                 onClick={cancelDeleteBoard}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                variant="secondary"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={confirmDeleteBoard}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+                variant="destructive"
               >
                 Delete Board
-              </button>
+              </Button>
             </div>
           </div>
         </div>

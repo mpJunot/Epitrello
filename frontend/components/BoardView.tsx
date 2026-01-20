@@ -2,7 +2,8 @@
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import ListColumn from "./ListColumn";
-
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 type Label = { id: string; name?: string; color?: string };
 type UserRef = { id: string; name?: string; avatar?: string; email?: string };
 type Card = {
@@ -40,13 +41,13 @@ export default function BoardView({ board }: { board: Board }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-semibold">{board.title}</h2>
-          {board.description && <div className="text-sm text-gray-600">{board.description}</div>}
+          {board.description && <div className="text-sm text-trello-secondary">{board.description}</div>}
         </div>
       </div>
 
       {/* Container avec scroll horizontal fluide et responsive */}
-      <div 
-        className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar" 
+      <div
+        className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar"
         style={{ height: 'calc(100vh - 200px)' }}
       >
         {lists.map((l) => (
@@ -56,7 +57,7 @@ export default function BoardView({ board }: { board: Board }) {
         ))}
 
         {/* Add-column interactive element */}
-        <div className="w-[272px] min-w-[272px] flex-shrink-0 p-3 rounded-md snap-center md:snap-align-none">
+        <div className="w-[272px] min-w-[272px] shrink-0 p-3 rounded-md snap-center md:snap-align-none">
           <AddListInline />
         </div>
       </div>
@@ -98,18 +99,18 @@ function AddListInline() {
     // Don't close yet - let the parent handle success/failure
     // close() will be called by the parent via a success event
   };
-  
+
   const handleSuccess = useCallback(() => {
     setLoading(false);
     close();
   }, []);
-  
+
   const handleError = useCallback(() => {
     setLoading(false);
     setError(true);
     setTimeout(() => setError(false), 500);
   }, []);
-  
+
   useEffect(() => {
     window.addEventListener('epitrello:list-create-success', handleSuccess);
     window.addEventListener('epitrello:list-create-error', handleError);
@@ -122,17 +123,18 @@ function AddListInline() {
   return (
     <div>
       {!open ? (
-        <button
+        <Button
           ref={buttonRef}
           onClick={openInput}
-          className="w-full text-left px-3 py-2 rounded bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-300 text-sm text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          variant="ghost"
+          className="w-full justify-start"
           aria-label="Add another list"
         >
           + Add another list
-        </button>
+        </Button>
       ) : (
         <div className={`bg-transparent ${error ? 'animate-shake' : ''}`}>
-          <input
+          <Input
             ref={inputRef}
             placeholder="Enter list title"
             value={value}
@@ -149,29 +151,28 @@ function AddListInline() {
                 close();
               }
             }}
-            className={`w-full px-3 py-2 rounded border ${
-              error ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
-            } text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors`}
+            className={error ? 'border-red-400 bg-red-50' : ''}
           />
           {error && (
-            <p className="text-xs text-red-600 mt-1">Le titre est requis</p>
+            <p className="text-xs text-red-600 mt-1">Title is required</p>
           )}
 
           <div className="mt-2 flex items-center gap-2">
-            <button
+            <Button
               onClick={submit}
               disabled={loading}
-              className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 active:bg-indigo-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              size="sm"
             >
               {loading ? 'Creating...' : 'Add list'}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={close}
-              className="px-2 py-1 text-sm text-gray-600 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+              variant="ghost"
+              size="icon"
               aria-label="Cancel add list"
             >
               ✕
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -7,6 +7,10 @@ import ChecklistsSection from "./CardModal/ChecklistsSection";
 import ActivitySection from "./CardModal/ActivitySection";
 import AddToCardMenu from "./CardModal/AddToCardMenu";
 import ActionsMenu from "./CardModal/ActionsMenu";
+import { FileText, X, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label as LabelUI } from "@/components/ui/label";
 
 // Typed event names for board interactions
 type BoardEventName =
@@ -84,7 +88,7 @@ interface CardModalProps {
 
 /**
  * CardModal Component - Comprehensive card details editor
- * 
+ *
  * Closing Mechanisms (1️⃣5️⃣ Fermeture de la modale):
  * 1. Close Button (✕) - Click the button in the top-right
  * 2. Backdrop Click - Click outside the modal on the overlay
@@ -92,14 +96,14 @@ interface CardModalProps {
  *    - If editing title: cancel title editing
  *    - Else if editing description: cancel description editing
  *    - Else: close the modal
- * 
+ *
  * Behaviors on Close:
  * - All saved modifications are preserved (dispatched via CustomEvents)
  * - Board focus is restored to the card element (via cardRef in CardItem)
  * - Body overflow is restored
  * - Modal blur class is removed from board
  * - Focus trap is removed
- * 
+ *
  * State Management:
  * - All changes (title, description, members, labels, etc.) are managed locally
  * - CustomEvents dispatch changes to parent components
@@ -201,7 +205,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       const menuElement = menuRefs.current[openMenu];
-      
+
       if (menuElement && !menuElement.contains(target)) {
         setOpenMenu(null);
       }
@@ -263,7 +267,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
     document.addEventListener("keydown", handleEscape);
     document.addEventListener("keydown", handleTab);
-    
+
     // Bloquer le scroll du board (on évite de flouter le conteneur pour ne pas rendre la modale floue/inactive)
     document.body.style.overflow = "hidden";
 
@@ -289,10 +293,10 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       setIsEditingTitle(false);
       return;
     }
-    
+
     // Sauvegarder le nouveau titre
     setIsEditingTitle(false);
-    
+
     // Notifier le changement (événement custom pour plus tard)
     if (trimmedTitle !== card.title) {
       emitEvent("epitrello:card-title-updated", { cardId: card.id, title: trimmedTitle });
@@ -308,7 +312,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   // Sauvegarder la description
   const saveDescription = () => {
     setIsEditingDescription(false);
-    
+
     // Notifier le changement
     if (description !== (card.description || "")) {
       emitEvent("epitrello:card-description-updated", { cardId: card.id, description });
@@ -323,7 +327,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   // Ajouter/Supprimer un membre
   const toggleMember = (member: UserRef) => {
     const isAssigned = assignedMembers.some((m) => m.id === member.id);
-    
+
     const updated = isAssigned
       ? assignedMembers.filter((m) => m.id !== member.id)
       : [...assignedMembers, member];
@@ -339,7 +343,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   // Ajouter/Supprimer un label
   const toggleLabel = (label: Label) => {
     const isAssigned = assignedLabels.some((l) => l.id === label.id);
-    
+
     const updated = isAssigned
       ? assignedLabels.filter((l) => l.id !== label.id)
       : [...assignedLabels, label];
@@ -471,17 +475,17 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   // Déterminer le statut de la date
   const getDueDateStatus = (dueDate: DueDate) => {
     if (dueDate.isComplete) return "complete";
-    
+
     const now = new Date();
     const due = new Date(dueDate.date);
-    
+
     if (due < now) return "overdue";
-    
+
     // Si dans les prochaines 24h
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (due < tomorrow) return "soon";
-    
+
     return "upcoming";
   };
 
@@ -586,7 +590,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto"
       style={{ backdropFilter: 'blur(2px)', animation: 'fadeIn 0.2s ease-out' }}
       onClick={handleBackdropClick}
       role="dialog"
@@ -596,7 +600,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       <div
         ref={modalRef}
         className="bg-white rounded-lg shadow-2xl w-full my-12 animate-fade-scale-in"
-        style={{ 
+        style={{
           maxWidth: '768px',
           minWidth: '320px',
           width: '100%',
@@ -607,36 +611,23 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header de la modale - fixe */}
-        <div className="p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="p-6 border-b border-gray-200 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-3">
-                <svg
-                  className="w-6 h-6 text-gray-600 flex-shrink-0 mt-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
+                <FileText className="w-6 h-6 text-trello-secondary shrink-0 mt-1" aria-hidden="true" />
                 <div className="flex-1 min-w-0">
                   {!isEditingTitle ? (
                     <h2
                       id="modal-title"
-                      className="text-xl font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 px-2 py-1 -mx-2 -my-1 rounded transition-colors"
+                      className="text-xl font-semibold text-trello cursor-pointer hover:bg-trello-hover px-2 py-1 -mx-2 -my-1 rounded transition-colors"
                       onClick={() => setIsEditingTitle(true)}
                       title="Click to edit title"
                     >
                       {card.title}
                     </h2>
                   ) : (
-                    <input
+                    <Input
                       ref={titleInputRef}
                       type="text"
                       value={title}
@@ -651,33 +642,28 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                           cancelEditTitle();
                         }
                       }}
-                      className="w-full text-xl font-semibold text-gray-900 px-2 py-1 -mx-2 -my-1 border-2 border-indigo-500 rounded focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full text-xl font-semibold text-trello px-2 py-1 -mx-2 -my-1 border-2 border-trello-blue h-auto"
                       aria-label="Edit card title"
                     />
                   )}
                   {listId && (
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-trello-secondary mt-1">
                       in list <span className="underline">List Name</span>
                     </p>
                   )}
                 </div>
               </div>
             </div>
-            <button
+            <Button
               ref={closeButtonRef}
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0"
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-trello-secondary shrink-0"
               aria-label="Close modal"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+              <X className="w-6 h-6" />
+            </Button>
           </div>
         </div>
 
@@ -693,19 +679,19 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Labels</h3>
                   <div className="flex flex-wrap gap-2">
                     {assignedLabels.map((label) => (
-                      <button
+                      <Button
                         key={label.id}
                         onClick={() => toggleLabel(label)}
+                        variant="ghost"
+                        size="sm"
                         className={`inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full text-white ${
                           label.color || "bg-gray-500"
                         } hover:opacity-90 transition-opacity group`}
                         title="Click to remove"
                       >
                         <span>{label.name || "Untitled"}</span>
-                        <svg className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                        <X className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -743,15 +729,15 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                             )}
                           </div>
                           <span className="text-sm text-gray-700">{user.name || user.email}</span>
-                          <button
+                          <Button
                             onClick={() => toggleMember(user)}
-                            className="ml-1 opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-600 transition-all"
+                            variant="ghost"
+                            size="icon"
+                            className="ml-1 opacity-0 group-hover:opacity-100 text-trello-secondary hover:text-red-600 h-auto w-auto p-0"
                             aria-label={`Remove ${user.name || user.email}`}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                            <X className="w-4 h-4" />
+                          </Button>
                         </div>
                       );
                     })}
@@ -764,12 +750,12 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Due Date</h3>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <LabelUI className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={dueDate.isComplete}
                         onChange={toggleDueDateComplete}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-trello-blue"
                       />
                       <div
                         className={`px-3 py-1.5 rounded text-sm font-medium ${
@@ -786,16 +772,16 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                         {dueDate.isComplete && " (complete)"}
                         {getDueDateStatus(dueDate) === "overdue" && !dueDate.isComplete && " (overdue)"}
                       </div>
-                    </label>
-                    <button
+                    </LabelUI>
+                    <Button
                       onClick={removeDueDate}
-                      className="text-gray-400 hover:text-red-600 transition-colors"
+                      variant="ghost"
+                      size="icon"
+                      className="text-gray-400 hover:text-red-600 h-auto w-auto p-0"
                       title="Remove due date"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      <X className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               )}
@@ -850,9 +836,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
               {/* Historique (optionnel) */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <Clock className="w-5 h-5 text-trello-secondary" />
                   <h3 className="text-sm font-semibold text-gray-700">History</h3>
                 </div>
                 <div className="ml-7">
@@ -896,8 +880,8 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
         </div>
 
         {/* Footer avec actions - fixe */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg flex-shrink-0">
-          <div className="text-xs text-gray-500">
+        <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg shrink-0">
+          <div className="text-xs text-trello-secondary">
             Card ID: <span className="font-mono">{card.id}</span>
           </div>
         </div>
@@ -906,26 +890,26 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       {/* Archive Confirmation Modal */}
       {showArchiveConfirm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowArchiveConfirm(false)} />
+          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowArchiveConfirm(false)} />
           <div className="relative bg-white rounded-lg shadow-2xl max-w-sm w-full animate-fade-scale-in">
             <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Archive card?</h3>
-              <p className="text-sm text-gray-600 mb-6">
+              <h3 className="text-lg font-semibold text-trello mb-2">Archive card?</h3>
+              <p className="text-sm text-trello-secondary mb-6">
                 The card &quot;{card.title}&quot; will be archived. You can restore it later from the board&apos;s archive.
               </p>
               <div className="flex gap-3 justify-end">
-                <button
+                <Button
                   onClick={() => setShowArchiveConfirm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-sm font-medium"
+                  variant="secondary"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={archiveCard}
-                  className="px-4 py-2 bg-orange-500 text-white hover:bg-orange-600 rounded transition-colors text-sm font-medium"
+                  className="bg-orange-500 hover:bg-orange-600"
                 >
                   Archive
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -935,26 +919,26 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteConfirm(false)} />
           <div className="relative bg-white rounded-lg shadow-2xl max-w-sm w-full animate-fade-scale-in">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-red-600 mb-2">Delete card?</h3>
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-sm text-trello-secondary mb-6">
                 The card &quot;{card.title}&quot; will be permanently deleted. This action cannot be undone.
               </p>
               <div className="flex gap-3 justify-end">
-                <button
+                <Button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded transition-colors text-sm font-medium"
+                  variant="secondary"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={deleteCard}
-                  className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded transition-colors text-sm font-medium"
+                  variant="destructive"
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           </div>
