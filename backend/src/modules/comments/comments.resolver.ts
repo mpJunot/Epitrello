@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
-import DataLoader from 'dataloader';
+import DataLoader = require('dataloader');
 import { Comment } from './entities/comment.entity';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { UpdateCommentInput } from './dto/update-comment.input';
