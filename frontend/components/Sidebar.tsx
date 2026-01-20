@@ -55,9 +55,8 @@ export default function Sidebar() {
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const isAuthPage = pathname?.startsWith("/auth");
   
-
-  if (pathname && pathname.startsWith("/auth")) return null;
 
   useEffect(() => {
     // set active board from storage or url
@@ -207,6 +206,10 @@ export default function Sidebar() {
       if (window.innerWidth < 640) setCollapsed(true);
     } catch {}
   }, []);
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <aside

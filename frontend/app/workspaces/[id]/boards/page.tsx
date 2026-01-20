@@ -41,8 +41,8 @@ export default function WorkspaceBoardsPage() {
         } catch (e) {
           try {
             const rawWs = localStorage.getItem('epitrello_workspaces');
-            const wsLocal = rawWs ? JSON.parse(rawWs) : [];
-            const found = (wsLocal || []).find((w: any) => w.id === workspaceId);
+            const wsLocal = (rawWs ? JSON.parse(rawWs) : []) as Array<{ id: string; title?: string; name?: string }>;
+            const found = (wsLocal || []).find((w) => w.id === workspaceId);
             if (found) setWorkspaceName(found.title || found.name || 'Workspace');
           } catch (_) {}
         }

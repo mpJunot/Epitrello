@@ -4,7 +4,7 @@ export function handleAsyncError(error: unknown, action: string): void {
   alert(`Error: ${message}`);
 }
 
-export function logAction(emoji: string, message: string, data?: any): void {
+export function logAction(emoji: string, message: string, data?: unknown): void {
   if (data) {
     console.log(`${emoji} ${message}`, data);
   } else {
