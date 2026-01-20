@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,26 +51,25 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center p-6 bg-gray-50'>
+    <div className='min-h-screen flex items-center justify-center p-6 bg-trello-hover'>
       <div className='max-w-md w-full'>
         <div className='bg-white shadow rounded-2xl p-6'>
           <h2 className='text-lg text-black font-semibold mb-4'>
             Forgot password
           </h2>
-          <p className='text-sm text-gray-600 mb-4'>
+          <p className='text-sm text-trello-secondary mb-4'>
             Enter the email address associated with your account. We will send
             you a link to reset your password.
           </p>
 
           <form onSubmit={handleSubmit} className='space-y-4'>
-            <div>
-              <label className='block text-sm text-black '>Email address</label>
-              <input
+            <div className="space-y-2">
+              <Label>Email address</Label>
+              <Input
                 type='email'
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className=' text-black mt-1 block w-full rounded-md border border-black p-2 focus:border-black focus:ring-black'
                 placeholder='you@example.com'
               />
             </div>
@@ -76,18 +78,18 @@ export default function ForgotPasswordPage() {
             {message && <div className='text-green-600 text-sm'>{message}</div>}
 
             <div>
-              <button
+              <Button
                 type='submit'
                 disabled={loading}
-                className='w-full rounded-lg px-4 py-2 bg-indigo-600 text-white'
+                className='w-full'
               >
                 {loading ? 'Sending...' : 'Send link'}
-              </button>
+              </Button>
             </div>
 
-            <p className='text-sm text-gray-500 text-center'>
+            <p className='text-sm text-trello-secondary text-center'>
               Back to{' '}
-              <a href='/auth/login' className='text-indigo-600'>
+              <a href='/auth/login' className='text-trello-blue'>
                 login
               </a>
             </p>
