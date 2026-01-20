@@ -750,7 +750,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-2">Due Date</h3>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    <LabelUI className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={dueDate.isComplete}
@@ -772,7 +772,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                         {dueDate.isComplete && " (complete)"}
                         {getDueDateStatus(dueDate) === "overdue" && !dueDate.isComplete && " (overdue)"}
                       </div>
-                    </label>
+                    </LabelUI>
                     <Button
                       onClick={removeDueDate}
                       variant="ghost"
