@@ -29,19 +29,67 @@ async function bootstrap() {
 
     /**
      * Enable CORS.
-     * origin: process.env.FRONTEND_URL || 'http://localhost:3000' - The origin of the request.
-     * credentials: true - Allow credentials.
+     * Supports CORS_ORIGINS environment variable (comma-separated, supports wildcards like *.run.app)
+     * Falls back to FRONTEND_URL if CORS_ORIGINS is not set.
+     * In development, reflects the request origin (origin: true).
      */
-    // Enable CORS. In development reflect the request origin (origin: true)
-    // so the Access-Control-Allow-Origin header is set dynamically. In
-    // production, restrict to configured frontends.
     const isProduction = process.env.NODE_ENV === 'production';
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const backendPort = process.env.PORT || '8080';
+    const corsOrigins = process.env.CORS_ORIGINS;
 
-    const allowedOrigins = isProduction
-      ? [frontendUrl, `http://localhost:${backendPort}`]
-      : true; // reflect request origin in dev
+    const matchesWildcard = (origin: string, pattern: string): boolean => {
+      if (pattern === origin) return true;
+      if (!pattern.includes('*')) return false;
+
+      const regexPattern = pattern
+        .replace(/\./g, '\\.')
+        .replace(/\*/g, '.*');
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(origin);
+    };
+
+    let allowedOrigins: string[] | boolean | ((origin: string, callback: (err: Error | null, allow?: boolean) => void) => void);
+
+    if (isProduction) {
+      if (corsOrigins) {
+        // Parse CORS_ORIGINS (comma-separated, supports wildcards)
+        const origins = corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);
+        logger.log(`CORS origins configured: ${origins.join(', ')}`);
+
+        // Create a function that checks against both exact matches and wildcards
+        allowedOrigins = (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+          if (!origin) {
+            callback(null, false);
+            return;
+          }
+
+          // Check exact matches first
+          if (origins.includes(origin)) {
+            logger.debug(`CORS: Origin ${origin} matched exactly`);
+            callback(null, true);
+            return;
+          }
+
+          // Check wildcard patterns
+          const matches = origins.some((pattern) => matchesWildcard(origin, pattern));
+          if (matches) {
+            logger.debug(`CORS: Origin ${origin} matched wildcard pattern`);
+          } else {
+            logger.warn(`CORS: Origin ${origin} not allowed. Allowed patterns: ${origins.join(', ')}`);
+          }
+          callback(null, matches);
+        };
+      } else {
+        // Fallback to FRONTEND_URL if CORS_ORIGINS is not set
+        logger.log(`CORS: Using FRONTEND_URL fallback: ${frontendUrl}`);
+        allowedOrigins = [frontendUrl, `http://localhost:${backendPort}`];
+      }
+    } else {
+      // In development, reflect request origin
+      logger.log('CORS: Development mode - reflecting request origin');
+      allowedOrigins = true;
+    }
 
     app.enableCors({
       origin: allowedOrigins,

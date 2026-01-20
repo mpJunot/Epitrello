@@ -149,6 +149,7 @@ module "cloud_run" {
   slack_client_secret_secret_name     = module.secrets.slack_client_secret_secret_name
   storage_bucket                      = module.cloud_storage.bucket_name
   vpc_connector_id                    = var.enable_private_ip ? module.networking.vpc_connector_id : null
+  frontend_url                        = "" # Will be updated via gcloud after frontend deployment
 
   labels = local.common_labels
 

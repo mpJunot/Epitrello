@@ -124,6 +124,12 @@ variable "service_account_email" {
   type        = string
 }
 
+variable "frontend_url" {
+  description = "Frontend URL for CORS and OAuth redirects (optional, can be set after first deployment)"
+  type        = string
+  default     = ""
+}
+
 variable "labels" {
   description = "Labels to apply to resources"
   type        = map(string)
