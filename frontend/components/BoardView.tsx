@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import ListColumn from "./ListColumn";
 
 type Label = { id: string; name?: string; color?: string };
@@ -22,7 +22,7 @@ type Board = {
 
 export default function BoardView({ board }: { board: Board }) {
   // Use lists directly from props - BoardPage is the single source of truth
-  const lists = board.lists || [];
+  const lists = useMemo(() => board.lists || [], [board.lists]);
 
   // Log pour debug
   useEffect(() => {
@@ -99,16 +99,16 @@ function AddListInline() {
     // close() will be called by the parent via a success event
   };
   
-  const handleSuccess = () => {
+  const handleSuccess = useCallback(() => {
     setLoading(false);
     close();
-  };
+  }, []);
   
-  const handleError = () => {
+  const handleError = useCallback(() => {
     setLoading(false);
     setError(true);
     setTimeout(() => setError(false), 500);
-  };
+  }, []);
   
   useEffect(() => {
     window.addEventListener('epitrello:list-create-success', handleSuccess);
@@ -117,7 +117,7 @@ function AddListInline() {
       window.removeEventListener('epitrello:list-create-success', handleSuccess);
       window.removeEventListener('epitrello:list-create-error', handleError);
     };
-  }, []);
+  }, [handleSuccess, handleError]);
 
   return (
     <div>

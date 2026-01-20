@@ -9,7 +9,7 @@ export default function NotificationsDropdown() {
       const raw = localStorage.getItem('epitrello_notifications');
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
-    } catch (_error) {
+    } catch {
       return [];
     }
   };
@@ -26,7 +26,7 @@ export default function NotificationsDropdown() {
   const markAll = () => {
     const next = notes.map((n) => ({ ...n, read: true }));
     setNotes(next);
-    try { localStorage.setItem('epitrello_notifications', JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem('epitrello_notifications', JSON.stringify(next)); } catch {}
   };
 
   return (

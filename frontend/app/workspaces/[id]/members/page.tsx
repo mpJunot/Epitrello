@@ -19,9 +19,9 @@ export default function WorkspaceMembersPage() {
         { id: String(Date.now() - 3000), name: 'Alice Dupont', email: 'alice@example.com' },
         { id: String(Date.now() - 2000), name: 'Bob Martin', email: 'bob@example.com' },
       ];
-      try { localStorage.setItem(storageKey, JSON.stringify(sample)); } catch (_error) {}
+      try { localStorage.setItem(storageKey, JSON.stringify(sample)); } catch {}
       return sample;
-    } catch (_error) {
+    } catch {
       return [];
     }
   });
@@ -33,13 +33,13 @@ export default function WorkspaceMembersPage() {
     const name = email.split('@')[0];
     const next = [...members, { id, name, email }];
     setMembers(next);
-    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch {}
   };
 
   const remove = (id: string) => {
     const next = members.filter(m => m.id !== id);
     setMembers(next);
-    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch (e) {}
+    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch {}
   };
 
   return (

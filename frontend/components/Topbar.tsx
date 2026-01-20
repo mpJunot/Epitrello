@@ -11,31 +11,31 @@ export default function Topbar() {
   const [query, setQuery] = useState("");
   const [openProfile, setOpenProfile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsCount, setNotificationsCount] = useState(() => {
+  const [notificationsCount] = useState(() => {
     try {
       const raw = localStorage.getItem("epitrello_notifications");
       const notes = raw ? JSON.parse(raw) : [];
       return Array.isArray(notes) ? notes.length : 0;
-    } catch (_error) {
+    } catch {
       return 0;
     }
   });
   const profileRef = useRef<HTMLDivElement | null>(null);
-  const [userName, setUserName] = useState<string>(() => {
+  const [userName] = useState<string>(() => {
     try {
       const raw = localStorage.getItem('epitrello_user');
       const u = raw ? JSON.parse(raw) : null;
       return u?.name || 'Benjamin Maillot';
-    } catch (_error) {
+    } catch {
       return 'Benjamin Maillot';
     }
   });
-  const [userEmail, setUserEmail] = useState<string>(() => {
+  const [userEmail] = useState<string>(() => {
     try {
       const raw = localStorage.getItem('epitrello_user');
       const u = raw ? JSON.parse(raw) : null;
       return u?.email || 'maillotbenjamin1@gmail.com';
-    } catch (_error) {
+    } catch {
       return 'maillotbenjamin1@gmail.com';
     }
   });
@@ -249,7 +249,7 @@ export default function Topbar() {
                         localStorage.removeItem('epitrello_active_board');
                         localStorage.removeItem('epitrello_workspaces');
                         localStorage.removeItem('epitrello_expanded_workspaces');
-                      } catch (err) {}
+                      } catch {}
                       setOpenProfile(false);
                       router.push('/auth/login');
                     }}
