@@ -1,12 +1,18 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 export default function AccountSettingsPage() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-
-  useEffect(() => {
+  const [name, setName] = useState(() => {
+    try {
+      const raw = localStorage.getItem('epitrello_user');
+      const u = raw ? JSON.parse(raw) : null;
+      return u?.name || '';
+    } catch {
+      return '';
+    }
+  });
+  const [email, setEmail] = useState(() => {
     try {
       const raw = localStorage.getItem('epitrello_user');
       if (raw) {
@@ -27,7 +33,7 @@ export default function AccountSettingsPage() {
       const next = { ...u, name, email };
       localStorage.setItem('epitrello_user', JSON.stringify(next));
       alert('Account updated');
-    } catch (e) { alert('Unable to save'); }
+    } catch { alert('Unable to save'); }
   };
 
   return (

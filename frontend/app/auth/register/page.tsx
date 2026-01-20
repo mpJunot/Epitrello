@@ -21,7 +21,7 @@ const RegisterSchema = z
 type RegisterForm = z.infer<typeof RegisterSchema>;
 
 export default function RegisterPage() {
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -67,7 +67,7 @@ export default function RegisterPage() {
       if (token && typeof window !== "undefined") {
         try {
           localStorage.setItem("token", token);
-        } catch (e) {
+        } catch {
           // ignore
         }
       }

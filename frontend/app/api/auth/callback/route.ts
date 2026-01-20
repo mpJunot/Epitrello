@@ -7,7 +7,7 @@ export async function GET(request: Request) {
 		const reqUrl = new URL(request.url);
 		const redirectTo = `${reqUrl.origin}/auth/callback${reqUrl.search}`;
 		return NextResponse.redirect(redirectTo);
-	} catch (err) {
+	} catch {
 		return NextResponse.json({ ok: false, error: 'Invalid request' }, { status: 400 });
 	}
 }
