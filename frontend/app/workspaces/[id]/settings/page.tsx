@@ -1,37 +1,37 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
+
+type Workspace = { id: string; title: string; logoUrl?: string; visibility?: string; name?: string };
 
 export default function WorkspaceSettingsPage() {
   const params = useParams();
   const workspaceId = params.id as string;
-  const [workspace, setWorkspace] = useState<{ id: string; title: string; logoUrl?: string; visibility?: string } | null>(null);
-  const [title, setTitle] = useState('');
-  const [visibility, setVisibility] = useState('PRIVATE');
-
-  useEffect(() => {
+  const loadWorkspace = () => {
     try {
       const raw = localStorage.getItem('epitrello_workspaces');
-      const arr = raw ? JSON.parse(raw) : [];
-      const found = (arr || []).find((w: any) => w.id === workspaceId);
-      if (found) {
-        setWorkspace(found);
-        setTitle(found.title || '');
-        setVisibility(found.visibility || 'PRIVATE');
-      }
-    } catch (e) {}
-  }, [workspaceId]);
+      const arr = raw ? (JSON.parse(raw) as Workspace[]) : [];
+      return (arr || []).find((w) => w.id === workspaceId) || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const initialWorkspace = loadWorkspace();
+  const [workspace, setWorkspace] = useState(initialWorkspace);
+  const [title, setTitle] = useState(initialWorkspace?.title || '');
+  const [visibility, setVisibility] = useState(initialWorkspace?.visibility || 'PRIVATE');
 
   const save = () => {
     try {
       const raw = localStorage.getItem('epitrello_workspaces');
-      const arr = raw ? JSON.parse(raw) : [];
-      const next = (arr || []).map((w: any) => (w.id === workspaceId ? { ...w, title, visibility } : w));
+      const arr = raw ? (JSON.parse(raw) as Workspace[]) : [];
+      const next = (arr || []).map((w) => (w.id === workspaceId ? { ...w, title, visibility } : w));
       localStorage.setItem('epitrello_workspaces', JSON.stringify(next));
-      setWorkspace((s) => s ? { ...s, title, visibility } : s);
+      setWorkspace((s) => (s ? { ...s, title, visibility } : s));
       alert('Workspace settings saved');
-    } catch (e) { alert('Unable to save'); }
+    } catch { alert('Unable to save'); }
   };
 
   if (!workspace) {

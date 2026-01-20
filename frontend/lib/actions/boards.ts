@@ -32,7 +32,7 @@ export interface CreateBoardInput {
   workspaceId?: string;
 }
 
-export interface BoardDetail extends Board {}
+export type BoardDetail = Board;
 
 /**
  * Create a new board (backend integration)

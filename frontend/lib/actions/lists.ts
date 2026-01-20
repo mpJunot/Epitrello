@@ -94,7 +94,7 @@ export async function deleteList(id: string): Promise<boolean> {
  * Get all lists for a board (currently returns empty array as backend doesn't expose this query yet)
  * For now, we'll create default lists if none exist
  */
-export async function getBoardLists(boardId: string): Promise<List[]> {
+export async function getBoardLists(): Promise<List[]> {
   // Note: The backend doesn't seem to have a direct query to get board lists
   // This is a workaround - we return empty array and create lists on demand
   return [];
