@@ -309,6 +309,16 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Get Backend URL for callback URLs
+        id: backend-url-callbacks
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -upgrade
@@ -332,6 +342,10 @@ jobs:
           apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
           slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
           slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
+          google_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/google/callback
+          microsoft_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/microsoft/callback
+          apple_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/apple/callback
+          slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -378,6 +392,16 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Get Backend URL for callback URLs
+        id: backend-url-callbacks
+        uses: ./.github/actions/get-backend-url
+        with:
+          environment: ${{ needs.changes.outputs.environment }}
+          region: ${{ env.GCP_REGION }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
+
       - name: Download plan
         uses: actions/download-artifact@v4
         with:
@@ -423,6 +447,10 @@ jobs:
           apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
           slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
           slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
+          google_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/google/callback
+          microsoft_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/microsoft/callback
+          apple_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/apple/callback
+          slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
       - name: Import existing Terraform state bucket if needed
         working-directory: ${{ env.TF_WORKING_DIR }}
