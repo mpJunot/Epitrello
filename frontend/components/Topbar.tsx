@@ -3,6 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import CreateBoardModal from "./CreateBoardModal";
+import { toast } from "@/lib/toast";
+import { Search, Bell, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -110,7 +114,7 @@ export default function Topbar() {
       router.push(`/boards/${id}`);
     } catch (e) {
       console.error(e);
-      alert('Impossible de créer le tableau');
+      toast.error('Unable to create board');
     }
   };
 
@@ -123,122 +127,130 @@ export default function Topbar() {
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* mobile menu button - purely visual/hook for later */}
-          <button aria-label="Ouvrir le menu" className="md:hidden p-2 rounded hover:bg-gray-100">☰</button>
+          <Button aria-label="Open menu" variant="ghost" size="icon" className="md:hidden">
+            <Menu className="h-5 w-5" />
+          </Button>
 
           {/* Logo / title */}
           <a href="/dashboard" className="flex items-center gap-2 no-underline">
-            <div className="h-8 w-8 rounded flex items-center justify-center bg-indigo-600 text-white font-bold">E</div>
-            <span className="hidden sm:inline font-semibold text-gray-800">Epitrello</span>
+            <div className="h-8 w-8 rounded flex items-center justify-center bg-trello-blue text-white font-bold">E</div>
+            <span className="hidden sm:inline font-semibold text-trello">Epitrello</span>
           </a>
 
           {/* Desktop search */}
           <form onSubmit={onSearch} className="hidden md:flex items-center gap-2 ml-4">
-            <label htmlFor="global-search" className="sr-only">Recherche globale</label>
-            <input
+            <label htmlFor="global-search" className="sr-only">Global search</label>
+            <Input
               id="global-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search cards, boards, members..."
-              className="rounded-md border px-3 py-1 text-sm w-72"
+              className="w-72"
             />
-            <button aria-label="Search" type="submit" className="px-3 py-1 bg-gray-100 text-gray-700 rounded">Search</button>
+            <Button aria-label="Search" type="submit" variant="secondary">Search</Button>
           </form>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Mobile search toggle */}
           <div className="md:hidden">
-            <button
+            <Button
               aria-expanded={searchOpen}
-              aria-label="Recherche"
+              aria-label="Search"
               onClick={() => setSearchOpen((s) => !s)}
-              className="p-2 rounded hover:bg-gray-100"
+              variant="ghost"
+              size="icon"
             >
-              🔍
-            </button>
+              <Search className="h-5 w-5" />
+            </Button>
           </div>
 
           {/* Create board */}
-          <button
+          <Button
             onClick={() => createBoard()}
             aria-label="Create a new board"
-            className="hidden sm:inline-flex items-center gap-2 px-3 py-1 bg-indigo-600 text-white rounded"
+            className="hidden sm:inline-flex"
           >
-            + Créer
-          </button>
-          <button
+            + Create
+          </Button>
+          <Button
             onClick={() => createBoard()}
             aria-label="Create board"
-            className="sm:hidden p-2 rounded bg-indigo-600 text-white"
-            title="Créer"
+            size="icon"
+            className="sm:hidden"
+            title="Create"
           >
             +
-          </button>
+          </Button>
           <CreateBoardModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={(p) => createBoard(p)} />
 
           {/* Notifications */}
-          <button
-            aria-label={`Notifications, ${notificationsCount} non lues`}
-            className="relative p-2 rounded hover:bg-gray-100"
+          <Button
+            aria-label={`Notifications, ${notificationsCount} unread`}
+            variant="ghost"
+            size="icon"
             title="Notifications"
-            onClick={() => alert('Ouvrir le panneau de notifications (à implémenter)')}
+            onClick={() => alert('Open notifications panel (to be implemented)')}
+            className="relative"
           >
-            🔔
+            <Bell className="h-5 w-5" />
             {notificationsCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">{notificationsCount}</span>
             )}
-          </button>
+          </Button>
 
           {/* Profile menu */}
           <div className="relative" ref={profileRef}>
-            <button
+            <Button
               onClick={() => setOpenProfile((s) => !s)}
               aria-haspopup="menu"
               aria-expanded={openProfile}
-              aria-label="Ouvrir le menu de profil"
-              className="flex items-center gap-2 p-1 rounded hover:bg-gray-100"
+              aria-label="Open profile menu"
+              variant="ghost"
+              className="flex items-center gap-2"
             >
-              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">U</div>
-              <span className="hidden md:inline text-sm text-gray-700">My account</span>
-            </button>
+              <div className="h-8 w-8 rounded-full bg-trello-border flex items-center justify-center">U</div>
+              <span className="hidden md:inline text-sm text-trello-secondary">My account</span>
+            </Button>
 
             {openProfile && (
-              <div role="menu" aria-label="Menu profil" className="absolute right-0 mt-2 w-64 bg-white border rounded shadow p-3 z-10 text-sm">
+              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-white border rounded shadow p-3 z-10 text-sm">
                 <div className="mb-2">
-                  <div className="text-xs text-gray-500 font-medium">Account</div>
+                  <div className="text-xs text-trello-secondary font-medium">Account</div>
                   <div className="mt-2">
-                    <div className="font-semibold text-gray-900">{userName}</div>
-                    <div className="text-xs text-gray-600">{userEmail}</div>
+                    <div className="font-semibold text-trello">{userName}</div>
+                    <div className="text-xs text-trello-secondary">{userEmail}</div>
                   </div>
                   <div className="mt-3 space-y-1">
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Switch accounts</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Manage account</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Switch accounts</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Manage account</a>
                   </div>
                 </div>
 
                 <div className="border-t my-2" />
 
                 <div className="mb-2">
-                  <div className="text-xs text-gray-500 font-medium">Trello</div>
+                  <div className="text-xs text-trello-secondary font-medium">Trello</div>
                   <div className="mt-2 space-y-1">
-                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Profile and visibility</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Activity</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Cards</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Settings</a>
+                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Profile and visibility</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Activity</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Cards</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Settings</a>
                   </div>
                 </div>
 
                 <div className="border-t my-2" />
 
                 <div className="mb-2">
-                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-gray-700 hover:bg-gray-50 rounded">Help</a>
+                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Help</a>
                 </div>
 
                 <div className="border-t my-2" />
 
                 <div>
-                  <button
+                  <Button
                     role="menuitem"
+                    variant="ghost"
                     onClick={(e) => {
                       e.preventDefault();
                       // Clear client-side stored user data (client-only logout)
@@ -253,10 +265,10 @@ export default function Topbar() {
                       setOpenProfile(false);
                       router.push('/auth/login');
                     }}
-                    className="w-full text-left block px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded"
+                    className="w-full justify-start"
                   >
                     Log out
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -268,15 +280,15 @@ export default function Topbar() {
       {searchOpen && (
         <div className="md:hidden px-4 pb-2">
           <form onSubmit={onSearch} className="flex items-center gap-2">
-            <label htmlFor="mobile-search" className="sr-only">Recherche</label>
-            <input
+            <label htmlFor="mobile-search" className="sr-only">Search</label>
+            <Input
               id="mobile-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search..."
-              className="w-full rounded-md border px-3 py-2"
+              className="w-full"
             />
-            <button aria-label="Lancer la recherche" type="submit" className="px-3 py-2 bg-gray-100 text-gray-700 rounded">OK</button>
+            <Button aria-label="Search" type="submit" variant="secondary">OK</Button>
           </form>
         </div>
       )}
