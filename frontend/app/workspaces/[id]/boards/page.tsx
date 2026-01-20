@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import { getWorkspaceBoards, GqlBoard, getWorkspace } from '@/lib/actions/workspaces';
 import { createBoard, Visibility } from '@/lib/actions/boards';
+import { toast } from '@/lib/toast';
 
 type Board = { id: string; name: string; description?: string; background?: string; members?: number; workspaceId?: string };
 
@@ -60,16 +61,16 @@ export default function WorkspaceBoardsPage() {
   }, [workspaceId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-trello-hover p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-semibold">{workspaceName} — Boards</h1>
-            <p className="text-sm text-gray-500">Boards inside this workspace</p>
+            <p className="text-sm text-trello-secondary">Boards inside this workspace</p>
           </div>
           <div>
-            <button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} className="px-3 py-1 bg-gray-100 rounded mr-2">Members</button>
-            <button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} className="px-3 py-1 bg-gray-100 rounded">Settings</button>
+            <button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} className="px-3 py-1 bg-trello-hover rounded mr-2">Members</button>
+            <button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} className="px-3 py-1 bg-trello-hover rounded">Settings</button>
           </div>
         </div>
 
@@ -84,12 +85,11 @@ export default function WorkspaceBoardsPage() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="font-semibold">Erreur backend</div>
-                  <div className="mt-1 whitespace-pre-wrap break-words text-sm">{error}</div>
+                  <div className="mt-1 whitespace-pre-wrap wrap-break-word text-sm">{error}</div>
                 </div>
                 <button onClick={() => {
                   setError(null);
                   setLoading(true);
-                  // re-trigger load by updating dependency or calling loader directly
                   (async () => {
                     try {
                       const gqlBoards: GqlBoard[] = await getWorkspaceBoards(workspaceId);
@@ -117,17 +117,17 @@ export default function WorkspaceBoardsPage() {
           )}
           {!loading && !error && boards.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center bg-white border rounded-lg p-8 text-center">
-              <p className="text-gray-600 mb-4">Aucun board dans ce workspace.</p>
+              <p className="text-trello-secondary mb-4">Aucun board dans ce workspace.</p>
               <button
                 onClick={() => setShowCreate(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                className="px-4 py-2 bg-trello-blue text-white rounded hover:bg-trello-blue-hover"
               >
                 Ajouter un board
               </button>
             </div>
           )}
           {!loading && !error && boards.map((b) => (
-            <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-gray-200'}`}>
+            <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-trello-border'}`}>
               <div className="relative h-full">
                 <div className="absolute inset-0 bg-black bg-opacity-20" />
                 <div className="absolute inset-0 p-3 text-white flex flex-col justify-between">
@@ -159,7 +159,7 @@ export default function WorkspaceBoardsPage() {
             router.push(`/boards/${newBoard.id}`);
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Failed to create board';
-            alert(msg);
+            toast.error(msg);
           }
         }}
       />

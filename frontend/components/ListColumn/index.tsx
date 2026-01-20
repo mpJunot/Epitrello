@@ -12,35 +12,38 @@ import { MoveListMenu } from "./components/MoveListMenu";
 import { MoveAllCardsMenu } from "./components/MoveAllCardsMenu";
 import { SortMenu } from "./components/SortMenu";
 import { DeleteListMenu } from "./components/DeleteListMenu";
+import { MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
-export default function ListColumn({ 
-  list, 
+export default function ListColumn({
+  list,
   totalListsCount = 1,
   allLists = []
 }: ListColumnProps) {
   // Core state
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
-  
+
   // Title editing state
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title || "Untitled");
   const inputRef = useRef<HTMLInputElement | null>(null);
-  
+
   // Drag & drop state
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  
+
   // Card composer state
   const [addingCard, setAddingCard] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
-  
+
   // Column actions menu state
   const [showActions, setShowActions] = useState(false);
   const [isHoveringColumn, setIsHoveringColumn] = useState(false);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
-  
+
   // Submenu states
   const [showCopyMenu, setShowCopyMenu] = useState(false);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
@@ -85,7 +88,7 @@ export default function ListColumn({
       title: trimmedTitle,
       description: ""
     };
-    
+
     setCards([...cards, newCard]);
     setLastLocalChange(Date.now());
     dispatchCustomEvent("epitrello:card-created", { listId: list.id, title: trimmedTitle });
@@ -107,7 +110,7 @@ export default function ListColumn({
 
     setTitle(trimmedTitle);
     setEditing(false);
-    
+
     if (trimmedTitle !== (list.title || "")) {
       dispatchCustomEvent("epitrello:list-updated", { listId: list.id, title: trimmedTitle });
     }
@@ -160,9 +163,9 @@ export default function ListColumn({
 
   const handleSort = (sortOption: SortOption) => {
     setActiveSortOption(sortOption);
-    
+
     const sortedCards = [...cards];
-    
+
     switch (sortOption) {
       case 'date-newest':
         sortedCards.reverse();
@@ -181,7 +184,7 @@ export default function ListColumn({
         sortedCards.sort((a, b) => b.title.localeCompare(a.title));
         break;
     }
-    
+
     setCards(sortedCards);
     setLastLocalChange(Date.now());
     setShowSortMenu(false);
@@ -202,18 +205,18 @@ export default function ListColumn({
       e.preventDefault();
       return;
     }
-    
+
     try {
       const fromIndexCalculated = typeof fromIndex === 'number' ? fromIndex : cards.findIndex((c) => c.id === cardId);
-      
-      const dragData = { 
-        cardId, 
-        fromListId: list.id, 
+
+      const dragData = {
+        cardId,
+        fromListId: list.id,
         fromIndex: fromIndexCalculated
       };
       e.dataTransfer.setData('application/json', JSON.stringify(dragData));
       e.dataTransfer.effectAllowed = 'move';
-      
+
       console.log('📦 Drag data set:', dragData);
 
       // Dispatch snapshot event - store full board state before drag
@@ -222,7 +225,7 @@ export default function ListColumn({
         fromListId: list.id,
         fromIndex: fromIndexCalculated
       });
-      
+
       // Set drag image for better UX
       const draggedCard = cards.find(c => c.id === cardId);
       if (draggedCard && e.currentTarget instanceof HTMLElement) {
@@ -242,7 +245,7 @@ export default function ListColumn({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(true);
-    
+
     // Calculate precise drop index based on mouse position
     if (typeof overIndex === 'number') {
       const cardElements = e.currentTarget.parentElement?.querySelectorAll('[draggable="true"]');
@@ -261,7 +264,7 @@ export default function ListColumn({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    
+
     const raw = e.dataTransfer.getData('application/json');
     if (!raw) {
       setDragOverIndex(null);
@@ -286,7 +289,7 @@ export default function ListColumn({
       let targetIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
       const fromIndex = data.fromIndex;
       const isIntralistMove = data.fromListId === list.id;
-      
+
       // Early exit if no actual movement
       if (isIntralistMove && (fromIndex === -1 || targetIndex === fromIndex)) {
         setDragOverIndex(null);
@@ -318,7 +321,7 @@ export default function ListColumn({
     e.stopPropagation();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const { clientX, clientY } = e;
-    
+
     // Only clear if truly leaving the column bounds
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
       setIsDragOver(false);
@@ -347,24 +350,24 @@ export default function ListColumn({
       onDragLeave={handleDragLeave}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
-      className={`w-[272px] min-w-[272px] flex-shrink-0 rounded-md shadow-sm flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-indigo-50 ring-2 ring-indigo-300 shadow-lg' : 'bg-gray-100'
+      className={`w-[272px] min-w-[272px] shrink-0 rounded-md shadow-sm flex flex-col animate-slide-in transition-all duration-200 ${
+        isDragOver ? 'bg-trello-blue-light ring-2 ring-trello-blue shadow-lg' : 'bg-gray-100'
       }`}
       style={{ height: '100%', maxHeight: '100%' }}
     >
       {/* Header */}
-      <div className="p-4 pb-3 flex-shrink-0">
+      <div className="p-4 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-2">
           {!editing ? (
             <h3
-              className="font-medium text-gray-800 text-sm cursor-text flex-1"
+              className="font-medium text-trello text-sm cursor-text flex-1"
               onClick={() => setEditing(true)}
               title="Click to edit"
             >
               {title}
             </h3>
           ) : (
-            <input
+            <Input
               ref={inputRef}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -377,15 +380,17 @@ export default function ListColumn({
                   setTitle(list.title || "Untitled");
                 }
               }}
-              className="flex-1 bg-white text-gray-900 text-sm rounded px-2 py-1 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors"
+              className="flex-1 h-auto p-2 text-sm"
             />
           )}
-          
+
           <div className="relative">
-            <button
+            <Button
               ref={actionsButtonRef}
               onClick={() => setShowActions(!showActions)}
-              className={`p-1.5 rounded transition-all duration-200 hover:bg-gray-200 active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${
+              variant="ghost"
+              size="icon"
+              className={`transition-all duration-200 ${
                 isHoveringColumn ? 'opacity-100' : 'opacity-30'
               }`}
               title="Column actions"
@@ -393,12 +398,8 @@ export default function ListColumn({
               aria-expanded={showActions}
               aria-haspopup="true"
             >
-              <svg className="w-4 h-4 text-gray-600" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-                <circle cx="2" cy="8" r="1.5" />
-                <circle cx="8" cy="8" r="1.5" />
-                <circle cx="14" cy="8" r="1.5" />
-              </svg>
-            </button>
+              <MoreVertical className="w-4 h-4 text-gray-600" aria-hidden="true" />
+            </Button>
 
             {/* Menus */}
             <div ref={actionsMenuRef}>
@@ -469,7 +470,7 @@ export default function ListColumn({
       {/* Cards area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-3 custom-scrollbar" style={{ minHeight: 0 }}>
         {cards.length === 0 && dragOverIndex === 0 && (
-          <div className="h-20 border-2 border-dashed border-indigo-300 bg-indigo-50 rounded-md flex items-center justify-center animate-drag-placeholder">
+          <div className="h-20 border-2 border-dashed border-indigo-300 bg-trello-blue-light rounded-md flex items-center justify-center animate-drag-placeholder">
             <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
           </div>
         )}
@@ -493,15 +494,16 @@ export default function ListColumn({
       </div>
 
       {/* Footer */}
-      <div className="p-4 pt-3 border-t border-gray-200 flex-shrink-0 bg-gray-100">
+      <div className="p-4 pt-3 border-t border-gray-200 shrink-0 bg-gray-100">
         {!addingCard ? (
-          <button
+          <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
-            className="w-full text-left text-sm text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 rounded px-3 py-2 shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            variant="ghost"
+            className="w-full justify-start bg-white hover:bg-gray-50"
           >
             + Add a card
-          </button>
+          </Button>
         ) : (
           <CardComposer
             onSubmit={handleSubmitCard}
