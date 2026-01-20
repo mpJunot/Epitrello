@@ -38,13 +38,13 @@ export default function WorkspaceBoardsPage() {
         try {
           const ws = await getWorkspace(workspaceId);
           setWorkspaceName(ws.name || 'Workspace');
-        } catch (e) {
+        } catch {
           try {
             const rawWs = localStorage.getItem('epitrello_workspaces');
             const wsLocal = (rawWs ? JSON.parse(rawWs) : []) as Array<{ id: string; title?: string; name?: string }>;
             const found = (wsLocal || []).find((w) => w.id === workspaceId);
             if (found) setWorkspaceName(found.title || found.name || 'Workspace');
-          } catch (_) {}
+          } catch {}
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : typeof err === 'string' ? err : 'Failed to load boards';

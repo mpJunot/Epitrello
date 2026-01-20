@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBoard } from '@/lib/actions/boards';
 import { List, Board } from './types';
-import { logAction, handleAsyncError } from './utils';
+import { logAction } from './utils';
 
 export function useBoardData(boardId: string) {
   const [board, setBoard] = useState<Board | null>(null);
