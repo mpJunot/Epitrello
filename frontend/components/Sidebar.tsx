@@ -3,6 +3,19 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getMyWorkspaces, createWorkspace } from "@/lib/actions/workspaces";
+import { getAuthToken } from "@/lib/graphql-client";
+import { Home, Plus, LayoutGrid, Users, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Workspace = { id: string; name: string; };
 
@@ -36,12 +49,10 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
-  
+
 
   useEffect(() => {
-    // set active board from storage or url
     try {
-      // Check if we're on a board page
       if (pathname && pathname.startsWith('/boards/')) {
         const boardId = pathname.split('/boards/')[1];
         if (boardId) {
@@ -57,8 +68,19 @@ export default function Sidebar() {
     } catch {}
   }, [pathname]);
 
-  // load workspaces from backend and expanded state
   useEffect(() => {
+    if (isAuthPage) {
+      setLoadingWorkspaces(false);
+      return;
+    }
+
+    const token = getAuthToken();
+    if (!token) {
+      setLoadingWorkspaces(false);
+      setWorkspaces([]);
+      return;
+    }
+
     const loadWorkspacesFromBackend = async () => {
       setLoadingWorkspaces(true);
       setWorkspacesError(null);
@@ -76,7 +98,7 @@ export default function Sidebar() {
 
     loadWorkspacesFromBackend();
     setExpandedWorkspaces(loadExpanded());
-  }, []);
+  }, [isAuthPage]);
 
   const retryLoadWorkspaces = async () => {
     setLoadingWorkspaces(true);
@@ -93,7 +115,6 @@ export default function Sidebar() {
     }
   };
 
-  // persist expandedWorkspaces to storage when it changes
   useEffect(() => {
     saveExpanded(expandedWorkspaces);
   }, [expandedWorkspaces]);
@@ -105,20 +126,15 @@ export default function Sidebar() {
 
     setCreatingWorkspace(true);
     try {
-      // Call backend to create workspace
       const newWorkspace = await createWorkspace({ name: workspaceName });
-      
-      // Add new workspace to list
+
       setWorkspaces([...workspaces, newWorkspace]);
-      
-      // Show success message
+
       setFeedback(`Workspace "${newWorkspace.name}" créé avec succès`);
-      
-      // Close modal and reset form
+
       setShowCreateWorkspaceModal(false);
       setNewWorkspaceName('');
-      
-      // Clear feedback after 3 seconds
+
       setTimeout(() => setFeedback(null), 3000);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la création';
@@ -128,7 +144,7 @@ export default function Sidebar() {
     }
   };
 
-  
+
 
   const toggleWorkspace = (id: string) => {
     setExpandedWorkspaces((prev) => {
@@ -163,22 +179,23 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`transition-all duration-150 bg-white border-r ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
-      aria-label="Barre latérale principale"
+      className={`transition-all duration-150 bg-white border-r border-trello ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
+      aria-label="Main sidebar"
     >
-      <div className="flex items-center justify-between p-3 border-b">
+      <div className="flex items-center justify-between p-3 border-b border-trello">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-indigo-600 text-white flex items-center justify-center font-bold">E</div>
-          {!collapsed && <h3 className="text-sm font-semibold text-gray-900">Epitrello</h3>}
+          <div className="h-8 w-8 rounded bg-trello-blue text-white flex items-center justify-center font-bold">E</div>
+          {!collapsed && <h3 className="text-sm font-semibold text-trello">Epitrello</h3>}
         </div>
         <div>
-          <button
+          <Button
             aria-label="Toggle sidebar"
             onClick={() => setCollapsed((c) => !c)}
-            className="text-gray-500 hover:text-gray-700 p-1 rounded"
+            variant="ghost"
+            size="icon"
           >
             {collapsed ? "→" : "←"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -187,17 +204,16 @@ export default function Sidebar() {
           <div className="mb-3">
             <ul className="space-y-2">
               <li>
-                <button
+                <Button
                   onClick={() => router.push("/dashboard")}
-                  className={`w-full flex items-center gap-3 p-2 rounded text-sm ${
-                    (pathname === "/" || pathname === "/dashboard") ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"
+                  variant={pathname === "/" || pathname === "/dashboard" ? "default" : "ghost"}
+                  className={`w-full justify-start ${
+                    (pathname === "/" || pathname === "/dashboard") ? "bg-trello-blue-light font-semibold text-trello" : ""
                   }`}
                 >
-                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                    <path d="M10 2L2 8v8a1 1 0 001 1h4v-6h6v6h4a1 1 0 001-1V8l-8-6z" />
-                  </svg>
+                  <Home className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
                   <span>Home</span>
-                </button>
+                </Button>
               </li>
             </ul>
           </div>
@@ -207,29 +223,27 @@ export default function Sidebar() {
           {/* Workspaces section */}
           {!collapsed && (
             <div className="mb-3">
-              <div className="text-xs text-gray-500 uppercase mb-2">Workspaces</div>
+              <div className="text-xs text-trello-secondary uppercase mb-2">Workspaces</div>
 
               {/* Add workspace button */}
               <div className="mb-2">
-                <button
+                <Button
                   onClick={() => setShowCreateWorkspaceModal(true)}
-                  className="w-full p-2 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium"
+                  className="w-full"
                 >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  Ajouter un workspace
-                </button>
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Add workspace
+                </Button>
               </div>
-              
+
               {/* Loading state */}
               {loadingWorkspaces && (
-                <div className="flex items-center gap-2 p-2 text-sm text-gray-500">
-                  <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full"></div>
+                <div className="flex items-center gap-2 p-2 text-sm text-trello-secondary">
+                  <div className="animate-spin h-4 w-4 border-2 border-trello border-t-trello rounded-full"></div>
                   <span>Loading...</span>
                 </div>
               )}
-              
+
               {/* Error state */}
               {workspacesError && !loadingWorkspaces && (
                 <div className="p-2 text-sm text-red-600 bg-red-50 rounded space-y-2">
@@ -237,22 +251,23 @@ export default function Sidebar() {
                     <p className="font-medium">Failed to load workspaces</p>
                     <p className="text-xs mt-1">{workspacesError}</p>
                   </div>
-                  <button 
+                  <Button
                     onClick={retryLoadWorkspaces}
-                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                    variant="destructive"
+                    size="sm"
                   >
                     Retry
-                  </button>
+                  </Button>
                 </div>
               )}
-              
+
               {/* Empty state */}
               {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
                 <div className="space-y-2">
-                  <p className="p-2 text-sm text-gray-500 text-center">Aucun workspace</p>
+                  <p className="p-2 text-sm text-trello-secondary text-center">No workspace</p>
                 </div>
               )}
-              
+
               {/* Workspaces list */}
               {!loadingWorkspaces && !workspacesError && workspaces.length > 0 && (
                 <ul className="space-y-2">
@@ -265,40 +280,38 @@ export default function Sidebar() {
                     return (
                       <li key={w.id}>
                         <div className="flex items-center justify-between">
-                          <button onClick={() => toggleWorkspace(w.id)} className="w-full text-left p-2 rounded flex items-center gap-2 hover:bg-gray-50">
-                            <span className="font-medium text-gray-900">{w.name}</span>
-                            <span className="ml-auto text-gray-400">{expanded ? "▾" : "▸"}</span>
-                          </button>
+                          <Button onClick={() => toggleWorkspace(w.id)} variant="ghost" className="w-full justify-start">
+                            <span className="font-medium text-trello">{w.name}</span>
+                            {expanded ? (
+                              <ChevronDown className="ml-auto h-4 w-4 text-trello-secondary" />
+                            ) : (
+                              <ChevronRight className="ml-auto h-4 w-4 text-trello-secondary" />
+                            )}
+                          </Button>
                         </div>
 
                         {expanded && (
                           <div className="mt-1 ml-4">
                             <ul className="space-y-1">
                               <li>
-                                <button onClick={() => onBoards(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${boardsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                    <path d="M3 3h6v6H3V3zM11 3h6v3h-6V3zM11 8h6v9h-6V8zM3 11h6v1H3v-1z" />
-                                  </svg>
+                                <Button onClick={() => onBoards(w.id)} variant={boardsActive ? "default" : "ghost"} className={`w-full justify-start ${boardsActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
+                                  <LayoutGrid className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
                                   <span>Boards</span>
-                                </button>
+                                </Button>
                               </li>
 
                               <li>
-                                <button onClick={() => onMembers(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${membersActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                    <path d="M13 7a3 3 0 11-6 0 3 3 0 016 0zM4 14a4 4 0 018 0v1H4v-1z" />
-                                  </svg>
+                                <Button onClick={() => onMembers(w.id)} variant={membersActive ? "default" : "ghost"} className={`w-full justify-start ${membersActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
+                                  <Users className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
                                   <span>Members</span>
-                                </button>
+                                </Button>
                               </li>
 
                               <li>
-                                <button onClick={() => onSettings(w.id)} className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded ${settingsActive ? "bg-indigo-50 font-semibold text-gray-900" : "text-gray-800 hover:bg-gray-50"}`}>
-                                  <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-                                    <path fillRule="evenodd" d="M11.3 1.046a1 1 0 00-2.6 0l-.2.6a1 1 0 01-.95.69H5.1a1 1 0 00-.98.8l-.2.98a1 1 0 01-.54.72L2.1 6.9a1 1 0 000 1.2l1 1a1 1 0 01.27.9l-.2.98a1 1 0 00.98 1.2h2.55a1 1 0 01.95.69l.2.6a1 1 0 002.6 0l.2-.6a1 1 0 01.95-.69h2.55a1 1 0 00.98-1.2l-.2-.98a1 1 0 01.27-.9l1-1a1 1 0 000-1.2l-1.36-1.36a1 1 0 01-.54-.72l-.2-.98a1 1 0 00-.98-.8h-2.55a1 1 0 01-.95-.69l-.2-.6z" clipRule="evenodd" />
-                                  </svg>
+                                <Button onClick={() => onSettings(w.id)} variant={settingsActive ? "default" : "ghost"} className={`w-full justify-start ${settingsActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
+                                  <Settings className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
                                   <span>Settings</span>
-                                </button>
+                                </Button>
                               </li>
                             </ul>
                           </div>
@@ -310,15 +323,15 @@ export default function Sidebar() {
               )}
             </div>
           )}
-          
+
         </nav>
       </div>
 
       <div className="p-3 border-t">
         {!collapsed ? (
-          <div className="text-xs text-gray-500">Your workspace • <a href="/auth/me" className="text-indigo-600">Profile</a></div>
+          <div className="text-xs text-trello-secondary">Your workspace • <a href="/auth/me" className="text-trello-blue">Profile</a></div>
         ) : (
-          <div className="text-xs text-gray-500 text-center">E</div>
+          <div className="text-xs text-trello-secondary text-center">E</div>
         )}
       </div>
 
@@ -328,55 +341,53 @@ export default function Sidebar() {
       </div>
 
       {/* Create Workspace Modal */}
-      {showCreateWorkspaceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Créer un nouveau workspace</h2>
-            
-            <form onSubmit={handleCreateWorkspace} className="space-y-4">
-              <div>
-                <label htmlFor="workspace-name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom du workspace
-                </label>
-                <input
-                  id="workspace-name"
-                  type="text"
-                  value={newWorkspaceName}
-                  onChange={(e) => setNewWorkspaceName(e.target.value)}
-                  placeholder="Ex: Mon équipe"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-600"
-                  disabled={creatingWorkspace}
-                  autoFocus
-                />
-              </div>
+      <Dialog open={showCreateWorkspaceModal} onOpenChange={setShowCreateWorkspaceModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create a new workspace</DialogTitle>
+            <DialogDescription>
+              Create a new workspace to organize your boards
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateWorkspace} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="workspace-name">Workspace name</Label>
+              <Input
+                id="workspace-name"
+                type="text"
+                value={newWorkspaceName}
+                onChange={(e) => setNewWorkspaceName(e.target.value)}
+                placeholder="Ex: My team"
+                disabled={creatingWorkspace}
+                autoFocus
+              />
+            </div>
 
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateWorkspaceModal(false);
-                    setNewWorkspaceName('');
-                  }}
-                  disabled={creatingWorkspace}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingWorkspace || !newWorkspaceName.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {creatingWorkspace && (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  )}
-                  {creatingWorkspace ? 'Création...' : 'Créer'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowCreateWorkspaceModal(false);
+                  setNewWorkspaceName('');
+                }}
+                disabled={creatingWorkspace}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={creatingWorkspace || !newWorkspaceName.trim()}
+              >
+                {creatingWorkspace && (
+                  <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                )}
+                {creatingWorkspace ? 'Creating...' : 'Create'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

@@ -26,7 +26,7 @@ function MemberAvatarInline({ user, size = 6 }: { user: UserRef; size?: number }
   const initials = user.name ? user.name.split(" ").map((s) => s[0]).slice(0,2).join("") : (user.email || "U")[0].toUpperCase();
   const dim = `${size}rem`;
   return (
-    <div title={user.name || user.email} className="rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-700" style={{ width: dim, height: dim }}>
+    <div title={user.name || user.email} className="rounded-full bg-trello-border flex items-center justify-center text-xs text-gray-700" style={{ width: dim, height: dim }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" /> : initials}
     </div>
@@ -70,13 +70,13 @@ export default function CardItem({
       e.preventDefault();
       return;
     }
-    
+
     setIsDragging(true);
     e.stopPropagation();
     if (onDragStart) {
       onDragStart(e, card.id, index);
     }
-    
+
     // Add visual feedback
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.4';
@@ -85,7 +85,7 @@ export default function CardItem({
 
   const handleDragEnd = (e: React.DragEvent) => {
     setIsDragging(false);
-    
+
     // Restore visual state
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
@@ -110,8 +110,8 @@ export default function CardItem({
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         className={`bg-white rounded p-3 shadow-sm hover:shadow-md select-none transition-all duration-200 ${
-          card.id.startsWith('temp-') 
-            ? 'opacity-60 cursor-not-allowed' 
+          card.id.startsWith('temp-')
+            ? 'opacity-60 cursor-not-allowed'
             : `hover:cursor-pointer ${isDragging ? 'opacity-40 scale-95' : 'hover:scale-[1.02]'}`
         }`}
         onClick={handleClick}
@@ -120,8 +120,8 @@ export default function CardItem({
       >
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="font-medium text-base text-gray-900">{card.title}</div>
-            {card.description && <div className="text-xs text-gray-600 mt-1">{card.description}</div>}
+            <div className="font-medium text-base text-trello">{card.title}</div>
+            {card.description && <div className="text-xs text-trello-secondary mt-1">{card.description}</div>}
             <div className="flex gap-2 mt-2 items-center">
               {(card.labels || []).map((l: Label) => (
                 <LabelBadgeInline key={l.id} label={l} />

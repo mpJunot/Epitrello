@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useFocusWhen } from '../hooks';
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 type CardComposerProps = {
   onSubmit: (title: string) => void;
@@ -20,7 +22,7 @@ export const CardComposer: React.FC<CardComposerProps> = ({ onSubmit, onCancel }
       setTimeout(() => setCardError(false), 500);
       return;
     }
-    
+
     onSubmit(trimmedTitle);
     setCardText("");
     setCardError(false);
@@ -39,7 +41,7 @@ export const CardComposer: React.FC<CardComposerProps> = ({ onSubmit, onCancel }
 
   return (
     <div className={cardError ? 'animate-shake' : ''}>
-      <textarea
+      <Textarea
         ref={textareaRef}
         placeholder="Enter a title for this card"
         value={cardText}
@@ -48,28 +50,29 @@ export const CardComposer: React.FC<CardComposerProps> = ({ onSubmit, onCancel }
           if (cardError) setCardError(false);
         }}
         onKeyDown={handleKeyDown}
-        className={`w-full min-h-[64px] p-2 rounded border ${
-          cardError ? 'border-red-400 bg-red-50' : 'border-gray-200'
-        } text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition-colors`}
+        className={`min-h-[64px] ${
+          cardError ? 'border-red-400 bg-red-50' : ''
+        }`}
       />
       {cardError && (
-        <p className="text-xs text-red-600 mt-1">Le titre de la carte est requis</p>
+        <p className="text-xs text-red-600 mt-1">Card title is required</p>
       )}
 
       <div className="mt-2 flex items-center gap-2">
-        <button
+        <Button
           onClick={handleSubmit}
-          className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 active:bg-indigo-800 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1"
+          size="sm"
         >
           Add card
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={onCancel}
-          className="px-2 py-1 text-sm text-gray-600 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+          variant="ghost"
+          size="icon"
           aria-label="Cancel add card"
         >
           ✕
-        </button>
+        </Button>
       </div>
     </div>
   );
