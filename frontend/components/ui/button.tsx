@@ -9,16 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-trello-blue text-white hover:bg-trello-blue-hover",
+        default: "bg-primary text-primary-foreground hover:bg-trello-blue-hover",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
-          "border border-trello-border bg-transparent shadow-xs hover:bg-trello-hover hover:text-trello-text",
+          "border border-border bg-transparent shadow-xs hover:bg-secondary hover:text-foreground",
         secondary:
-          "bg-trello-hover text-trello-text-secondary hover:bg-trello-border",
+          "bg-secondary text-secondary-foreground hover:bg-trello-border",
         ghost:
-          "hover:bg-trello-hover hover:text-trello-text",
-        link: "text-trello-blue underline-offset-4 hover:underline",
+          "hover:bg-secondary hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
