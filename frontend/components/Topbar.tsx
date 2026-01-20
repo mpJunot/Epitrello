@@ -6,28 +6,40 @@ import CreateBoardModal from "./CreateBoardModal";
 
 export default function Topbar() {
   const pathname = usePathname();
-
-  // hide on auth pages
-  if (pathname && pathname.startsWith("/auth")) return null;
+  const isAuthPage = pathname?.startsWith("/auth");
 
   const [query, setQuery] = useState("");
   const [openProfile, setOpenProfile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsCount, setNotificationsCount] = useState(0);
-  const profileRef = useRef<HTMLDivElement | null>(null);
-  const [userName, setUserName] = useState<string>('Benjamin Maillot');
-  const [userEmail, setUserEmail] = useState<string>('maillotbenjamin1@gmail.com');
-  const router = useRouter();
-
-  useEffect(() => {
+  const [notificationsCount] = useState(() => {
     try {
       const raw = localStorage.getItem("epitrello_notifications");
       const notes = raw ? JSON.parse(raw) : [];
-      setNotificationsCount(Array.isArray(notes) ? notes.length : 0);
-    } catch (e) {
-      setNotificationsCount(0);
+      return Array.isArray(notes) ? notes.length : 0;
+    } catch {
+      return 0;
     }
-  }, []);
+  });
+  const profileRef = useRef<HTMLDivElement | null>(null);
+  const [userName] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem('epitrello_user');
+      const u = raw ? JSON.parse(raw) : null;
+      return u?.name || 'Benjamin Maillot';
+    } catch {
+      return 'Benjamin Maillot';
+    }
+  });
+  const [userEmail] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem('epitrello_user');
+      const u = raw ? JSON.parse(raw) : null;
+      return u?.email || 'maillotbenjamin1@gmail.com';
+    } catch {
+      return 'maillotbenjamin1@gmail.com';
+    }
+  });
+  const router = useRouter();
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -41,20 +53,6 @@ export default function Topbar() {
     }
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, []);
-
-  // try to load user info from localStorage if available
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('epitrello_user');
-      if (raw) {
-        const u = JSON.parse(raw);
-        if (u?.name) setUserName(u.name);
-        if (u?.email) setUserEmail(u.email);
-      }
-    } catch (e) {
-      // ignore and keep defaults
-    }
   }, []);
 
   const onSearch = (e?: React.FormEvent) => {
@@ -90,7 +88,10 @@ export default function Topbar() {
 
       const raw = localStorage.getItem('epitrello_boards');
       const boards = raw ? JSON.parse(raw) : [];
-      const id = (crypto as any)?.randomUUID ? (crypto as any).randomUUID() : Date.now().toString();
+      const id =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : Date.now().toString();
       const board = {
         id,
         name,
@@ -112,6 +113,10 @@ export default function Topbar() {
       alert('Impossible de créer le tableau');
     }
   };
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <header className="w-full border-b bg-white">
@@ -244,7 +249,7 @@ export default function Topbar() {
                         localStorage.removeItem('epitrello_active_board');
                         localStorage.removeItem('epitrello_workspaces');
                         localStorage.removeItem('epitrello_expanded_workspaces');
-                      } catch (err) {}
+                      } catch {}
                       setOpenProfile(false);
                       router.push('/auth/login');
                     }}
