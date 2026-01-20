@@ -31,17 +31,17 @@ export default function NotificationsDropdown() {
 
   return (
     <div className="relative">
-      <button className="p-2 rounded hover:bg-gray-100" onClick={toggleOpen}>🔔</button>
+      <button className="p-2 rounded hover:bg-trello-hover" onClick={toggleOpen}>🔔</button>
       {open && (
         <div className="absolute right-0 mt-2 w-72 bg-white border rounded shadow p-3 z-20 text-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="font-medium">Notifications</div>
-            <button onClick={markAll} className="text-xs text-indigo-600">Mark all</button>
+            <button onClick={markAll} className="text-xs text-trello-blue">Mark all</button>
           </div>
           <div className="space-y-2 max-h-64 overflow-auto">
-            {notes.length === 0 && <div className="text-gray-500">No notifications</div>}
+            {notes.length === 0 && <div className="text-trello-secondary">No notifications</div>}
             {notes.map((n) => (
-              <div key={n.id} className={`p-2 rounded ${n.read ? 'bg-white' : 'bg-indigo-50'}`}>
+              <div key={n.id} className={`p-2 rounded ${n.read ? 'bg-white' : 'bg-trello-blue-light'}`}>
                 <div className="text-sm">{n.message}</div>
               </div>
             ))}
