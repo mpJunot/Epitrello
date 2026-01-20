@@ -179,7 +179,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`transition-all duration-150 bg-white border-r border-trello ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
+      className={`transition-all duration-150 bg-trello-card-bg border-r border-trello-border ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
       aria-label="Main sidebar"
     >
       <div className="flex items-center justify-between p-3 border-b border-trello">
