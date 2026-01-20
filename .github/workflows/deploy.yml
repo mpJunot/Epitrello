@@ -279,7 +279,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}
+            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}/graphql
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

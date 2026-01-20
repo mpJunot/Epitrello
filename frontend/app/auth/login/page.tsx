@@ -31,45 +31,90 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     setError(null);
     setLoading(true);
-    const url = "http://localhost:4000/graphql";
+    const url = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/graphql";
+
+    console.log('[Login] Starting login request', {
+      url,
+      email: data.email,
+      hasPassword: !!data.password,
+      rememberMe: data.rememberMe,
+      envVar: process.env.NEXT_PUBLIC_API_URL,
+    });
+
     try {
+      const requestBody = {
+        query: `mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    token\n    user { id email name avatar createdAt updatedAt }\n  }\n}\n`,
+        variables: {
+          input: {
+            email: data.email,
+            password: data.password,
+            rememberMe: data.rememberMe || false,
+          },
+        },
+      };
+
+      console.log('[Login] Sending request', {
+        url,
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+      });
+
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          query: `mutation Login($input: LoginInput!) {\n  login(input: $input) {\n    token\n    user { id email name avatar createdAt updatedAt }\n  }\n}\n`,
-          variables: {
-            input: {
-              email: data.email,
-              password: data.password,
-              rememberMe: data.rememberMe || false,
-            },
-          },
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('[Login] Response received', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        headers: Object.fromEntries(res.headers.entries()),
       });
 
       if (!res.ok) {
         const text = await res.text();
+        console.error('[Login] HTTP Error', {
+          status: res.status,
+          statusText: res.statusText,
+          body: text,
+        });
         throw new Error(text || "Erreur réseau");
       }
 
       const json = await res.json();
+      console.log('[Login] Response body', {
+        hasData: !!json.data,
+        hasErrors: !!json.errors,
+        errors: json.errors,
+      });
+
       if (json.errors && json.errors.length) {
+        console.error('[Login] GraphQL Errors', json.errors);
         throw new Error(json.errors[0].message || "Erreur GraphQL");
       }
 
       // Store the token
       if (json.data?.login?.token) {
+        console.log('[Login] Login successful, storing token');
         setAuthToken(json.data.login.token);
+      } else {
+        console.warn('[Login] No token in response', json.data);
       }
 
       // Redirect to dashboard
+      console.log('[Login] Redirecting to dashboard');
       window.location.href = '/dashboard';
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'An error occurred';
+      console.error('[Login] Error occurred', {
+        error: err,
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
       setError(errorMessage);
     } finally {
       setLoading(false);
