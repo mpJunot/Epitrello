@@ -1,7 +1,7 @@
 /**
  * Dispatches a custom event with error handling
  */
-export const dispatchCustomEvent = (eventName: string, detail: any) => {
+export const dispatchCustomEvent = (eventName: string, detail: Record<string, unknown> | undefined) => {
   try {
     window.dispatchEvent(new CustomEvent(eventName, { detail }));
   } catch (error) {
@@ -13,7 +13,10 @@ export const dispatchCustomEvent = (eventName: string, detail: any) => {
  * Generates a unique ID for new entities
  */
 export const generateId = (): string => {
-  return (crypto as any)?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random()}`;
 };
 
 /**

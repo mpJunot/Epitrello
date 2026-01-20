@@ -22,7 +22,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(LoginSchema),
     defaultValues: { rememberMe: false },
@@ -226,7 +226,7 @@ export default function LoginPage() {
                       console.log("auth] redirecting to Google OAuth:", target);
                       try {
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -245,7 +245,7 @@ export default function LoginPage() {
                       try {
                         console.log("[auth] redirecting to Microsoft OAuth:", target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -264,7 +264,7 @@ export default function LoginPage() {
                       try {
                         console.log("[auth] redirecting to Apple OAuth:", target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }
@@ -284,7 +284,7 @@ export default function LoginPage() {
                       try {
                         console.log('[auth] redirecting to Slack OAuth:', target);
                         window.location.assign(target);
-                      } catch (e) {
+                      } catch {
                         window.open(target, '_self');
                       }
                     }

@@ -41,7 +41,6 @@ export default function OAuthCallbackPage() {
     } else {
       setMessage('No token found in callback');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -51,7 +50,7 @@ export default function OAuthCallbackPage() {
         {message ? (
           <p className="text-red-600">{message}</p>
         ) : (
-          <p>Finalisation de l'authentification, redirection...</p>
+          <p>Finalisation de l&apos;authentification, redirection...</p>
         )}
       </div>
     </div>

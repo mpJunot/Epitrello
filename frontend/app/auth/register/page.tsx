@@ -21,7 +21,7 @@ const RegisterSchema = z
 type RegisterForm = z.infer<typeof RegisterSchema>;
 
 export default function RegisterPage() {
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const {
     register,
@@ -67,7 +67,7 @@ export default function RegisterPage() {
       if (token && typeof window !== "undefined") {
         try {
           localStorage.setItem("token", token);
-        } catch (e) {
+        } catch {
           // ignore
         }
       }
@@ -76,8 +76,9 @@ export default function RegisterPage() {
       if (typeof window !== "undefined") {
         window.location.href = "/auth/register/success";
       }
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'inscription");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'inscription";
+      setError(message);
     }
   };
 

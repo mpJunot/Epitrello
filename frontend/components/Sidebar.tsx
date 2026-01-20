@@ -2,30 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { v4 as uuidv4 } from "uuid";
 import { getMyWorkspaces, createWorkspace } from "@/lib/actions/workspaces";
 
-type Board = { id: string; title: string; color?: string };
 type Workspace = { id: string; name: string; };
 
-const STORAGE_KEY = "epitrello_boards";
 const ACTIVE_KEY = "epitrello_active_board";
 const EXPANDED_KEY = "epitrello_expanded_workspaces";
-
-function loadBoards(): Board[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as Board[];
-  } catch {
-    return [];
-  }
-}
-
-function saveBoards(boards: Board[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(boards));
-  window.dispatchEvent(new Event("epitrello:boards-updated"));
-}
 
 function loadExpanded(): string[] {
   try {
@@ -43,8 +25,6 @@ function saveExpanded(ids: string[]) {
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  const [boards, setBoards] = useState<Board[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
@@ -55,21 +35,16 @@ export default function Sidebar() {
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const isAuthPage = pathname?.startsWith("/auth");
   
-
-  if (pathname && pathname.startsWith("/auth")) return null;
 
   useEffect(() => {
     // set active board from storage or url
     try {
-      const active = localStorage.getItem(ACTIVE_KEY);
-      if (active) setActiveId(active);
-
       // Check if we're on a board page
       if (pathname && pathname.startsWith('/boards/')) {
         const boardId = pathname.split('/boards/')[1];
         if (boardId) {
-          setActiveId(boardId);
           localStorage.setItem(ACTIVE_KEY, boardId);
         }
       }
@@ -77,11 +52,10 @@ export default function Sidebar() {
       const params = new URLSearchParams(window.location.search);
       const q = params.get("board");
       if (q) {
-        setActiveId(q);
         localStorage.setItem(ACTIVE_KEY, q);
       }
     } catch {}
-  }, []);
+  }, [pathname]);
 
   // load workspaces from backend and expanded state
   useEffect(() => {
@@ -123,14 +97,6 @@ export default function Sidebar() {
   useEffect(() => {
     saveExpanded(expandedWorkspaces);
   }, [expandedWorkspaces]);
-
-  const openBoard = (id: string) => {
-    try {
-      localStorage.setItem(ACTIVE_KEY, id);
-      setActiveId(id);
-    } catch {}
-    router.push(`/boards/${id}`);
-  };
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,29 +150,16 @@ export default function Sidebar() {
     router.push(`/workspaces/${wid}/settings`);
   };
 
-  const onSignOut = async () => {
-    // Client-only logout: clear local storage and redirect
-    try {
-      localStorage.removeItem('epitrello_user');
-      localStorage.removeItem('epitrello_notifications');
-      localStorage.removeItem('epitrello_boards');
-      localStorage.removeItem('epitrello_active_board');
-      localStorage.removeItem('epitrello_expanded_workspaces');
-      localStorage.removeItem('auth_token');
-    } catch (e) {}
-    router.push("/auth/login");
-  };
-
-  
-
-  
-
   // adapt initial collapsed on small screens
   useEffect(() => {
     try {
       if (window.innerWidth < 640) setCollapsed(true);
     } catch {}
   }, []);
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <aside

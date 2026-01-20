@@ -1,14 +1,16 @@
 import { Dispatch, SetStateAction } from 'react';
 import { createList, updateList, reorderLists, deleteList } from '@/lib/actions/lists';
-import { createCard, moveCard, reorderCards, updateCard, deleteCard } from '@/lib/actions/cards';
+import { createCard, moveCard, updateCard, deleteCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
 import { logAction, handleAsyncError } from './utils';
+
+type DetailEvent<T> = CustomEvent<T> | undefined;
 
 export function createListEventHandlers(
   boardId: string,
   setLists: Dispatch<SetStateAction<List[]>>
 ) {
-  async function handleListCreate(e: any) {
+  async function handleListCreate(e?: DetailEvent<{ title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { title } = detail;
@@ -29,7 +31,7 @@ export function createListEventHandlers(
     }
   }
 
-  async function handleListUpdate(e: any) {
+  async function handleListUpdate(e?: DetailEvent<{ listId: string; title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { listId, title } = detail;
@@ -46,7 +48,7 @@ export function createListEventHandlers(
     }
   }
 
-  async function handleListMove(e: any) {
+  async function handleListMove(e?: DetailEvent<{ listId: string; newPosition: number }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { listId, newPosition } = detail;
@@ -82,7 +84,7 @@ export function createListEventHandlers(
     })();
   }
 
-  async function handleListCopy(e: any) {
+  async function handleListCopy(e?: DetailEvent<{ sourceListId: string; newListTitle: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { sourceListId, newListTitle } = detail;
@@ -145,7 +147,7 @@ export function createListEventHandlers(
     })();
   }
 
-  async function handleMoveAllCards(e: any) {
+  async function handleMoveAllCards(e?: DetailEvent<{ sourceListId: string; targetListId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { sourceListId, targetListId } = detail;
@@ -175,7 +177,7 @@ export function createListEventHandlers(
     })();
   }
 
-  async function handleListDelete(e: any) {
+  async function handleListDelete(e?: DetailEvent<{ listId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { listId } = detail;
@@ -207,7 +209,7 @@ export function createCardEventHandlers(
   // Store full board snapshot before drag for exact rollback
   let boardSnapshot: List[] = [];
 
-  function handleDragStart(e: any) {
+  function handleDragStart(e?: DetailEvent<{ cardId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     
@@ -228,7 +230,7 @@ export function createCardEventHandlers(
     console.log('📸 Snapshot captured:', boardSnapshot.length, 'lists');
   }
 
-  async function handleCardCreate(e: any) {
+  async function handleCardCreate(e?: DetailEvent<{ listId: string; title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { listId, title } = detail;
@@ -274,7 +276,9 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardMove(e: any) {
+  async function handleCardMove(
+    e?: DetailEvent<{ cardId: string; sourceListId: string; targetListId: string; targetIndex: number; fromIndex: number }>
+  ) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, sourceListId, targetListId, targetIndex, fromIndex } = detail;
@@ -371,7 +375,7 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardTitleUpdate(e: any) {
+  async function handleCardTitleUpdate(e?: DetailEvent<{ cardId: string; title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, title } = detail;
@@ -393,7 +397,7 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardDescriptionUpdate(e: any) {
+  async function handleCardDescriptionUpdate(e?: DetailEvent<{ cardId: string; description: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, description } = detail;
@@ -415,7 +419,7 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardDueDateUpdate(e: any) {
+  async function handleCardDueDateUpdate(e?: DetailEvent<{ cardId: string; dueDate?: { date?: string; isComplete?: boolean } }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, dueDate } = detail;
@@ -428,7 +432,7 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardDelete(e: any) {
+  async function handleCardDelete(e?: DetailEvent<{ cardId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId } = detail;

@@ -49,8 +49,9 @@ export default function ResetPasswordPage() {
 
       // redirect to success page
       if (typeof window !== "undefined") window.location.href = "/auth/reset/success";
-    } catch (err: any) {
-      alert(err?.message || "Erreur lors de la réinitialisation");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la réinitialisation";
+      alert(message);
     }
   };
 
