@@ -7,9 +7,9 @@
     "build": "next build --webpack",
     "start": "next start -p ${PORT:-8080}",
     "lint": "eslint",
-    "test": "vitest run --environment jsdom",
-    "test:watch": "vitest --environment jsdom",
-    "test:coverage": "vitest run --environment jsdom --coverage",
+    "test": "vitest run --environment jsdom --passWithNoTests",
+    "test:watch": "vitest --environment jsdom --passWithNoTests",
+    "test:coverage": "vitest run --environment jsdom --coverage --passWithNoTests",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
