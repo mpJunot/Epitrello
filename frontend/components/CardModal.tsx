@@ -278,7 +278,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       document.removeEventListener("keydown", handleTab);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title, cancelEditDescription]);
+  }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title, cancelEditDescription, setTitle]);
 
   // Sauvegarder le titre
   const saveTitle = () => {
@@ -732,6 +732,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                         >
                           <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white">
                             {user.avatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={user.avatar}
                                 alt={user.name}

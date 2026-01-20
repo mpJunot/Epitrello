@@ -13,7 +13,7 @@ export default function WorkspaceSettingsPage() {
       const raw = localStorage.getItem('epitrello_workspaces');
       const arr = raw ? (JSON.parse(raw) as Workspace[]) : [];
       return (arr || []).find((w) => w.id === workspaceId) || null;
-    } catch (_error) {
+    } catch {
       return null;
     }
   };
@@ -31,7 +31,7 @@ export default function WorkspaceSettingsPage() {
       localStorage.setItem('epitrello_workspaces', JSON.stringify(next));
       setWorkspace((s) => (s ? { ...s, title, visibility } : s));
       alert('Workspace settings saved');
-    } catch (_error) { alert('Unable to save'); }
+    } catch { alert('Unable to save'); }
   };
 
   if (!workspace) {

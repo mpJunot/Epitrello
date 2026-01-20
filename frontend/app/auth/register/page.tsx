@@ -67,7 +67,7 @@ export default function RegisterPage() {
       if (token && typeof window !== "undefined") {
         try {
           localStorage.setItem("token", token);
-        } catch (e) {
+        } catch {
           // ignore
         }
       }

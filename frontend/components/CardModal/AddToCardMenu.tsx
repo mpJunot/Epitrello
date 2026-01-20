@@ -64,6 +64,7 @@ export default function AddToCardMenu({
                     <button key={member.id} onClick={() => toggleMember(member)} className={`w-full flex items-center gap-2 px-2 py-2 rounded text-left transition-colors ${isAssigned ? 'bg-indigo-50 hover:bg-indigo-100' : 'hover:bg-gray-100'}`}>
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white ${isAssigned ? 'bg-indigo-500' : 'bg-gray-400'}`}>
                         {member.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={member.avatar} alt={member.name} className="w-full h-full object-cover rounded-full" />
                         ) : (
                           initials

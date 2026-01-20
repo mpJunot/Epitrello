@@ -15,11 +15,11 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
           { id: String(Date.now() - 2000), title: 'Personal' },
           { id: String(Date.now() - 1000), title: 'Acme Corp' },
         ];
-        try { localStorage.setItem('epitrello_workspaces', JSON.stringify(defaults)); } catch (_error) {}
+        try { localStorage.setItem('epitrello_workspaces', JSON.stringify(defaults)); } catch {}
         return defaults;
       }
       return ws;
-    } catch (_error) {
+    } catch {
       return [];
     }
   };

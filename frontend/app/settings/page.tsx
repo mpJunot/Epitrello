@@ -8,7 +8,7 @@ export default function AccountSettingsPage() {
       const raw = localStorage.getItem('epitrello_user');
       const u = raw ? JSON.parse(raw) : null;
       return u?.name || '';
-    } catch (_error) {
+    } catch {
       return '';
     }
   });
@@ -17,7 +17,7 @@ export default function AccountSettingsPage() {
       const raw = localStorage.getItem('epitrello_user');
       const u = raw ? JSON.parse(raw) : null;
       return u?.email || '';
-    } catch (_error) {
+    } catch {
       return '';
     }
   });
@@ -29,7 +29,7 @@ export default function AccountSettingsPage() {
       const next = { ...u, name, email };
       localStorage.setItem('epitrello_user', JSON.stringify(next));
       alert('Account updated');
-    } catch (_error) { alert('Unable to save'); }
+    } catch { alert('Unable to save'); }
   };
 
   return (
