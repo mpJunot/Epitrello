@@ -5909,6 +5909,10 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
+  '@playwright/test@1.57.0':
+    dependencies:
+      playwright: 1.57.0
+
   '@radix-ui/number@1.1.1': {}
 
   '@radix-ui/primitive@1.1.3': {}
@@ -6204,10 +6208,6 @@ snapshots:
 
   '@radix-ui/rect@1.1.1': {}
 
-  '@playwright/test@1.57.0':
-    dependencies:
-      playwright: 1.57.0
-
   '@repeaterjs/repeater@3.0.6': {}
 
   '@rollup/rollup-android-arm-eabi@4.55.1':
@@ -6364,7 +6364,6 @@ snapshots:
 
   '@testing-library/dom@10.4.1':
     dependencies:
-      '@babel/code-frame': 7.28.6
       '@babel/code-frame': 7.28.6
       '@babel/runtime': 7.28.6
       '@types/aria-query': 5.0.4

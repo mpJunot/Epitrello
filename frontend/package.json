@@ -10,9 +10,9 @@
     "test": "vitest run --environment jsdom",
     "test:watch": "vitest --environment jsdom",
     "test:coverage": "vitest run --environment jsdom --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "e2e:run": "bash scripts/run-e2e.sh",
+    "test:e2e": "pnpm exec playwright test --config e2e/playwright.config.ts",
+    "test:e2e:headed": "pnpm exec playwright test --config e2e/playwright.config.ts --headed",
+    "e2e:run": "bash e2e/scripts/run-e2e.sh",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
   },
