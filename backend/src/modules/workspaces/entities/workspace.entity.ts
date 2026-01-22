@@ -32,6 +32,9 @@ export class Workspace {
   @Field({ nullable: true })
   logoUrl?: string;
 
+  @Field({ nullable: true })
+  description?: string;
+
   @Field(() => Visibility)
   visibility: Visibility;
 
