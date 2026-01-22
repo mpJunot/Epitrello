@@ -78,12 +78,28 @@ function formatCommentDate(dateStr: string) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function useSyncedState<T>(source: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+function useSyncedState<T>(source: T, isOpen: boolean, cardId: string): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const prevIsOpenRef = useRef<boolean>(isOpen);
+  const prevCardIdRef = useRef<string | null>(null);
+
   const [value, setValue] = useState(source);
 
   useEffect(() => {
-    setValue(source);
-  }, [source]);
+    const cardChanged = cardId !== prevCardIdRef.current;
+    const modalJustOpened = isOpen && !prevIsOpenRef.current;
+
+    if (cardChanged || modalJustOpened) {
+      prevCardIdRef.current = cardId;
+      prevIsOpenRef.current = isOpen;
+      const timeoutId = setTimeout(() => {
+        setValue(source);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    } else {
+      prevIsOpenRef.current = isOpen;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, cardId]);
 
   return [value, setValue];
 }
@@ -123,33 +139,41 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const cardIdRef = useRef<string>(card.id);
+
+  // Reset states when card changes or modal opens
+  useEffect(() => {
+    if (card.id !== cardIdRef.current) {
+      cardIdRef.current = card.id;
+    }
+  }, [card.id]);
 
   // État pour l'édition du titre
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [title, setTitle] = useSyncedState(card.title);
+  const [title, setTitle] = useSyncedState(card.title, isOpen, card.id);
 
   // État pour l'édition de la description
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [description, setDescription] = useSyncedState(card.description || "");
+  const [description, setDescription] = useSyncedState(card.description || "", isOpen, card.id);
 
   // État pour les membres assignés
-  const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(card.assignees || []);
+  const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(card.assignees || [], isOpen, card.id);
 
   // État pour les labels assignés
-  const [assignedLabels, setAssignedLabels] = useSyncedState<Label[]>(card.labels || []);
+  const [assignedLabels, setAssignedLabels] = useSyncedState<Label[]>(card.labels || [], isOpen, card.id);
 
   // État pour les checklists
-  const [checklists, setChecklists] = useSyncedState<Checklist[]>(card.checklists || []);
+  const [checklists, setChecklists] = useSyncedState<Checklist[]>(card.checklists || [], isOpen, card.id);
   const [newChecklistTitle, setNewChecklistTitle] = useState("");
   const [addingItemToChecklist, setAddingItemToChecklist] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
 
   // État pour la date d'échéance
-  const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(card.dueDate);
+  const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(card.dueDate, isOpen, card.id);
   const [selectedDate, setSelectedDate] = useState("");
 
   // État pour les commentaires
-  const [comments, setComments] = useSyncedState<Comment[]>(card.comments || []);
+  const [comments, setComments] = useSyncedState<Comment[]>(card.comments || [], isOpen, card.id);
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");

@@ -23,6 +23,7 @@ export function useEventListeners(
       'epitrello:card-title-updated': cardHandlers.handleCardTitleUpdate,
       'epitrello:card-description-updated': cardHandlers.handleCardDescriptionUpdate,
       'epitrello:card-duedate-updated': cardHandlers.handleCardDueDateUpdate,
+      'epitrello:card-completed-updated': cardHandlers.handleCardCompletedUpdate,
       'epitrello:card-deleted': cardHandlers.handleCardDelete,
     };
 
