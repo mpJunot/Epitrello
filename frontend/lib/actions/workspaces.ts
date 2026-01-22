@@ -139,3 +139,17 @@ export async function getWorkspace(id: string): Promise<Workspace> {
   const result = await graphqlRequest<{ workspace: Workspace }>(query, { id });
   return result.workspace;
 }
+
+/**
+ * Delete a workspace by ID
+ */
+export async function deleteWorkspace(id: string): Promise<boolean> {
+  const mutation = `
+    mutation DeleteWorkspace($id: ID!) {
+      deleteWorkspace(id: $id)
+    }
+  `;
+
+  const result = await graphqlRequest<{ deleteWorkspace: boolean }>(mutation, { id });
+  return result.deleteWorkspace;
+}
