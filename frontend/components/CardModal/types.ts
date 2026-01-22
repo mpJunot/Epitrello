@@ -13,4 +13,5 @@ export type Card = {
   checklists?: Checklist[];
   dueDate?: DueDate;
   comments?: Comment[];
+  completed?: boolean;
 };

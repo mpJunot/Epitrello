@@ -127,7 +127,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className='min-h-screen flex'>
+    <div className='min-h-screen flex w-full'>
       {/* Left: brand / illustration */}
       <div className='hidden md:flex w-1/2 bg-gradient-to-b from-[var(--trello-blue)] to-[var(--trello-blue-hover)] items-center justify-center p-12'>
         <div className='max-w-lg text-white flex flex-col justify-center h-full'>

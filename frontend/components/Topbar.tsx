@@ -4,10 +4,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import CreateBoardModal from "./CreateBoardModal";
 import { toast } from "@/lib/toast";
-import { Search, Bell, Menu } from "lucide-react";
+import { Search, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "./ThemeToggle";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -121,33 +122,31 @@ export default function Topbar() {
   }
 
   return (
-    <header className="w-full bg-trello-card-bg">
-      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button aria-label="Open menu" variant="ghost" size="icon" className="md:hidden">
-            <Menu className="h-5 w-5" />
-          </Button>
+    <header className="w-full bg-card border-b border-sidebar-border shrink-0">
+      <div className="w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <SidebarTrigger className="shrink-0" />
 
-          <a href="/dashboard" className="flex items-center gap-2 no-underline">
-            <div className="h-8 w-8 rounded flex items-center justify-center bg-trello-blue text-white font-bold">E</div>
-            <span className="hidden sm:inline font-semibold text-trello">Epitrello</span>
+          <a href="/dashboard" className="flex items-center gap-2 no-underline shrink-0">
+            <div className="h-8 w-8 rounded flex items-center justify-center bg-primary text-primary-foreground font-bold shrink-0">E</div>
+            <span className="hidden sm:inline font-semibold text-foreground whitespace-nowrap">Epitrello</span>
           </a>
 
           {/* Desktop search */}
-          <form onSubmit={onSearch} className="hidden md:flex items-center gap-2 ml-4">
+          <form onSubmit={onSearch} className="hidden lg:flex items-center gap-2 ml-4 min-w-0 flex-1 max-w-md">
             <label htmlFor="global-search" className="sr-only">Global search</label>
             <Input
               id="global-search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search cards, boards, members..."
-              className="w-72"
+              className="w-full min-w-0"
             />
-            <Button aria-label="Search" type="submit" variant="secondary">Search</Button>
+            <Button aria-label="Search" type="submit" variant="secondary" className="shrink-0">Search</Button>
           </form>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Mobile search toggle */}
           <div className="md:hidden">
             <Button
@@ -165,7 +164,7 @@ export default function Topbar() {
           <Button
             onClick={() => createBoard()}
             aria-label="Create a new board"
-            className="hidden sm:inline-flex"
+            className="hidden sm:inline-flex shrink-0"
           >
             + Create
           </Button>
@@ -173,7 +172,7 @@ export default function Topbar() {
             onClick={() => createBoard()}
             aria-label="Create board"
             size="icon"
-            className="sm:hidden"
+            className="sm:hidden shrink-0"
             title="Create"
           >
             +
@@ -206,42 +205,42 @@ export default function Topbar() {
               aria-expanded={openProfile}
               aria-label="Open profile menu"
               variant="ghost"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 shrink-0"
             >
-              <div className="h-8 w-8 rounded-full bg-trello-border flex items-center justify-center">U</div>
-              <span className="hidden md:inline text-sm text-trello-secondary">My account</span>
+              <div className="h-8 w-8 rounded-full bg-border flex items-center justify-center shrink-0">U</div>
+              <span className="hidden lg:inline text-sm text-muted-foreground whitespace-nowrap">My account</span>
             </Button>
 
             {openProfile && (
-              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-trello-card-bg border border-trello-border rounded shadow p-3 z-10 text-sm">
+              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-card border border-border rounded shadow p-3 z-10 text-sm">
                 <div className="mb-2">
-                  <div className="text-xs text-trello-secondary font-medium">Account</div>
+                  <div className="text-xs text-muted-foreground font-medium">Account</div>
                   <div className="mt-2">
-                    <div className="font-semibold text-trello">{userName}</div>
-                    <div className="text-xs text-trello-secondary">{userEmail}</div>
+                    <div className="font-semibold text-foreground">{userName}</div>
+                    <div className="text-xs text-muted-foreground">{userEmail}</div>
                   </div>
                   <div className="mt-3 space-y-1">
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Switch accounts</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Manage account</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Switch accounts</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Manage account</a>
                   </div>
                 </div>
 
                 <div className="border-t my-2" />
 
                 <div className="mb-2">
-                  <div className="text-xs text-trello-secondary font-medium">Trello</div>
+                  <div className="text-xs text-muted-foreground font-medium">Trello</div>
                   <div className="mt-2 space-y-1">
-                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Profile and visibility</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Activity</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Cards</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Settings</a>
+                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Profile and visibility</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Activity</a>
+                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Cards</a>
+                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Settings</a>
                   </div>
                 </div>
 
                 <div className="border-t my-2" />
 
                 <div className="mb-2">
-                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-trello-secondary hover:bg-trello-hover rounded">Help</a>
+                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Help</a>
                 </div>
 
                 <div className="border-t my-2" />
