@@ -26,8 +26,11 @@ test('rejects password mismatch', async ({ page }) => {
   await confirmInput.fill('different123');
   await page.getByRole('button', { name: selectors.submit }).click();
 
-  const errors = page.locator('p.text-red-600');
-  await expect(errors.filter({ hasText: /match/i })).toBeVisible();
+  // Message d'erreur peut varier (EN/FR). On couvre les deux.
+  const errors = page.locator('p.text-red-600, p.text-destructive');
+  await expect(
+    errors.filter({ hasText: /(Passwords do not match|ne correspondent pas|identiques)/i })
+  ).toBeVisible();
 });
 
 test('rejects short password', async ({ page }) => {

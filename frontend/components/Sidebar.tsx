@@ -67,6 +67,21 @@ export default function AppSidebar() {
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
 
+  const loadWorkspaces = async () => {
+    setLoadingWorkspaces(true);
+    setWorkspacesError(null);
+    try {
+      const ws = await getMyWorkspaces();
+      setWorkspaces(ws);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
+      setWorkspacesError(errorMessage);
+      setWorkspaces([]);
+    } finally {
+      setLoadingWorkspaces(false);
+    }
+  };
+
   useEffect(() => {
     try {
       if (pathname && pathname.startsWith('/boards/')) {
@@ -97,39 +112,35 @@ export default function AppSidebar() {
       return;
     }
 
-    const loadWorkspacesFromBackend = async () => {
-      setLoadingWorkspaces(true);
-      setWorkspacesError(null);
-      try {
-        const ws = await getMyWorkspaces();
-        setWorkspaces(ws);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
-        setWorkspacesError(errorMessage);
-        setWorkspaces([]);
-      } finally {
-        setLoadingWorkspaces(false);
-      }
-    };
-
-    loadWorkspacesFromBackend();
+    loadWorkspaces();
     setExpandedWorkspaces(loadExpanded());
   }, [isAuthPage]);
 
   const retryLoadWorkspaces = async () => {
-    setLoadingWorkspaces(true);
-    setWorkspacesError(null);
-    try {
-      const ws = await getMyWorkspaces();
-      setWorkspaces(ws);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
-      setWorkspacesError(errorMessage);
-      setWorkspaces([]);
-    } finally {
-      setLoadingWorkspaces(false);
-    }
+    await loadWorkspaces();
   };
+
+  useEffect(() => {
+    const handleWorkspaceChange = () => {
+      if (!isAuthPage) {
+        loadWorkspaces();
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'epitrello_workspaces') {
+        handleWorkspaceChange();
+      }
+    };
+
+    window.addEventListener('epitrello:workspaces:changed', handleWorkspaceChange);
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('epitrello:workspaces:changed', handleWorkspaceChange);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [isAuthPage]);
 
   useEffect(() => {
     saveExpanded(expandedWorkspaces);
