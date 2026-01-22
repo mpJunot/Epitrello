@@ -75,7 +75,6 @@ export default function RegisterPage() {
         }
       }
 
-      // redirect to success page
       if (typeof window !== "undefined") {
         window.location.href = "/auth/register/success";
       }
@@ -86,60 +85,143 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-trello-hover">
-      <div className="max-w-md w-full">
-        <div className="bg-white shadow rounded-2xl p-6">
-          <h2 className="text-black text-lg font-semibold mb-4">Create an account</h2>
+    <div className='min-h-screen flex'>
+      {/* Left: brand / illustration */}
+      <div className='hidden md:flex w-1/2 bg-gradient-to-b from-[var(--trello-blue)] to-[var(--trello-blue-hover)] items-center justify-center p-12'>
+        <div className='max-w-lg text-white flex flex-col justify-center h-full'>
+          {/* Brand section */}
+          <div className='mb-12'>
+            <div className='flex items-center gap-4 mb-4'>
+              <div className='h-14 w-14 rounded-full bg-white/30 flex items-center justify-center text-3xl font-bold text-white shadow-lg'>
+                E
+              </div>
+              <div>
+                <h1 className='text-4xl font-bold text-white mb-2'>Epitrello</h1>
+                <p className='text-base text-white/90 leading-relaxed'>
+                  Back-office for merchants — create an account to get started
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content section */}
+          <div className='space-y-6'>
+            <div>
+              <h2 className='text-3xl font-bold text-white mb-3'>
+                Manage your products and orders
+              </h2>
+              <p className='text-lg text-white/95 leading-relaxed'>
+                View statistics, add products, and configure your store.
+              </p>
+            </div>
+
+            <div className='pt-4'>
+              <ul className='space-y-3 text-base text-white/95'>
+                <li className='flex items-start gap-3'>
+                  <span className='text-white text-xl leading-none mt-1'>•</span>
+                  <span>Real-time dashboard</span>
+                </li>
+                <li className='flex items-start gap-3'>
+                  <span className='text-white text-xl leading-none mt-1'>•</span>
+                  <span>Product management</span>
+                </li>
+                <li className='flex items-start gap-3'>
+                  <span className='text-white text-xl leading-none mt-1'>•</span>
+                  <span>Order history</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right: form */}
+      <div className='flex flex-1 items-center justify-center p-8 bg-trello-card-bg'>
+        <div className='max-w-md w-full'>
+          <div className='mb-6'>
+            <h1 className='mt-3 text-xl font-semibold text-trello'>Create an account</h1>
+          </div>
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Full name</Label>
-              <Input {...register("name")}
-                className={errors.name ? "border-red-500" : ""}
-                placeholder="John Doe" />
-              {errors.name && <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>}
+              <Label htmlFor="name" className="text-sm font-medium text-foreground">Full name</Label>
+              <Input
+                id="name"
+                {...register("name")}
+                className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                placeholder="John Doe"
+              />
+              {errors.name && <p className="text-destructive text-sm mt-1.5">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label>Shop name (optional)</Label>
-              <Input {...register("company")} placeholder="My shop" />
+              <Label htmlFor="company" className="text-sm font-medium text-foreground">
+                Shop name <span className="text-muted-foreground font-normal">(optional)</span>
+              </Label>
+              <Input
+                id="company"
+                {...register("company")}
+                placeholder="My shop"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label>Email address</Label>
-              <Input {...register("email")} type="email" className={errors.email ? "border-red-500" : ""} placeholder="you@example.com" />
-              {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>}
+              <Label htmlFor="email" className="text-sm font-medium text-foreground">Email address</Label>
+              <Input
+                id="email"
+                {...register("email")}
+                type="email"
+                className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                placeholder="you@example.com"
+              />
+              {errors.email && <p className="text-destructive text-sm mt-1.5">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label>Password</Label>
-              <Input {...register("password")} type="password" className={errors.password ? "border-red-500" : ""} placeholder="••••••••" />
-              {errors.password && <p className="text-red-600 text-sm mt-1">{errors.password.message}</p>}
+              <Label htmlFor="password" className="text-sm font-medium text-foreground">Password</Label>
+              <Input
+                id="password"
+                {...register("password")}
+                type="password"
+                className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                placeholder="••••••••"
+              />
+              {errors.password && <p className="text-destructive text-sm mt-1.5">{errors.password.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label>Confirm password</Label>
-              <Input {...register("confirm")} type="password" className={errors.confirm ? "border-red-500" : ""} placeholder="••••••••" />
-              {errors.confirm && <p className="text-red-600 text-sm mt-1">{errors.confirm.message}</p>}
+              <Label htmlFor="confirm" className="text-sm font-medium text-foreground">Confirm password</Label>
+              <Input
+                id="confirm"
+                {...register("confirm")}
+                type="password"
+                className={errors.confirm ? "border-destructive focus-visible:ring-destructive" : ""}
+                placeholder="••••••••"
+              />
+              {errors.confirm && <p className="text-destructive text-sm mt-1.5">{errors.confirm.message}</p>}
             </div>
 
-            <div>
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? "Creating..." : "Create account"}
+            <div className="pt-2">
+              <Button type="submit" disabled={isSubmitting} className="w-full h-11 text-base font-medium">
+                {isSubmitting ? "Creating account..." : "Create account"}
               </Button>
             </div>
 
-            <p className='text-sm text-trello-secondary text-center'>
-              By creating an account, you accept our terms.
+            <p className='text-xs text-muted-foreground text-center leading-relaxed pt-2'>
+              By creating an account, you agree to our{' '}
+              <a href="#" className="text-primary hover:underline">Terms of Service</a>
+              {' '}and{' '}
+              <a href="#" className="text-primary hover:underline">Privacy Policy</a>.
             </p>
           </form>
-        </div>
 
-        <p className='text-center text-sm text-trello-secondary mt-4'>
-          Already have an account?{' '}
-          <a href='/auth/login' className='text-trello-blue'>
-            Sign in
-          </a>
-        </p>
+          <p className='text-center text-sm text-muted-foreground mt-6'>
+            Already have an account?{' '}
+            <a href='/auth/login' className='text-primary font-medium hover:underline transition-colors'>
+              Sign in
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -149,7 +149,11 @@ module "cloud_run" {
   slack_client_secret_secret_name     = module.secrets.slack_client_secret_secret_name
   storage_bucket                      = module.cloud_storage.bucket_name
   vpc_connector_id                    = var.enable_private_ip ? module.networking.vpc_connector_id : null
-  frontend_url                        = "" # Will be updated via gcloud after frontend deployment
+  frontend_url                        = ""
+  google_callback_url                 = var.google_callback_url != "" ? var.google_callback_url : null
+  microsoft_callback_url              = var.microsoft_callback_url != "" ? var.microsoft_callback_url : null
+  apple_callback_url                  = var.apple_callback_url != "" ? var.apple_callback_url : null
+  slack_callback_url                  = var.slack_callback_url != "" ? var.slack_callback_url : null
 
   labels = local.common_labels
 

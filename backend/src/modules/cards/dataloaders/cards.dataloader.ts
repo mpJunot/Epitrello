@@ -9,7 +9,7 @@ import { Checklist } from '../../checklists/entities/checklist.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CardsDataLoader {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * DataLoader for loading cards by list IDs
