@@ -95,6 +95,17 @@ describe('WorkspacesResolver', () => {
       expect(result.name).toBe('Updated Name');
       expect(workspacesService.update).toHaveBeenCalledWith('1', input, 'user-1');
     });
+
+    it('should update workspace description', async () => {
+      const input = { description: 'Updated description' };
+      const updated = { ...mockWorkspace, description: 'Updated description' };
+      mockWorkspacesService.update.mockResolvedValue(updated);
+
+      const result = await resolver.updateWorkspace('1', input, mockUser);
+
+      expect(result.description).toBe('Updated description');
+      expect(workspacesService.update).toHaveBeenCalledWith('1', input, 'user-1');
+    });
   });
 
   describe('deleteWorkspace', () => {
