@@ -172,10 +172,8 @@ export default function ListColumn({
         sortedCards.reverse();
         break;
       case 'date-oldest':
-        // Natural order
         break;
       case 'due-date':
-        // TODO: Implement when cards have dueDate field
         sortedCards.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case 'alpha-asc':
@@ -344,8 +342,8 @@ export default function ListColumn({
       onDragLeave={handleDragLeave}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
-      className={`w-[272px] min-w-[272px] shrink-0 border-2 border-amber-300 rounded-lg flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-muted'
+      className={`w-[272px] min-w-[272px] shrink-0 rounded-xl flex flex-col animate-slide-in transition-all duration-200 ${
+        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-white dark:bg-black'
       }`}
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
@@ -463,7 +461,7 @@ export default function ListColumn({
       </div>
 
       {/* Cards area */}
-      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-[calc(100vh-300px)]' : ''}`}>
+      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-full' : ''}`}>
         {cards.length === 0 && dragOverIndex === 0 && (
           <div className="h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-md flex items-center justify-center animate-drag-placeholder">
             <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
@@ -494,8 +492,8 @@ export default function ListColumn({
           <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
-            variant="default"
-            className="w-full justify-start cursor-pointer"
+            variant="secondary"
+            className="w-full justify-start cursor-pointer hover:bg-primary"
             aria-label="Add a card"
           >
             + Add a card

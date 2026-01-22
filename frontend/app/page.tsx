@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, LayoutGrid, Users, BarChart3, Zap, FolderKanb
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen  w-full">
+    <div className="min-h-screen w-full">
       {/* Header */}
       <header>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

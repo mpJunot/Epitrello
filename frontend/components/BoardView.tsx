@@ -69,8 +69,7 @@ export default function BoardView({ board }: { board: Board }) {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={listIds} strategy={horizontalListSortingStrategy}>
           <div
-            className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar items-start"
-            style={{ minHeight: 'calc(100vh - 200px)' }}
+            className="h-fit p-4 flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory md:snap-none items-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {lists.map((l) => (
               <SortableColumn key={l.id} list={l} totalListsCount={lists.length} allLists={lists} />
@@ -176,8 +175,8 @@ function AddListInline() {
         <Button
           ref={buttonRef}
           onClick={openInput}
-          variant="ghost"
-          className="w-full justify-start"
+          variant="secondary"
+          className="w-full justify-start hover:bg-trello-blue-hover"
           aria-label="Add another list"
         >
           + Add another list
