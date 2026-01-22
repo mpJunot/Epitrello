@@ -20,12 +20,12 @@ export function createListEventHandlers(
       if (!newList) throw new Error('Failed to create list');
       logAction('✅', 'List created');
       setLists((prev) => [...prev, { ...newList, cards: [] }]);
-      
+
       // Notify UI component of success
       window.dispatchEvent(new CustomEvent('epitrello:list-create-success'));
     } catch (err) {
       handleAsyncError(err, 'create list');
-      
+
       // Notify UI component of error
       window.dispatchEvent(new CustomEvent('epitrello:list-create-error'));
     }
@@ -60,7 +60,7 @@ export function createListEventHandlers(
     setLists((prevLists) => {
       originalLists = [...prevLists];
       const sourceIndex = prevLists.findIndex((l) => l.id === listId);
-      
+
       if (sourceIndex === -1 || sourceIndex === newPosition) return prevLists;
 
       const updated = [...prevLists];
@@ -212,21 +212,21 @@ export function createCardEventHandlers(
   function handleDragStart(e?: DetailEvent<{ cardId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
-    
+
     const { cardId } = detail;
-    
+
     // CRITICAL: Reject temporary cards before capturing snapshot
     if (cardId?.startsWith('temp-')) {
       console.warn('⚠️ Cannot drag temporary card:', cardId, '- card still being created');
       return; // Don't capture snapshot
     }
-    
+
     // Capture full board state before any mutations
     setLists((prevLists) => {
       boardSnapshot = JSON.parse(JSON.stringify(prevLists)); // Deep clone
       return prevLists; // No mutation
     });
-    
+
     console.log('📸 Snapshot captured:', boardSnapshot.length, 'lists');
   }
 
@@ -256,11 +256,11 @@ export function createCardEventHandlers(
         prevLists.map((l) =>
           l.id === listId
             ? {
-                ...l,
-                cards: (l.cards || []).map((c) =>
-                  c.id === tempCard.id ? newCard : c
-                ),
-              }
+              ...l,
+              cards: (l.cards || []).map((c) =>
+                c.id === tempCard.id ? newCard : c
+              ),
+            }
             : l
         )
       );
@@ -364,7 +364,7 @@ export function createCardEventHandlers(
     } catch (err) {
       console.error('❌ Backend moveCard failed:', err);
       handleAsyncError(err, 'move card');
-      
+
       // Restore exact pre-drag snapshot
       if (boardSnapshot.length > 0) {
         console.log('🔄 Restoring snapshot after failed move');
@@ -432,6 +432,29 @@ export function createCardEventHandlers(
     }
   }
 
+  async function handleCardCompletedUpdate(e?: DetailEvent<{ cardId: string; completed: boolean }>) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { cardId, completed } = detail;
+
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).map((c) =>
+          c.id === cardId ? { ...c, completed } : c
+        ),
+      }))
+    );
+
+    try {
+      // TODO: Add completed field to updateCard API when backend supports it
+      // await updateCard({ id: cardId, completed });
+      logAction('✅', 'Card completed status updated');
+    } catch (err) {
+      handleAsyncError(err, 'update card completed status');
+    }
+  }
+
   async function handleCardDelete(e?: DetailEvent<{ cardId: string }>) {
     const detail = e?.detail;
     if (!detail) return;
@@ -460,6 +483,7 @@ export function createCardEventHandlers(
     handleCardTitleUpdate,
     handleCardDescriptionUpdate,
     handleCardDueDateUpdate,
+    handleCardCompletedUpdate,
     handleCardDelete,
   };
 }

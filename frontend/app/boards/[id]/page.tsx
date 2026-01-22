@@ -26,9 +26,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const composedBoard: Board = { ...board, lists };
 
   return (
-    <div className="min-h-screen bg-trello-hover">
+    <div className="min-h-screen">
       <BoardHeader board={board} />
-      <main className="p-6">
+      <main className="p-2">
         <BoardView board={composedBoard} />
       </main>
     </div>

@@ -4,6 +4,7 @@ export interface Card {
   description?: string;
   position?: number;
   listId?: string;
+  completed?: boolean;
 }
 
 export interface List {
