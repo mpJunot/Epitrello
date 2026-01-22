@@ -1,6 +1,7 @@
 import React from 'react';
 import { MenuHeader, CheckIcon } from './MenuCommon';
 import { SortOption } from '../types';
+import { Button } from "@/components/ui/button";
 
 type SortMenuProps = {
   cardsCount: number;
@@ -30,7 +31,7 @@ export const SortMenu: React.FC<SortMenuProps> = ({
 }) => {
   return (
     <div
-      className="absolute right-0 top-full mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden"
+      className="absolute right-0 top-full mt-1 w-64 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden"
       role="dialog"
       aria-label="Sort cards"
     >
@@ -39,23 +40,24 @@ export const SortMenu: React.FC<SortMenuProps> = ({
       <div className="py-1">
         {cardsCount === 0 ? (
           <div className="px-4 py-3">
-            <p className="text-xs text-gray-500 text-center">No cards to sort</p>
+            <p className="text-xs text-trello-text-secondary text-center">No cards to sort</p>
           </div>
         ) : (
           <>
             {sortOptions.map((option) => (
-              <button
+              <Button
                 key={option.value}
-                className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 transition-colors flex items-center justify-between group"
+                variant="ghost"
+                className="w-full justify-between"
                 onClick={() => onSort(option.value)}
                 role="menuitemradio"
                 aria-checked={activeSortOption === option.value}
               >
-                <span className={activeSortOption === option.value ? 'text-indigo-600 font-medium' : 'text-gray-700'}>
+                <span className={activeSortOption === option.value ? 'text-trello-blue font-medium' : 'text-trello'}>
                   {option.label}
                 </span>
                 {activeSortOption === option.value && <CheckIcon />}
-              </button>
+              </Button>
             ))}
           </>
         )}

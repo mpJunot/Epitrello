@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useParams } from 'next/navigation';
 import { toast } from '@/lib/toast';
 
@@ -47,25 +51,30 @@ export default function WorkspaceSettingsPage() {
 
   return (
     <div className="min-h-screen bg-trello-hover p-6">
-      <div className="max-w-3xl mx-auto bg-white rounded shadow p-6">
+      <div className="max-w-3xl mx-auto bg-trello-card-bg rounded shadow p-6">
         <h1 className="text-xl font-semibold mb-4">Workspace settings</h1>
 
         <div className="mb-4">
-          <label className="block text-sm text-trello-secondary mb-1">Name</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded" />
+          <Label htmlFor="workspace-name">Name</Label>
+          <Input id="workspace-name" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm text-trello-secondary mb-1">Visibility</label>
-          <select value={visibility} onChange={(e) => setVisibility(e.target.value)} className="w-full px-3 py-2 border rounded">
-            <option value="PRIVATE">Private</option>
-            <option value="WORKSPACE">Workspace</option>
-            <option value="PUBLIC">Public</option>
-          </select>
+          <Label htmlFor="workspace-visibility">Visibility</Label>
+          <Select value={visibility} onValueChange={setVisibility}>
+            <SelectTrigger id="workspace-visibility">
+              <SelectValue placeholder="Select visibility" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PRIVATE">Private</SelectItem>
+              <SelectItem value="WORKSPACE">Workspace</SelectItem>
+              <SelectItem value="PUBLIC">Public</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex gap-2">
-          <button onClick={save} className="px-3 py-1 bg-indigo-600 text-white rounded">Save</button>
+          <Button onClick={save}>Save</Button>
         </div>
       </div>
     </div>
