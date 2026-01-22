@@ -19,16 +19,12 @@ export default function AccountSettingsPage() {
   const [email, setEmail] = useState(() => {
     try {
       const raw = localStorage.getItem('epitrello_user');
-      if (raw) {
-        const u = JSON.parse(raw);
-        setTimeout(() => {
-        setName(u.name || '');
-        setEmail(u.email || '');
-      }, 0);
-
-      }
-    } catch (e) {}
-  }, []);
+      const u = raw ? JSON.parse(raw) : null;
+      return u?.email || '';
+    } catch {
+      return '';
+    }
+  });
 
   const save = () => {
     try {
