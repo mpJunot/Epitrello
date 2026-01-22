@@ -105,6 +105,42 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
+      # Google OAuth Callback URL
+      dynamic "env" {
+        for_each = var.google_callback_url != null && var.google_callback_url != "" ? [1] : []
+        content {
+          name  = "GOOGLE_CALLBACK_URL"
+          value = var.google_callback_url
+        }
+      }
+
+      # Microsoft OAuth Callback URL
+      dynamic "env" {
+        for_each = var.microsoft_callback_url != null && var.microsoft_callback_url != "" ? [1] : []
+        content {
+          name  = "MICROSOFT_CALLBACK_URL"
+          value = var.microsoft_callback_url
+        }
+      }
+
+      # Apple OAuth Callback URL
+      dynamic "env" {
+        for_each = var.apple_callback_url != null && var.apple_callback_url != "" ? [1] : []
+        content {
+          name  = "APPLE_CALLBACK_URL"
+          value = var.apple_callback_url
+        }
+      }
+
+      # Slack OAuth Callback URL
+      dynamic "env" {
+        for_each = var.slack_callback_url != null && var.slack_callback_url != "" ? [1] : []
+        content {
+          name  = "SLACK_CALLBACK_URL"
+          value = var.slack_callback_url
+        }
+      }
+
       # Microsoft OAuth from Secret Manager (optional)
       dynamic "env" {
         for_each = var.microsoft_client_id_secret_name != null ? [1] : []
@@ -208,10 +244,10 @@ resource "google_cloud_run_v2_service" "backend" {
         value = "false"
       }
 
-      # CORS origins
+      # CORS origins (includes localhost for local development)
       env {
         name  = "CORS_ORIGINS"
-        value = "https://*.run.app"
+        value = "https://*.run.app,http://localhost:3000"
       }
 
       # Frontend URL (for OAuth redirects and email links)
