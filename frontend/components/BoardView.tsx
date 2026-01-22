@@ -1,7 +1,11 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities"
 import ListColumn from "./ListColumn";
+import { Board } from "@/app/boards/[id]/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 type Label = { id: string; name?: string; color?: string };
@@ -12,20 +16,19 @@ type Card = {
   description?: string;
   labels?: Label[];
   assignees?: UserRef[];
-};
-
-type Board = {
-  id: string;
-  title: string;
-  description?: string;
-  lists?: { id: string; title: string; position?: number; cards?: Card[] }[];
+  completed?: boolean;
 };
 
 export default function BoardView({ board }: { board: Board }) {
-  // Use lists directly from props - BoardPage is the single source of truth
   const lists = useMemo(() => board.lists || [], [board.lists]);
 
-  // Log pour debug
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     console.log('🎨 BoardView: board.lists changed, count:', lists.length);
     lists.forEach((l, idx) => {
@@ -36,31 +39,81 @@ export default function BoardView({ board }: { board: Board }) {
     });
   }, [board, lists]);
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = lists.findIndex((list) => list.id === active.id);
+    const newIndex = lists.findIndex((list) => list.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+      window.dispatchEvent(
+        new CustomEvent("epitrello:list-moved", {
+          detail: {
+            listId: active.id as string,
+            newPosition: newIndex,
+            boardId: board.id,
+          },
+        })
+      );
+    }
+  };
+
+  const listIds = useMemo(() => lists.map((l) => l.id), [lists]);
+
   return (
-    <div className="p-4" id="main-board-content">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold">{board.title}</h2>
-          {board.description && <div className="text-sm text-trello-secondary">{board.description}</div>}
-        </div>
-      </div>
+    <div id="main-board-content">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={listIds} strategy={horizontalListSortingStrategy}>
+          <div
+            className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar items-start"
+            style={{ minHeight: 'calc(100vh - 200px)' }}
+          >
+            {lists.map((l) => (
+              <SortableColumn key={l.id} list={l} totalListsCount={lists.length} allLists={lists} />
+            ))}
 
-      {/* Container avec scroll horizontal fluide et responsive */}
-      <div
-        className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar"
-        style={{ height: 'calc(100vh - 200px)' }}
-      >
-        {lists.map((l) => (
-          <div key={l.id} className="snap-center md:snap-align-none">
-            <ListColumn list={l} totalListsCount={lists.length} allLists={lists} />
+            <div className="w-[272px] min-w-[272px] shrink-0 p-3 rounded-md snap-center md:snap-align-none">
+              <AddListInline />
+            </div>
           </div>
-        ))}
+        </SortableContext>
+      </DndContext>
+    </div>
+  );
+}
 
-        {/* Add-column interactive element */}
-        <div className="w-[272px] min-w-[272px] shrink-0 p-3 rounded-md snap-center md:snap-align-none">
-          <AddListInline />
-        </div>
-      </div>
+function SortableColumn({ list, totalListsCount, allLists }: { list: { id: string; title: string; position?: number; cards?: Card[] }; totalListsCount: number; allLists: { id: string; title: string; position?: number; cards?: Card[] }[] }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: list.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="snap-center md:snap-align-none"
+    >
+      <ListColumn
+        list={list}
+        totalListsCount={totalListsCount}
+        allLists={allLists}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </div>
   );
 }
@@ -83,7 +136,6 @@ function AddListInline() {
   const close = () => {
     setOpen(false);
     setValue("");
-    // return focus to the add button
     setTimeout(() => buttonRef.current?.focus(), 0);
   };
 
@@ -96,8 +148,6 @@ function AddListInline() {
     }
     setLoading(true);
     window.dispatchEvent(new CustomEvent("epitrello:list-create", { detail: { title } }));
-    // Don't close yet - let the parent handle success/failure
-    // close() will be called by the parent via a success event
   };
 
   const handleSuccess = useCallback(() => {
@@ -133,7 +183,7 @@ function AddListInline() {
           + Add another list
         </Button>
       ) : (
-        <div className={`bg-transparent ${error ? 'animate-shake' : ''}`}>
+        <div className={`rounded-lg ${error ? 'animate-shake' : ''}`}>
           <Input
             ref={inputRef}
             placeholder="Enter list title"

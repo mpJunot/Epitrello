@@ -1,14 +1,14 @@
-export type Label = { 
-  id: string; 
-  name?: string; 
-  color?: string 
+export type Label = {
+  id: string;
+  name?: string;
+  color?: string
 };
 
-export type UserRef = { 
-  id: string; 
-  name?: string; 
-  avatar?: string; 
-  email?: string 
+export type UserRef = {
+  id: string;
+  name?: string;
+  avatar?: string;
+  email?: string
 };
 
 export type Card = {
@@ -17,6 +17,7 @@ export type Card = {
   description?: string;
   labels?: Label[];
   assignees?: UserRef[];
+  completed?: boolean;
 };
 
 export type List = {
@@ -29,6 +30,7 @@ export type ListColumnProps = {
   list: List;
   totalListsCount?: number;
   allLists?: List[];
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>;
 };
 
 export type SortOption = 'date-newest' | 'date-oldest' | 'due-date' | 'alpha-asc' | 'alpha-desc';

@@ -36,7 +36,6 @@ export default function WorkspaceBoardsPage() {
         }));
         setBoards(uiBoards);
 
-        // Fetch workspace name from backend; fallback to localStorage if it fails
         try {
           const ws = await getWorkspace(workspaceId);
           setWorkspaceName(ws.name || 'Workspace');
@@ -62,20 +61,21 @@ export default function WorkspaceBoardsPage() {
   }, [workspaceId]);
 
   return (
-    <div className="min-h-screen bg-trello-hover p-6">
-      <div className="max-w-5xl mx-auto">
+    <div className="h-full p-4">
+      <div className="max-w-7xl mx-auto h-full flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold">{workspaceName} — Boards</h1>
-            <p className="text-sm text-trello-secondary">Boards inside this workspace</p>
+            <h1 className="text-2xl font-semibold text-foreground">{workspaceName} — Boards</h1>
+            <p className="text-sm text-muted-foreground">Boards inside this workspace</p>
           </div>
           <div>
-            <Button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} variant="secondary" className="mr-2">Members</Button>
-            <Button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} variant="secondary">Settings</Button>
+            <Button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} color='primary' variant="default" className="mr-2">Members</Button>
+            <Button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} variant="default">Settings</Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="flex-1 overflow-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading && (
             <div className="col-span-full flex items-center justify-center py-12">
               <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
@@ -117,8 +117,8 @@ export default function WorkspaceBoardsPage() {
             </div>
           )}
           {!loading && !error && boards.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center bg-trello-card-bg border border-trello-border rounded-lg p-8 text-center">
-              <p className="text-trello-secondary mb-4">No boards in this workspace.</p>
+            <div className="col-span-full flex flex-col items-center justify-center bg-card border border-border rounded-lg p-8 text-center">
+              <p className="text-muted-foreground mb-4">No boards in this workspace.</p>
               <Button
                 onClick={() => setShowCreate(true)}
               >
@@ -127,16 +127,17 @@ export default function WorkspaceBoardsPage() {
             </div>
           )}
           {!loading && !error && boards.map((b) => (
-            <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-trello-border'}`}>
+            <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-primary'}`}>
               <div className="relative h-full">
                 <div className="absolute inset-0 bg-black bg-opacity-20" />
                 <div className="absolute inset-0 p-3 text-white flex flex-col justify-between">
                   <div className="text-sm font-semibold truncate">{b.name}</div>
-                  {b.members ? <div className="text-xs">{b.members} {b.members === 1 ? 'member' : 'members'}</div> : null}
+                  {b.members ? <div className="text-xs opacity-90">{b.members} {b.members === 1 ? 'member' : 'members'}</div> : null}
                 </div>
               </div>
             </div>
           ))}
+          </div>
         </div>
       </div>
       {/* Create Board Modal */}

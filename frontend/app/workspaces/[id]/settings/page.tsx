@@ -43,15 +43,15 @@ export default function WorkspaceSettingsPage() {
 
   if (!workspace) {
     return (
-      <div className="min-h-screen bg-trello-hover flex items-center justify-center">
-        <div className="text-trello-secondary">Workspace not found</div>
+      <div className="min-h-screen bg-muted flex items-center justify-center">
+        <div className="text-muted-foreground">Workspace not found</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-trello-hover p-6">
-      <div className="max-w-3xl mx-auto bg-trello-card-bg rounded shadow p-6">
+    <div className="min-h-screen bg-muted p-6">
+      <div className="max-w-3xl mx-auto bg-card rounded shadow p-6">
         <h1 className="text-xl font-semibold mb-4">Workspace settings</h1>
 
         <div className="mb-4">

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getMyWorkspaces, createWorkspace } from "@/lib/actions/workspaces";
 import { getAuthToken } from "@/lib/graphql-client";
-import { Home, Plus, LayoutGrid, Users, Settings, ChevronDown, ChevronRight } from "lucide-react";
+import { Home, Plus, LayoutGrid, Users, Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 type Workspace = { id: string; name: string; };
 
@@ -36,8 +54,7 @@ function saveExpanded(ids: string[]) {
   localStorage.setItem(EXPANDED_KEY, JSON.stringify(ids));
 }
 
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+export default function AppSidebar() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
@@ -49,7 +66,6 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
-
 
   useEffect(() => {
     try {
@@ -144,8 +160,6 @@ export default function Sidebar() {
     }
   };
 
-
-
   const toggleWorkspace = (id: string) => {
     setExpandedWorkspaces((prev) => {
       const next = prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id];
@@ -166,176 +180,174 @@ export default function Sidebar() {
     router.push(`/workspaces/${wid}/settings`);
   };
 
-  // adapt initial collapsed on small screens
-  useEffect(() => {
-    try {
-      if (window.innerWidth < 640) setCollapsed(true);
-    } catch {}
-  }, []);
-
   if (isAuthPage) {
     return null;
   }
 
   return (
-    <aside
-      className={`transition-all duration-150 bg-trello-card-bg border-r border-trello-border ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
-      aria-label="Main sidebar"
-    >
-      <div className="flex items-center justify-between p-3">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-trello-blue text-white flex items-center justify-center font-bold">E</div>
-          {!collapsed && <h3 className="text-sm font-semibold text-trello">Epitrello</h3>}
-        </div>
-        <div>
-          <Button
-            aria-label="Toggle sidebar"
-            onClick={() => setCollapsed((c) => !c)}
-            variant="ghost"
-            size="icon"
-          >
-            {collapsed ? "→" : "←"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="p-3 flex-1 overflow-auto">
-        {!collapsed && (
-          <div className="mb-3">
-            <ul className="space-y-2">
-              <li>
-                <Button
-                  onClick={() => router.push("/dashboard")}
-                  variant={pathname === "/" || pathname === "/dashboard" ? "default" : "ghost"}
-                  className={`w-full justify-start ${
-                    (pathname === "/" || pathname === "/dashboard") ? "bg-trello-blue-light font-semibold text-trello" : ""
-                  }`}
-                >
-                  <Home className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
-                  <span>Home</span>
-                </Button>
-              </li>
-            </ul>
-          </div>
-        )}
-
-        <nav>
-          {/* Workspaces section */}
-          {!collapsed && (
-            <div className="mb-3">
-              <div className="text-xs text-trello-secondary uppercase mb-2">Workspaces</div>
-
-              {/* Add workspace button */}
-              <div className="mb-2">
-                <Button
-                  onClick={() => setShowCreateWorkspaceModal(true)}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4" aria-hidden="true" />
-                  Add workspace
-                </Button>
-              </div>
-
-              {/* Loading state */}
-              {loadingWorkspaces && (
-                <div className="flex items-center gap-2 p-2 text-sm text-trello-secondary">
-                  <div className="animate-spin h-4 w-4 border-2 border-trello border-t-trello rounded-full"></div>
-                  <span>Loading...</span>
-                </div>
-              )}
-
-              {/* Error state */}
-              {workspacesError && !loadingWorkspaces && (
-                <div className="p-2 text-sm text-red-600 bg-red-50 rounded space-y-2">
-                  <div>
-                    <p className="font-medium">Failed to load workspaces</p>
-                    <p className="text-xs mt-1">{workspacesError}</p>
-                  </div>
-                  <Button
-                    onClick={retryLoadWorkspaces}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    Retry
-                  </Button>
-                </div>
-              )}
-
-              {/* Empty state */}
-              {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
-                <div className="space-y-2">
-                  <p className="p-2 text-sm text-trello-secondary text-center">No workspace</p>
-                </div>
-              )}
-
-              {/* Workspaces list */}
-              {!loadingWorkspaces && !workspacesError && workspaces.length > 0 && (
-                <ul className="space-y-2">
-                  {workspaces.map((w) => {
-                    const expanded = expandedWorkspaces.includes(w.id);
-                    // derive active states for items inside this workspace
-                    const boardsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/boards`);
-                    const membersActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/members`);
-                    const settingsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/settings`);
-                    return (
-                      <li key={w.id}>
-                        <div className="flex items-center justify-between">
-                          <Button onClick={() => toggleWorkspace(w.id)} variant="ghost" className="w-full justify-start">
-                            <span className="font-medium text-trello">{w.name}</span>
-                            {expanded ? (
-                              <ChevronDown className="ml-auto h-4 w-4 text-trello-secondary" />
-                            ) : (
-                              <ChevronRight className="ml-auto h-4 w-4 text-trello-secondary" />
-                            )}
-                          </Button>
-                        </div>
-
-                        {expanded && (
-                          <div className="mt-1 ml-4">
-                            <ul className="space-y-1">
-                              <li>
-                                <Button onClick={() => onBoards(w.id)} variant={boardsActive ? "default" : "ghost"} className={`w-full justify-start ${boardsActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
-                                  <LayoutGrid className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
-                                  <span>Boards</span>
-                                </Button>
-                              </li>
-
-                              <li>
-                                <Button onClick={() => onMembers(w.id)} variant={membersActive ? "default" : "ghost"} className={`w-full justify-start ${membersActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
-                                  <Users className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
-                                  <span>Members</span>
-                                </Button>
-                              </li>
-
-                              <li>
-                                <Button onClick={() => onSettings(w.id)} variant={settingsActive ? "default" : "ghost"} className={`w-full justify-start ${settingsActive ? "bg-trello-blue-light font-semibold text-trello" : ""}`}>
-                                  <Settings className="h-4 w-4 text-trello-secondary" aria-hidden="true" />
-                                  <span>Settings</span>
-                                </Button>
-                              </li>
-                            </ul>
-                          </div>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+    <>
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <div className="flex items-center gap-2 px-2 py-1.5">
+            <div className="h-8 w-8 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">E</div>
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+              <span className="text-sm font-semibold text-sidebar-foreground">Epitrello</span>
             </div>
-          )}
+          </div>
+        </SidebarHeader>
 
-        </nav>
-      </div>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => router.push("/dashboard")}
+                    isActive={pathname === "/" || pathname === "/dashboard"}
+                    tooltip="Home"
+                  >
+                    <Home />
+                    <span>Home</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-      <div className="p-3 border-t">
-        {!collapsed ? (
-          <div className="text-xs text-trello-secondary">Your workspace • <a href="/auth/me" className="text-trello-blue">Profile</a></div>
-        ) : (
-          <div className="text-xs text-trello-secondary text-center">E</div>
-        )}
-      </div>
+          <SidebarGroup>
+            <SidebarGroupLabel>Workspaces</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => setShowCreateWorkspaceModal(true)}
+                    tooltip="Add workspace"
+                  >
+                    <Plus />
+                    <span>Add workspace</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
 
-      {/* Feedback live region for accessibility */}
+                {loadingWorkspaces && (
+                  <SidebarMenuItem>
+                    <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-sidebar-foreground/70">
+                      <div className="animate-spin h-4 w-4 border-2 border-sidebar-foreground/30 border-t-sidebar-foreground rounded-full"></div>
+                      <span>Loading...</span>
+                    </div>
+                  </SidebarMenuItem>
+                )}
+
+                {workspacesError && !loadingWorkspaces && (
+                  <SidebarMenuItem>
+                    <div className="px-2 py-1.5 text-sm text-red-600 bg-red-50 rounded space-y-2">
+                      <div>
+                        <p className="font-medium">Failed to load workspaces</p>
+                        <p className="text-xs mt-1">{workspacesError}</p>
+                      </div>
+                      <Button
+                        onClick={retryLoadWorkspaces}
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  </SidebarMenuItem>
+                )}
+
+                {!loadingWorkspaces && !workspacesError && workspaces.length === 0 && (
+                  <SidebarMenuItem>
+                    <div className="px-2 py-1.5 text-sm text-sidebar-foreground/70 text-center">
+                      No workspace
+                    </div>
+                  </SidebarMenuItem>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {!loadingWorkspaces && !workspacesError && workspaces.map((w) => {
+            const expanded = expandedWorkspaces.includes(w.id);
+            const boardsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/boards`);
+            const membersActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/members`);
+            const settingsActive = !!pathname && pathname.startsWith(`/workspaces/${w.id}/settings`);
+
+            return (
+              <Collapsible
+                key={w.id}
+                defaultOpen={expanded}
+                onOpenChange={(open) => {
+                  if (open !== expanded) {
+                    toggleWorkspace(w.id);
+                  }
+                }}
+                className="group/collapsible"
+              >
+                <SidebarGroup>
+                  <SidebarGroupLabel asChild>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip={w.name}>
+                        <span className="font-medium">{w.name}</span>
+                        <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                  </SidebarGroupLabel>
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            onClick={() => onBoards(w.id)}
+                            isActive={boardsActive}
+                            tooltip="Boards"
+                          >
+                            <LayoutGrid />
+                            <span>Boards</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            onClick={() => onMembers(w.id)}
+                            isActive={membersActive}
+                            tooltip="Members"
+                          >
+                            <Users />
+                            <span>Members</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            onClick={() => onSettings(w.id)}
+                            isActive={settingsActive}
+                            tooltip="Settings"
+                          >
+                            <Settings />
+                            <span>Settings</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            );
+          })}
+        </SidebarContent>
+
+        <SidebarFooter>
+          <div className="px-2 py-1.5 text-xs text-sidebar-foreground/70">
+            <div className="group-data-[collapsible=icon]:hidden">
+              Your workspace • <a href="/auth/me" className="text-primary hover:underline">Profile</a>
+            </div>
+            <div className="group-data-[collapsible=icon]:block hidden text-center">E</div>
+          </div>
+        </SidebarFooter>
+
+        <SidebarRail />
+      </Sidebar>
+
       <div aria-live="polite" className="sr-only">
         {feedback}
       </div>
@@ -388,6 +400,6 @@ export default function Sidebar() {
           </form>
         </DialogContent>
       </Dialog>
-    </aside>
+    </>
   );
 }
