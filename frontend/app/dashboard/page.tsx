@@ -162,13 +162,13 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className='min-h-screen bg-trello-hover p-6 text-trello'>
+    <div className='min-h-screen bg-background p-6 text-trello'>
       <header className='flex items-center justify-between mb-6'>
         <div className='flex items-center gap-4'>
           <div className='h-10 w-10 rounded bg-trello-blue flex items-center justify-center text-white font-bold'>
             E
           </div>
-          <h1 className='text-2xl font-semibold text-trello'>Epitrello — Boards</h1>
+          <h1 className='text-2xl font-semibold text-trello'>Epitrello</h1>
         </div>
 
       </header>
@@ -176,14 +176,13 @@ export default function DashboardPage() {
       <main>
         <section>
           <h2 className='text-lg font-medium mb-4 text-trello'>Workspaces</h2>
-
           <div className='space-y-6'>
             {workspaces.map((ws) => {
               const wsBoards = workspaceBoards[ws.id] || [];
               const wsBoardsLoading = boardsLoading[ws.id];
               const wsBoardsError = boardsError[ws.id];
               return (
-                <div key={ws.id} className='bg-trello-card-bg rounded-lg shadow-sm p-4'>
+                <div key={ws.id} className='p-2'>
                   <div className='flex items-start justify-between gap-4 mb-3'>
                     <div>
                       <h3 className='text-lg font-semibold text-trello'>{ws.title}</h3>
@@ -337,12 +336,12 @@ export default function DashboardPage() {
                         <div className='text-trello-secondary text-sm'>No boards in this workspace</div>
                       )}
                       {!wsBoardsLoading && !wsBoardsError && wsBoards.length > 0 && wsBoards.map((board) => (
-                        <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[200px] h-32 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-trello-border'}`}>
+                        <div key={board.id} onClick={() => router.push(`/boards/${board.id}`)} className={`min-w-[300px] h-36 rounded-lg overflow-hidden cursor-pointer ${board.background || 'bg-primary'}`}>
                           <div className='relative h-full'>
-                            <div className='absolute inset-0 bg-black bg-opacity-20' />
+                            <div className='absolute inset-0 shadow-lg' />
                             <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
                               <div className='text-sm font-semibold truncate'>{board.name}</div>
-                              {board.members ? <div className='text-xs'>{board.members} {board.members === 1 ? 'member' : 'members'}</div> : null}
+                              {board.members ? <div className='text-xs opacity-90'>{board.members} {board.members === 1 ? 'member' : 'members'}</div> : null}
                             </div>
                           </div>
                         </div>
@@ -356,14 +355,12 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      {/* Feedback Toast */}
       {feedback && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
           {feedback}
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       <Dialog open={deleteConfirm.show} onOpenChange={(open) => !open && cancelDeleteBoard()}>
         <DialogContent className="max-w-md">
           <DialogHeader>

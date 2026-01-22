@@ -129,8 +129,8 @@ export default function WorkspaceBoardsPage() {
           {!loading && !error && boards.map((b) => (
             <div key={b.id} onClick={() => router.push(`/boards/${b.id}`)} className={`cursor-pointer rounded-lg overflow-hidden h-36 ${b.background || 'bg-primary'}`}>
               <div className="relative h-full">
-                <div className="absolute inset-0 bg-black bg-opacity-20" />
-                <div className="absolute inset-0 p-3 text-white flex flex-col justify-between">
+                <div className="absolute inset-0"/>
+                <div className="absolute inset-0 p-3 text-white flex flex-col justify-between shadow-lg">
                   <div className="text-sm font-semibold truncate">{b.name}</div>
                   {b.members ? <div className="text-xs opacity-90">{b.members} {b.members === 1 ? 'member' : 'members'}</div> : null}
                 </div>
@@ -144,7 +144,7 @@ export default function WorkspaceBoardsPage() {
       <CreateBoardModal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        onCreate={async (payload: { name: string; workspaceId?: string; visibility?: string }) => {
+        onCreate={async (payload: { name: string; workspaceId?: string; visibility?: string; background?: string }) => {
           try {
             const visMap: Record<string, Visibility> = {
               personal: 'PRIVATE',
@@ -155,6 +155,7 @@ export default function WorkspaceBoardsPage() {
               title: payload.name,
               visibility: payload.visibility ? visMap[payload.visibility] : undefined,
               workspaceId: payload.workspaceId || workspaceId,
+              background: payload.background,
             });
             setShowCreate(false);
             router.push(`/boards/${newBoard.id}`);
