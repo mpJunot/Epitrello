@@ -12,49 +12,43 @@
   --trello-blue-light: #e4f0f6;
   --trello-text: #172b4d;
   --trello-text-secondary: #5e6c84;
-  --trello-border: #dfe1e6;
+  --trello-border: #f1f3f5;
   --trello-card-bg: #ffffff;
   --trello-hover: #f4f5f7;
-  --radius: 0.625rem;
+  --radius: 0.65rem;
+
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.35 0.02 250);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.35 0.02 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Primary uses Trello blue */
-  --primary: var(--trello-blue);
-  --primary-foreground: #ffffff;
-  /* Secondary uses Trello hover */
-  --secondary: var(--trello-hover);
-  --secondary-foreground: var(--trello-text-secondary);
-  /* Muted uses Trello hover */
-  --muted: var(--trello-hover);
-  --muted-foreground: var(--trello-text-secondary);
-  /* Accent uses Trello hover */
-  --accent: var(--trello-hover);
-  --accent-foreground: var(--trello-text);
+  --popover-foreground: oklch(0.35 0.02 250);
+  --primary: oklch(0.5 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 250);
+  --secondary: oklch(0.97 0.002 250);
+  --secondary-foreground: oklch(0.35 0.02 250);
+  --muted: oklch(0.97 0.002 250);
+  --muted-foreground: oklch(0.5 0.015 250);
+  --accent: oklch(0.97 0.002 250);
+  --accent-foreground: oklch(0.35 0.02 250);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  /* Border uses Trello border */
-  --border: var(--trello-border);
-  /* Input border color (same as border) */
-  --input: var(--trello-border);
-  /* Ring uses Trello blue */
-  --ring: var(--trello-blue);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --destructive-foreground: oklch(0.98 0.01 250);
+  --border: oklch(0.96 0.003 250);
+  --input: oklch(0.96 0.003 250);
+  --ring: oklch(0.5 0.15 240);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.99 0.001 250);
+  --sidebar-foreground: oklch(0.35 0.02 250);
+  --sidebar-primary: oklch(0.5 0.15 240);
+  --sidebar-primary-foreground: oklch(0.98 0.01 250);
+  --sidebar-accent: oklch(0.97 0.002 250);
+  --sidebar-accent-foreground: oklch(0.35 0.02 250);
+  --sidebar-border: oklch(0.96 0.003 250);
+  --sidebar-ring: oklch(0.5 0.15 240);
 }
 
 @theme inline {
@@ -68,7 +62,7 @@
   --color-muted: 0 0% 96%;
   --color-muted-foreground: 23 13% 50%;
   --color-ring: 214 100% 50%;
-  --color-border: 0 0% 88%;
+  --color-border: 0 0% 91%;
 
   --color-trello-blue: 214 100% 50%;
   --color-trello-blue-hover: 214 100% 45%;
@@ -103,6 +97,51 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+}
+
+.dark {
+  --background: oklch(0.15 0.005 250);
+  --foreground: oklch(0.95 0.002 250);
+  --card: oklch(0.22 0.006 250);
+  --card-foreground: oklch(0.95 0.002 250);
+  --popover: oklch(0.22 0.006 250);
+  --popover-foreground: oklch(0.95 0.002 250);
+  --primary: oklch(0.55 0.18 240);
+  --primary-foreground: oklch(0.98 0.01 250);
+  --secondary: oklch(0.28 0.006 250);
+  --secondary-foreground: oklch(0.95 0.002 250);
+  --muted: oklch(0.28 0.006 250);
+  --muted-foreground: oklch(0.7 0.015 250);
+  --accent: oklch(0.28 0.006 250);
+  --accent-foreground: oklch(0.95 0.002 250);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 250);
+  --border: oklch(0.3 0.005 250);
+  --input: oklch(0.35 0.005 250);
+  --ring: oklch(0.55 0.18 240);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.22 0.006 250);
+  --sidebar-foreground: oklch(0.95 0.002 250);
+  --sidebar-primary: oklch(0.55 0.18 240);
+  --sidebar-primary-foreground: oklch(0.98 0.01 250);
+  --sidebar-accent: oklch(0.28 0.006 250);
+  --sidebar-accent-foreground: oklch(0.95 0.002 250);
+  --sidebar-border: oklch(0.3 0.005 250);
+  --sidebar-ring: oklch(0.55 0.18 240);
+
+  /* Trello dark mode colors */
+  --trello-blue: #0079bf;
+  --trello-blue-hover: #026aa7;
+  --trello-blue-light: #1e3a5f;
+  --trello-text: #e4e6eb;
+  --trello-text-secondary: #b0b3b8;
+  --trello-border: #4a4b4c;
+  --trello-card-bg: #242526;
+  --trello-hover: #3a3b3c;
 }
 
 body {
@@ -442,64 +481,87 @@ html {
   --tw-ring-color: var(--trello-text-secondary);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.269 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  /* Primary uses Trello blue in dark mode */
-  --primary: var(--trello-blue);
-  --primary-foreground: #ffffff;
-  /* Secondary uses Trello hover in dark mode */
-  --secondary: var(--trello-hover);
-  --secondary-foreground: var(--trello-text-secondary);
-  /* Muted uses Trello hover in dark mode */
-  --muted: var(--trello-hover);
-  --muted-foreground: var(--trello-text-secondary);
-  /* Accent uses Trello hover in dark mode */
-  --accent: var(--trello-hover);
-  --accent-foreground: var(--trello-text);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  /* Border uses Trello border in dark mode */
-  --border: var(--trello-border);
-  /* Input: used for border (border-input) and background (bg-input/30) */
-  /* With /30 opacity, this should give a dark grey background slightly darker than card */
-  --input: oklch(0.6 0 0);
-  /* Ring uses Trello blue in dark mode */
-  --ring: var(--trello-blue);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.439 0 0);
-
-  --trello-blue: #0079bf;
-  --trello-blue-hover: #026aa7;
-  --trello-blue-light: #1e3a5f;
-  --trello-text: #e4e6eb;
-  --trello-text-secondary: #b0b3b8;
-  --trello-border: #3a3b3c;
-  --trello-card-bg: #242526;
-  --trello-hover: #3a3b3c;
-}
-
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply outline-ring/50;
   }
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  #__next,
+  [data-slot="sidebar-wrapper"] {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  [data-slot="sidebar-wrapper"]>div:first-child {
+    width: 100%;
+  }
+
+  [data-slot="dialog-content"] {
+    border-color: oklch(0.98 0 0) !important;
+  }
+
+  [data-slot="sheet-content"] {
+    border-color: oklch(0.98 0 0) !important;
+  }
+
+  [data-slot="dialog-content"] {
+    background-color: var(--trello-card-bg) !important;
+  }
+
+  [data-slot="sheet-content"] {
+    background-color: var(--trello-card-bg) !important;
+  }
+
+  [data-sidebar="rail"],
+  [data-slot="sidebar-rail"] {
+    display: none !important;
+  }
+
+  [data-slot="sidebar-container"] {
+    border-right: none !important;
+    border-left: none !important;
+  }
+
+  [data-sidebar="sidebar"][data-slot="sidebar-inner"] {
+    border-right: none !important;
+    border-left: none !important;
+  }
+
+  [data-slot="sidebar-container"] * {
+    border-right: none !important;
+  }
+
+  header {
+    position: relative;
+    z-index: 30;
+  }
+
+  [data-slot="sidebar-inset"] {
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-sidebar="trigger"],
+  [data-slot="sidebar-trigger"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
   }
 }

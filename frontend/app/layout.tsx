@@ -6,6 +6,7 @@ import { ThemeProvider } from "../components/theme-provider";
 import { ConditionalLayout } from "../components/ConditionalLayout";
 import { PageTransition } from "../components/PageTransition";
 import { NavigationProvider } from "../components/NavigationProvider";
+import { SidebarProvider } from "../components/ui/sidebar";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -24,19 +25,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en" suppressHydrationWarning className="h-full w-full">
+      <body className={`${inter.variable} font-sans antialiased h-full w-full overflow-hidden`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <NavigationProvider>
-            <PageTransition />
-            <ConditionalLayout>{children}</ConditionalLayout>
-            <Toaster />
-          </NavigationProvider>
+          <SidebarProvider className="w-full h-full">
+            <NavigationProvider>
+              <PageTransition />
+              <ConditionalLayout>{children}</ConditionalLayout>
+              <Toaster />
+            </NavigationProvider>
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 export default function ListColumn({
   list,
   totalListsCount = 1,
-  allLists = []
+  allLists = [],
+  dragHandleProps
 }: ListColumnProps) {
   // Core state
   const [cards, setCards] = useState<Card[]>(list.cards || []);
@@ -285,24 +286,19 @@ export default function ListColumn({
         return;
       }
 
-      // Calculate target index (defaults to end of list if not hovering over card)
       let targetIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
       const fromIndex = data.fromIndex;
       const isIntralistMove = data.fromListId === list.id;
 
-      // Early exit if no actual movement
       if (isIntralistMove && (fromIndex === -1 || targetIndex === fromIndex)) {
         setDragOverIndex(null);
         return;
       }
 
-      // Adjust target index if moving down in same list
       if (isIntralistMove && fromIndex < targetIndex) {
         targetIndex = Math.max(0, targetIndex - 1);
       }
 
-      // Dispatch single event for ALL drops - parent handler manages state
-      // No local state mutation here - optimistic update happens in eventHandler
       dispatchCustomEvent('epitrello:card-move', {
         cardId: data.cardId,
         sourceListId: data.fromListId,
@@ -322,7 +318,6 @@ export default function ListColumn({
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const { clientX, clientY } = e;
 
-    // Only clear if truly leaving the column bounds
     if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
       setIsDragOver(false);
       setDragOverIndex(null);
@@ -335,7 +330,6 @@ export default function ListColumn({
         e.preventDefault();
         e.stopPropagation();
         setIsDragOver(true);
-        // If no specific card index, default to end of list
         if (dragOverIndex === null && cards.length > 0) {
           setDragOverIndex(cards.length);
         } else if (cards.length === 0) {
@@ -350,19 +344,20 @@ export default function ListColumn({
       onDragLeave={handleDragLeave}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
-      className={`w-[272px] min-w-[272px] shrink-0 rounded-md shadow-sm flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-trello-blue-light ring-2 ring-trello-blue shadow-lg' : 'bg-trello-card-bg'
+      className={`w-[272px] min-w-[272px] shrink-0 border-2 border-amber-300 rounded-lg flex flex-col animate-slide-in transition-all duration-200 ${
+        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-muted'
       }`}
-      style={{ height: '100%', maxHeight: '100%' }}
+      style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       {/* Header */}
       <div className="p-4 pb-3 shrink-0">
         <div className="flex items-center justify-between gap-2">
           {!editing ? (
             <h3
-              className="font-medium text-trello text-sm cursor-text flex-1"
+              className="font-medium text-foreground text-sm cursor-text flex-1"
               onClick={() => setEditing(true)}
               title="Click to edit"
+              {...dragHandleProps}
             >
               {title}
             </h3>
@@ -398,7 +393,7 @@ export default function ListColumn({
               aria-expanded={showActions}
               aria-haspopup="true"
             >
-              <MoreVertical className="w-4 h-4 text-trello-text-secondary" aria-hidden="true" />
+              <MoreVertical className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
             </Button>
 
             {/* Menus */}
@@ -468,9 +463,9 @@ export default function ListColumn({
       </div>
 
       {/* Cards area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-3 custom-scrollbar" style={{ minHeight: 0 }}>
+      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-[calc(100vh-300px)]' : ''}`}>
         {cards.length === 0 && dragOverIndex === 0 && (
-          <div className="h-20 border-2 border-dashed border-indigo-300 bg-trello-blue-light rounded-md flex items-center justify-center animate-drag-placeholder">
+          <div className="h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-md flex items-center justify-center animate-drag-placeholder">
             <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
           </div>
         )}
@@ -494,13 +489,14 @@ export default function ListColumn({
       </div>
 
       {/* Footer */}
-      <div className="p-4 pt-3 border-t border-trello-border shrink-0 bg-trello-card-bg">
+      <div className="p-2 border-border shrink-0">
         {!addingCard ? (
           <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
-            variant="ghost"
-            className="w-full justify-start bg-trello-card-bg hover:bg-trello-hover"
+            variant="default"
+            className="w-full justify-start cursor-pointer"
+            aria-label="Add a card"
           >
             + Add a card
           </Button>

@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, LayoutGrid, Users, BarChart3, Zap, FolderKanb
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen  w-full">
       {/* Header */}
       <header>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,7 +30,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-background to-background">
+      <section className="relative overflow-hidden bg-linear-to-b from-primary/10 via-background to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
           <div className="text-center">
             <h1 className="text-5xl sm:text-6xl font-bold text-foreground mb-6">
