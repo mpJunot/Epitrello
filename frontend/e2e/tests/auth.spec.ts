@@ -118,18 +118,6 @@ test.describe('backend responses', () => {
     let capturedRememberMe: boolean | string | null = null;
     let requestSeen = false;
 
-    await page.addInitScript(() => {
-      const noop = () => {};
-      // Prevent actual navigation during the mocked flow
-      Object.defineProperty(window, 'location', {
-        value: {
-          href: window.location.href,
-          assign: noop,
-          replace: noop,
-        },
-      });
-    });
-
     await page.route('**/graphql', async (route) => {
       const raw = route.request().postData() || '{}';
       const body = JSON.parse(raw) as { variables?: { input?: { rememberMe?: boolean } } };
@@ -156,7 +144,8 @@ test.describe('backend responses', () => {
     await page.getByRole('checkbox', { name: /remember me/i }).check();
     await page.getByRole('button', { name: selectors.submit }).click();
 
-    await expect.poll(async () => await page.evaluate(() => localStorage.getItem('auth_token'))).toBe('test-token');
+    // Navigation may occur after login; wait until token is stored, resilient across navigations
+    await page.waitForFunction(() => localStorage.getItem('auth_token') === 'test-token', null, { timeout: 10000 });
     expect(requestSeen).toBe(true);
   });
 });
