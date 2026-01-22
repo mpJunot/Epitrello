@@ -6,6 +6,7 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import { getWorkspaceBoards, GqlBoard, getWorkspace } from '@/lib/actions/workspaces';
 import { createBoard, Visibility } from '@/lib/actions/boards';
 import { toast } from '@/lib/toast';
+import { Button } from "@/components/ui/button";
 
 type Board = { id: string; name: string; description?: string; background?: string; members?: number; workspaceId?: string };
 
@@ -69,8 +70,8 @@ export default function WorkspaceBoardsPage() {
             <p className="text-sm text-trello-secondary">Boards inside this workspace</p>
           </div>
           <div>
-            <button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} className="px-3 py-1 bg-trello-hover rounded mr-2">Members</button>
-            <button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} className="px-3 py-1 bg-trello-hover rounded">Settings</button>
+            <Button onClick={() => router.push(`/workspaces/${workspaceId}/members`)} variant="secondary" className="mr-2">Members</Button>
+            <Button onClick={() => router.push(`/workspaces/${workspaceId}/settings`)} variant="secondary">Settings</Button>
           </div>
         </div>
 
@@ -87,7 +88,7 @@ export default function WorkspaceBoardsPage() {
                   <div className="font-semibold">Erreur backend</div>
                   <div className="mt-1 whitespace-pre-wrap wrap-break-word text-sm">{error}</div>
                 </div>
-                <button onClick={() => {
+                <Button onClick={() => {
                   setError(null);
                   setLoading(true);
                   (async () => {
@@ -111,19 +112,18 @@ export default function WorkspaceBoardsPage() {
                       setLoading(false);
                     }
                   })();
-                }} className="px-3 py-1 bg-red-600 text-white rounded">Réessayer</button>
+                }} variant="destructive" size="sm">Retry</Button>
               </div>
             </div>
           )}
           {!loading && !error && boards.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center bg-white border rounded-lg p-8 text-center">
-              <p className="text-trello-secondary mb-4">Aucun board dans ce workspace.</p>
-              <button
+            <div className="col-span-full flex flex-col items-center justify-center bg-trello-card-bg border border-trello-border rounded-lg p-8 text-center">
+              <p className="text-trello-secondary mb-4">No boards in this workspace.</p>
+              <Button
                 onClick={() => setShowCreate(true)}
-                className="px-4 py-2 bg-trello-blue text-white rounded hover:bg-trello-blue-hover"
               >
-                Ajouter un board
-              </button>
+                Add a board
+              </Button>
             </div>
           )}
           {!loading && !error && boards.map((b) => (

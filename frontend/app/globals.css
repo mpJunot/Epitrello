@@ -22,18 +22,25 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  /* Primary uses Trello blue */
   --primary: var(--trello-blue);
   --primary-foreground: #ffffff;
+  /* Secondary uses Trello hover */
   --secondary: var(--trello-hover);
   --secondary-foreground: var(--trello-text-secondary);
+  /* Muted uses Trello hover */
   --muted: var(--trello-hover);
   --muted-foreground: var(--trello-text-secondary);
+  /* Accent uses Trello hover */
   --accent: var(--trello-hover);
   --accent-foreground: var(--trello-text);
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  /* Border uses Trello border */
   --border: var(--trello-border);
+  /* Input border color (same as border) */
   --input: var(--trello-border);
+  /* Ring uses Trello blue */
   --ring: var(--trello-blue);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -53,10 +60,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 
-  /* Trello-inspired theme colors for shadcn/ui components */
   --color-destructive: 0 84% 60%;
   --color-destructive-foreground: 0 0% 100%;
   --color-secondary: 0 0% 96%;
@@ -66,7 +70,6 @@
   --color-ring: 214 100% 50%;
   --color-border: 0 0% 88%;
 
-  /* Trello brand colors as Tailwind colors */
   --color-trello-blue: 214 100% 50%;
   --color-trello-blue-hover: 214 100% 45%;
   --color-trello-text: 214 50% 20%;
@@ -103,10 +106,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Animations pour les cartes et colonnes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -364,6 +366,10 @@ html {
   background-color: var(--trello-card-bg);
 }
 
+.bg-trello-card-bg {
+  background-color: var(--trello-card-bg);
+}
+
 .bg-trello-border {
   background-color: var(--trello-border);
 }
@@ -376,7 +382,19 @@ html {
   color: var(--trello-text-secondary);
 }
 
+.text-trello-text-secondary {
+  color: var(--trello-text-secondary);
+}
+
+.text-trello-border {
+  color: var(--trello-border);
+}
+
 .border-trello {
+  border-color: var(--trello-border);
+}
+
+.border-trello-border {
   border-color: var(--trello-border);
 }
 
@@ -429,20 +447,29 @@ html {
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.269 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Primary uses Trello blue in dark mode */
+  --primary: var(--trello-blue);
+  --primary-foreground: #ffffff;
+  /* Secondary uses Trello hover in dark mode */
+  --secondary: var(--trello-hover);
+  --secondary-foreground: var(--trello-text-secondary);
+  /* Muted uses Trello hover in dark mode */
+  --muted: var(--trello-hover);
+  --muted-foreground: var(--trello-text-secondary);
+  /* Accent uses Trello hover in dark mode */
+  --accent: var(--trello-hover);
+  --accent-foreground: var(--trello-text);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --destructive-foreground: oklch(0.985 0 0);
+  /* Border uses Trello border in dark mode */
+  --border: var(--trello-border);
+  /* Input: used for border (border-input) and background (bg-input/30) */
+  /* With /30 opacity, this should give a dark grey background slightly darker than card */
+  --input: oklch(0.6 0 0);
+  /* Ring uses Trello blue in dark mode */
+  --ring: var(--trello-blue);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -455,7 +482,16 @@ html {
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.439 0 0);
+
+  --trello-blue: #0079bf;
+  --trello-blue-hover: #026aa7;
+  --trello-blue-light: #1e3a5f;
+  --trello-text: #e4e6eb;
+  --trello-text-secondary: #b0b3b8;
+  --trello-border: #3a3b3c;
+  --trello-card-bg: #242526;
+  --trello-hover: #3a3b3c;
 }
 
 @layer base {

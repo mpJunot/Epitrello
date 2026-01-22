@@ -179,10 +179,10 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`transition-all duration-150 bg-white border-r border-trello ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
+      className={`transition-all duration-150 bg-trello-card-bg border-r border-trello-border ${collapsed ? "w-20" : "w-64"} h-screen flex flex-col shrink-0`}
       aria-label="Main sidebar"
     >
-      <div className="flex items-center justify-between p-3 border-b border-trello">
+      <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded bg-trello-blue text-white flex items-center justify-center font-bold">E</div>
           {!collapsed && <h3 className="text-sm font-semibold text-trello">Epitrello</h3>}

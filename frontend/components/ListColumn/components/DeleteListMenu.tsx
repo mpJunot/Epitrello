@@ -1,5 +1,6 @@
 import React from 'react';
 import { MenuHeader } from './MenuCommon';
+import { Button } from "@/components/ui/button";
 
 type DeleteListMenuProps = {
   listTitle: string;
@@ -16,7 +17,7 @@ export const DeleteListMenu: React.FC<DeleteListMenuProps> = ({
 }) => {
   return (
     <div
-      className="absolute right-0 top-full mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-slide-down overflow-hidden"
+      className="absolute right-0 top-full mt-1 w-72 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden"
       role="dialog"
       aria-label="Delete list confirmation"
     >
@@ -33,18 +34,20 @@ export const DeleteListMenu: React.FC<DeleteListMenuProps> = ({
         </div>
 
         <div className="flex gap-2">
-          <button
+          <Button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300 active:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors"
+            variant="secondary"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded hover:bg-red-700 active:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+            variant="destructive"
+            className="flex-1"
           >
             Delete
-          </button>
+          </Button>
         </div>
       </div>
     </div>
