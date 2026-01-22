@@ -12,7 +12,7 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Create a new workspace
@@ -26,6 +26,7 @@ export class WorkspacesService {
       data: {
         name: createWorkspaceInput.name,
         logoUrl: createWorkspaceInput.logoUrl,
+        description: createWorkspaceInput.description,
         visibility: createWorkspaceInput.visibility || 'PRIVATE',
         memberships: {
           create: {
@@ -185,6 +186,7 @@ export class WorkspacesService {
       id: workspace.id,
       name: workspace.name,
       logoUrl: workspace.logoUrl,
+      description: workspace.description,
       visibility: workspace.visibility,
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,

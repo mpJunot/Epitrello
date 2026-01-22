@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import CreateBoardModal from "./CreateBoardModal";
 import { toast } from "@/lib/toast";
@@ -9,57 +9,118 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "./ThemeToggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { getCurrentUser } from "@/lib/actions/users";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Topbar() {
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
 
   const [query, setQuery] = useState("");
-  const [openProfile, setOpenProfile] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsCount] = useState(() => {
+  const [notifications, setNotifications] = useState<Array<{ id: string; message: string; read?: boolean }>>(() => {
     try {
       const raw = localStorage.getItem("epitrello_notifications");
       const notes = raw ? JSON.parse(raw) : [];
-      return Array.isArray(notes) ? notes.length : 0;
+      return Array.isArray(notes) ? notes : [];
     } catch {
-      return 0;
+      return [];
     }
   });
-  const profileRef = useRef<HTMLDivElement | null>(null);
-  const [userName] = useState<string>(() => {
-    try {
-      const raw = localStorage.getItem('epitrello_user');
-      const u = raw ? JSON.parse(raw) : null;
-      return u?.name || 'Benjamin Maillot';
-    } catch {
-      return 'Benjamin Maillot';
-    }
-  });
-  const [userEmail] = useState<string>(() => {
-    try {
-      const raw = localStorage.getItem('epitrello_user');
-      const u = raw ? JSON.parse(raw) : null;
-      return u?.email || 'maillotbenjamin1@gmail.com';
-    } catch {
-      return 'maillotbenjamin1@gmail.com';
-    }
-  });
+
+  const notificationsCount = notifications.filter(n => !n.read).length;
+  const [userName, setUserName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
   const router = useRouter();
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (
-        profileRef.current &&
-        e.target instanceof Node &&
-        !profileRef.current.contains(e.target)
-      ) {
-        setOpenProfile(false);
+    const loadUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          setUserName(user.name || '');
+          setUserEmail(user.email || '');
+          setUserAvatar(user.avatar);
+        }
+      } catch (error) {
+        console.error('Failed to load user in Topbar', error);
       }
-    }
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    };
+
+    loadUser();
   }, []);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const raw = localStorage.getItem("epitrello_notifications");
+        const notes = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(notes)) {
+          setNotifications((prevNotifications) => {
+            const previousUnread = prevNotifications.filter(n => !n.read).length;
+            const newUnread = notes.filter((n: { read?: boolean }) => !n.read).length;
+            if (newUnread > previousUnread) {
+              const newNotifications = notes.filter((n: { read?: boolean; id: string; message: string }) =>
+                !n.read && !prevNotifications.find(existing => existing.id === n.id)
+              );
+              newNotifications.forEach((notification: { message: string }) => {
+                toast.info(notification.message, 'Notification');
+              });
+            }
+
+            return notes;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load notifications', error);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('epitrello:notification-added', handleStorageChange);
+    handleStorageChange();
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('epitrello:notification-added', handleStorageChange);
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      localStorage.removeItem('epitrello_user');
+      localStorage.removeItem('epitrello_notifications');
+      localStorage.removeItem('epitrello_boards');
+      localStorage.removeItem('epitrello_active_board');
+      localStorage.removeItem('epitrello_workspaces');
+      localStorage.removeItem('epitrello_expanded_workspaces');
+      localStorage.removeItem('auth_token');
+
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Failed to sign out', error);
+      router.push('/auth/login');
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const onSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -69,13 +130,13 @@ export default function Topbar() {
 
   const [createOpen, setCreateOpen] = useState(false);
 
-  const createBoard = (payload?: { name?: string; workspaceId?: string; visibility?: string }) => {
+  const createBoard = (payload?: { name?: string; workspaceId?: string; visibility?: string; background?: string }) => {
     if (!payload) {
       setCreateOpen(true);
       return;
     }
 
-    const { name, workspaceId, visibility } = payload;
+    const { name, workspaceId, visibility, background } = payload;
     if (!name) return;
 
     try {
@@ -88,7 +149,7 @@ export default function Topbar() {
         'bg-gradient-to-br from-cyan-400 to-teal-500',
       ];
 
-      const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+      const selectedBackground = background || backgrounds[Math.floor(Math.random() * backgrounds.length)];
 
       const raw = localStorage.getItem('epitrello_boards');
       const boards = raw ? JSON.parse(raw) : [];
@@ -100,7 +161,7 @@ export default function Topbar() {
         id,
         name,
         description: undefined,
-        background: randomBackground,
+        background: selectedBackground,
         members: 1,
         workspaceId,
         visibility,
@@ -126,12 +187,6 @@ export default function Topbar() {
       <div className="w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <SidebarTrigger className="shrink-0" />
-
-          <a href="/dashboard" className="flex items-center gap-2 no-underline shrink-0">
-            <div className="h-8 w-8 rounded flex items-center justify-center bg-primary text-primary-foreground font-bold shrink-0">E</div>
-            <span className="hidden sm:inline font-semibold text-foreground whitespace-nowrap">Epitrello</span>
-          </a>
-
           {/* Desktop search */}
           <form onSubmit={onSearch} className="hidden lg:flex items-center gap-2 ml-4 min-w-0 flex-1 max-w-md">
             <label htmlFor="global-search" className="sr-only">Global search</label>
@@ -185,7 +240,25 @@ export default function Topbar() {
             variant="ghost"
             size="icon"
             title="Notifications"
-            onClick={() => alert('Open notifications panel (to be implemented)')}
+            onClick={() => {
+              const unreadNotifications = notifications.filter(n => !n.read);
+              if (unreadNotifications.length === 0) {
+                toast.info('No new notifications');
+                return;
+              }
+
+              unreadNotifications.forEach((notification) => {
+                toast.info(notification.message);
+              });
+
+              const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+              setNotifications(updatedNotifications);
+              try {
+                localStorage.setItem('epitrello_notifications', JSON.stringify(updatedNotifications));
+              } catch (error) {
+                console.error('Failed to update notifications', error);
+              }
+            }}
             className="relative"
           >
             <Bell className="h-5 w-5" />
@@ -198,78 +271,86 @@ export default function Topbar() {
           <ThemeToggle />
 
           {/* Profile menu */}
-          <div className="relative" ref={profileRef}>
-            <Button
-              onClick={() => setOpenProfile((s) => !s)}
-              aria-haspopup="menu"
-              aria-expanded={openProfile}
-              aria-label="Open profile menu"
-              variant="ghost"
-              className="flex items-center gap-2 shrink-0"
-            >
-              <div className="h-8 w-8 rounded-full bg-border flex items-center justify-center shrink-0">U</div>
-              <span className="hidden lg:inline text-sm text-muted-foreground whitespace-nowrap">My account</span>
-            </Button>
-
-            {openProfile && (
-              <div role="menu" aria-label="Profile menu" className="absolute right-0 mt-2 w-64 bg-card border border-border rounded shadow p-3 z-10 text-sm">
-                <div className="mb-2">
-                  <div className="text-xs text-muted-foreground font-medium">Account</div>
-                  <div className="mt-2">
-                    <div className="font-semibold text-foreground">{userName}</div>
-                    <div className="text-xs text-muted-foreground">{userEmail}</div>
-                  </div>
-                  <div className="mt-3 space-y-1">
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Switch accounts</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Manage account</a>
-                  </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="shrink-0 h-auto p-1"
+                aria-label="Open profile menu"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={userAvatar} alt={userName} />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {userName ? getInitials(userName) : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 border-accent">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{userName || 'User'}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{userEmail || ''}</p>
                 </div>
-
-                <div className="border-t my-2" />
-
-                <div className="mb-2">
-                  <div className="text-xs text-muted-foreground font-medium">Trello</div>
-                  <div className="mt-2 space-y-1">
-                    <a role="menuitem" href="/auth/me" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Profile and visibility</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Activity</a>
-                    <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Cards</a>
-                    <a role="menuitem" href="/settings" className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Settings</a>
-                  </div>
-                </div>
-
-                <div className="border-t my-2" />
-
-                <div className="mb-2">
-                  <a role="menuitem" href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="block px-2 py-1 text-muted-foreground hover:bg-muted rounded">Help</a>
-                </div>
-
-                <div className="border-t my-2" />
-
-                <div>
-                  <Button
-                    role="menuitem"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      try {
-                        localStorage.removeItem('epitrello_user');
-                        localStorage.removeItem('epitrello_notifications');
-                        localStorage.removeItem('epitrello_boards');
-                        localStorage.removeItem('epitrello_active_board');
-                        localStorage.removeItem('epitrello_workspaces');
-                        localStorage.removeItem('epitrello_expanded_workspaces');
-                      } catch {}
-                      setOpenProfile(false);
-                      router.push('/auth/login');
-                    }}
-                    className="w-full justify-start"
-                  >
-                    Log out
-                  </Button>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5">
+                <div className="text-xs text-muted-foreground font-medium mb-2">Account</div>
+                <div className="space-y-1">
+                  <DropdownMenuItem asChild>
+                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="cursor-pointer">
+                      Switch accounts
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/settings" className="cursor-pointer">
+                      Manage account
+                    </a>
+                  </DropdownMenuItem>
                 </div>
               </div>
-            )}
-          </div>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5">
+                <div className="text-xs text-muted-foreground font-medium mb-2">Trello</div>
+                <div className="space-y-1">
+                  <DropdownMenuItem asChild>
+                    <a href="/auth/me" className="cursor-pointer">
+                      Profile and visibility
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="cursor-pointer">
+                      Activity
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="cursor-pointer">
+                      Cards
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/settings" className="cursor-pointer">
+                      Settings
+                    </a>
+                  </DropdownMenuItem>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5">
+                <DropdownMenuItem asChild>
+                  <a href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="cursor-pointer">
+                    Help
+                  </a>
+                </DropdownMenuItem>
+              </div>
+              <DropdownMenuSeparator />
+              <div className="px-2 py-1.5">
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
+                  Log out
+                </DropdownMenuItem>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

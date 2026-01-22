@@ -14,11 +14,11 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full">
       <AppSidebar />
       <SidebarInset className="flex flex-col overflow-hidden bg-background w-full min-w-0">
         <Topbar />
-        <main className="flex-1 overflow-auto w-full">{children}</main>
+        <main className="flex-1 h-full w-full">{children}</main>
       </SidebarInset>
     </div>
   );
