@@ -1,11 +1,11 @@
-import DataLoader from 'dataloader';
+import DataLoader = require('dataloader');
 import { Injectable, Scope } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { User } from '../../users/entities/user.entity';
 
 @Injectable({ scope: Scope.REQUEST })
 export class CommentsDataLoader {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   createUsersByIdLoader(): DataLoader<string, User | null> {
     return new DataLoader<string, User | null>(async (userIds: readonly string[]) => {
