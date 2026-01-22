@@ -7,6 +7,14 @@ import { AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Board = {
   id: string;
@@ -175,7 +183,7 @@ export default function DashboardPage() {
               const wsBoardsLoading = boardsLoading[ws.id];
               const wsBoardsError = boardsError[ws.id];
               return (
-                <div key={ws.id} className='bg-white rounded-lg shadow-sm p-4'>
+                <div key={ws.id} className='bg-trello-card-bg rounded-lg shadow-sm p-4'>
                   <div className='flex items-start justify-between gap-4 mb-3'>
                     <div>
                       <h3 className='text-lg font-semibold text-trello'>{ws.title}</h3>
@@ -191,7 +199,7 @@ export default function DashboardPage() {
                   <div className='overflow-x-auto'>
                     <div className='flex gap-4 pb-2'>
                       {creatingFor === ws.id && (
-                        <div className='min-w-[280px] p-3 bg-white rounded border shrink-0'>
+                        <div className='min-w-[280px] p-3 bg-trello-card-bg rounded border shrink-0'>
                           <Input
                             value={newBoardNameByWorkspace[ws.id] ?? ''}
                             onChange={(e) => setNewBoardNameByWorkspace((s) => ({ ...s, [ws.id]: e.target.value }))}
@@ -356,40 +364,34 @@ export default function DashboardPage() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center mb-4">
-              <div className="shrink-0">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-trello">Delete Board</h3>
-              </div>
+      <Dialog open={deleteConfirm.show} onOpenChange={(open) => !open && cancelDeleteBoard()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+              <DialogTitle>Delete Board</DialogTitle>
             </div>
-            <div className="mb-6">
-              <p className="text-sm text-trello-secondary">
-                Are you sure you want to delete <span className="font-semibold text-trello">&quot;{deleteConfirm.boardName}&quot;</span>?
-                This action cannot be undone.
-              </p>
-            </div>
-            <div className="flex justify-end gap-3">
-              <Button
-                onClick={cancelDeleteBoard}
-                variant="secondary"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={confirmDeleteBoard}
-                variant="destructive"
-              >
-                Delete Board
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-semibold text-trello">&quot;{deleteConfirm.boardName}&quot;</span>?
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={cancelDeleteBoard}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDeleteBoard}
+              variant="destructive"
+            >
+              Delete Board
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

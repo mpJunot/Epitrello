@@ -11,6 +11,15 @@ import { FileText, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label as LabelUI } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Typed event names for board interactions
 type BoardEventName =
@@ -111,7 +120,6 @@ interface CardModalProps {
  */
 export default function CardModal({ card, listId, isOpen, onClose }: CardModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -578,105 +586,71 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     onClose();
   };
 
-  // Fermer en cliquant sur le backdrop
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
-      onClose();
-    }
-  };
 
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center p-4 overflow-y-auto"
-      style={{ backdropFilter: 'blur(2px)', animation: 'fadeIn 0.2s ease-out' }}
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-    >
-      <div
-        ref={modalRef}
-        className="bg-white rounded-lg shadow-2xl w-full my-12 animate-fade-scale-in"
-        style={{
-          maxWidth: '768px',
-          minWidth: '320px',
-          width: '100%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header de la modale - fixe */}
-        <div className="p-6 border-b border-gray-200 shrink-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-3">
-                <FileText className="w-6 h-6 text-trello-secondary shrink-0 mt-1" aria-hidden="true" />
-                <div className="flex-1 min-w-0">
-                  {!isEditingTitle ? (
-                    <h2
-                      id="modal-title"
-                      className="text-xl font-semibold text-trello cursor-pointer hover:bg-trello-hover px-2 py-1 -mx-2 -my-1 rounded transition-colors"
-                      onClick={() => setIsEditingTitle(true)}
-                      title="Click to edit title"
-                    >
-                      {card.title}
-                    </h2>
-                  ) : (
-                    <Input
-                      ref={titleInputRef}
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      onBlur={saveTitle}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          saveTitle();
-                        } else if (e.key === "Escape") {
-                          e.preventDefault();
-                          cancelEditTitle();
-                        }
-                      }}
-                      className="w-full text-xl font-semibold text-trello px-2 py-1 -mx-2 -my-1 border-2 border-trello-blue h-auto"
-                      aria-label="Edit card title"
-                    />
-                  )}
-                  {listId && (
-                    <p className="text-sm text-trello-secondary mt-1">
-                      in list <span className="underline">List Name</span>
-                    </p>
-                  )}
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          ref={modalRef}
+          className="max-w-[768px] w-full max-h-[90vh] p-0 flex flex-col overflow-hidden"
+          showCloseButton={false}
+        >
+          <DialogTitle className="sr-only">{card.title}</DialogTitle>
+          <DialogDescription className="sr-only">Card details and actions</DialogDescription>
+
+          <div className="p-6 border-b border-trello-border shrink-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-3">
+                  <FileText className="w-6 h-6 text-trello-secondary shrink-0 mt-1" aria-hidden="true" />
+                  <div className="flex-1 min-w-0">
+                    {!isEditingTitle ? (
+                      <h2
+                        className="text-xl font-semibold text-trello cursor-pointer hover:bg-trello-hover px-2 py-1 -mx-2 -my-1 rounded transition-colors"
+                        onClick={() => setIsEditingTitle(true)}
+                        title="Click to edit title"
+                      >
+                        {card.title}
+                      </h2>
+                    ) : (
+                      <Input
+                        ref={titleInputRef}
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        onBlur={saveTitle}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            saveTitle();
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEditTitle();
+                          }
+                        }}
+                        className="w-full text-xl font-semibold text-trello px-2 py-1 -mx-2 -my-1 border-2 border-trello-blue h-auto"
+                        aria-label="Edit card title"
+                      />
+                    )}
+                    {listId && (
+                      <p className="text-sm text-trello-secondary mt-1">
+                        in list <span className="underline">List Name</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <Button
-              ref={closeButtonRef}
-              onClick={onClose}
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-trello-secondary shrink-0"
-              aria-label="Close modal"
-            >
-              <X className="w-6 h-6" />
-            </Button>
           </div>
-        </div>
 
-        {/* Contenu de la modale avec scroll vertical interne */}
-        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar" style={{ minHeight: 0 }}>
-          {/* Layout 2 colonnes */}
+          <div className="p-6 overflow-y-auto flex-1 custom-scrollbar" style={{ minHeight: 0 }}>
           <div className="flex gap-6 flex-col lg:flex-row">
-            {/* Colonne gauche - Contenu principal (~70%) */}
             <div className="flex-1 lg:w-[70%] space-y-6">
-              {/* Labels */}
               {assignedLabels && assignedLabels.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Labels</h3>
+                  <h3 className="text-sm font-semibold text-trello mb-2">Labels</h3>
                   <div className="flex flex-wrap gap-2">
                     {assignedLabels.map((label) => (
                       <Button
@@ -685,7 +659,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                         variant="ghost"
                         size="sm"
                         className={`inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full text-white ${
-                          label.color || "bg-gray-500"
+                          label.color || "bg-trello-text-secondary"
                         } hover:opacity-90 transition-opacity group`}
                         title="Click to remove"
                       >
@@ -697,10 +671,9 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                 </div>
               )}
 
-              {/* Members */}
               {assignedMembers && assignedMembers.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Members</h3>
+                  <h3 className="text-sm font-semibold text-trello mb-2">Members</h3>
                   <div className="flex flex-wrap gap-2">
                     {assignedMembers.map((user) => {
                       const initials = user.name
@@ -713,10 +686,10 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                       return (
                         <div
                           key={user.id}
-                          className="flex items-center gap-2 bg-gray-100 rounded-full pr-3 hover:bg-gray-200 transition-colors group relative"
+                          className="flex items-center gap-2 bg-trello-hover rounded-full pr-3 hover:bg-trello-border transition-colors group relative"
                           title={user.name || user.email}
                         >
-                          <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-medium text-white">
+                          <div className="w-8 h-8 rounded-full bg-trello-blue flex items-center justify-center text-xs font-medium text-white">
                             {user.avatar ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -728,7 +701,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
                               initials
                             )}
                           </div>
-                          <span className="text-sm text-gray-700">{user.name || user.email}</span>
+                          <span className="text-sm text-trello">{user.name || user.email}</span>
                           <Button
                             onClick={() => toggleMember(user)}
                             variant="ghost"
@@ -748,36 +721,36 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
               {/* Due Date */}
               {dueDate && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Due Date</h3>
+                  <h3 className="text-sm font-semibold text-trello mb-2">Due Date</h3>
                   <div className="flex items-center gap-2">
-                    <LabelUI className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
+                    <div className="flex items-center gap-2">
+                      <Checkbox
                         checked={dueDate.isComplete}
-                        onChange={toggleDueDateComplete}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-trello-blue"
+                        onCheckedChange={toggleDueDateComplete}
                       />
-                      <div
-                        className={`px-3 py-1.5 rounded text-sm font-medium ${
-                          getDueDateStatus(dueDate) === "complete"
-                            ? "bg-green-100 text-green-800"
-                            : getDueDateStatus(dueDate) === "overdue"
-                            ? "bg-red-100 text-red-800"
-                            : getDueDateStatus(dueDate) === "soon"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {formatDueDate(dueDate.date)}
-                        {dueDate.isComplete && " (complete)"}
-                        {getDueDateStatus(dueDate) === "overdue" && !dueDate.isComplete && " (overdue)"}
-                      </div>
-                    </LabelUI>
+                      <LabelUI className="cursor-pointer">
+                        <div
+                          className={`px-3 py-1.5 rounded text-sm font-medium ${
+                            getDueDateStatus(dueDate) === "complete"
+                              ? "bg-green-100 text-green-800"
+                              : getDueDateStatus(dueDate) === "overdue"
+                              ? "bg-red-100 text-red-800"
+                              : getDueDateStatus(dueDate) === "soon"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-trello-hover text-trello"
+                          }`}
+                        >
+                          {formatDueDate(dueDate.date)}
+                          {dueDate.isComplete && " (complete)"}
+                          {getDueDateStatus(dueDate) === "overdue" && !dueDate.isComplete && " (overdue)"}
+                        </div>
+                      </LabelUI>
+                    </div>
                     <Button
                       onClick={removeDueDate}
                       variant="ghost"
                       size="icon"
-                      className="text-gray-400 hover:text-red-600 h-auto w-auto p-0"
+                      className="text-trello-text-secondary hover:text-red-600 h-auto w-auto p-0"
                       title="Remove due date"
                     >
                       <X className="w-4 h-4" />
@@ -837,10 +810,10 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-5 h-5 text-trello-secondary" />
-                  <h3 className="text-sm font-semibold text-gray-700">History</h3>
+                  <h3 className="text-sm font-semibold text-trello">History</h3>
                 </div>
                 <div className="ml-7">
-                  <p className="text-sm text-gray-400 italic">No history available</p>
+                  <p className="text-sm text-trello-text-secondary italic">No history available</p>
                 </div>
               </div>
             </div>
@@ -879,71 +852,66 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
           </div>
         </div>
 
-        {/* Footer avec actions - fixe */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-lg shrink-0">
-          <div className="text-xs text-trello-secondary">
-            Card ID: <span className="font-mono">{card.id}</span>
+          {/* Footer avec actions - fixe */}
+          <div className="p-6 border-t border-trello-border bg-trello-hover rounded-b-lg shrink-0">
+            <div className="text-xs text-trello-secondary">
+              Card ID: <span className="font-mono">{card.id}</span>
+            </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Archive Confirmation Modal */}
-      {showArchiveConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowArchiveConfirm(false)} />
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-sm w-full animate-fade-scale-in">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-trello mb-2">Archive card?</h3>
-              <p className="text-sm text-trello-secondary mb-6">
-                The card &quot;{card.title}&quot; will be archived. You can restore it later from the board&apos;s archive.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  onClick={() => setShowArchiveConfirm(false)}
-                  variant="secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={archiveCard}
-                  className="bg-orange-500 hover:bg-orange-600"
-                >
-                  Archive
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Archive card?</DialogTitle>
+            <DialogDescription>
+              The card &quot;{card.title}&quot; will be archived. You can restore it later from the board&apos;s archive.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setShowArchiveConfirm(false)}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={archiveCard}
+              className="bg-orange-500 hover:bg-orange-600"
+            >
+              Archive
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-filter backdrop-blur-sm animate-fade-in" onClick={() => setShowDeleteConfirm(false)} />
-          <div className="relative bg-white rounded-lg shadow-2xl max-w-sm w-full animate-fade-scale-in">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-red-600 mb-2">Delete card?</h3>
-              <p className="text-sm text-trello-secondary mb-6">
-                The card &quot;{card.title}&quot; will be permanently deleted. This action cannot be undone.
-              </p>
-              <div className="flex gap-3 justify-end">
-                <Button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  variant="secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={deleteCard}
-                  variant="destructive"
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete card?</DialogTitle>
+            <DialogDescription>
+              The card &quot;{card.title}&quot; will be permanently deleted. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setShowDeleteConfirm(false)}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={deleteCard}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

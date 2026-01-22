@@ -14,7 +14,7 @@ import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CardsDataLoader } from './dataloaders/cards.dataloader';
 import { Label } from '../labels/entities/label.entity';
-import DataLoader from 'dataloader';
+import DataLoader = require('dataloader');
 import { Checklist } from '../checklists/entities/checklist.entity';
 
 @Resolver(() => Card)
