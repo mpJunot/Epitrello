@@ -82,6 +82,7 @@ describe('CardsService', () => {
     startDate: null,
     dueDate: null,
     position: 0,
+    completed: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -156,6 +157,7 @@ describe('CardsService', () => {
           listId: input.listId,
           title: input.title,
           position: 5,
+          completed: false,
           description: undefined,
           coverUrl: undefined,
           startDate: undefined,

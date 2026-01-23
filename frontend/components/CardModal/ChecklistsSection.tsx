@@ -35,7 +35,7 @@ export default function ChecklistsSection({
     <>
       {checklists.map((checklist) => {
         const progress = getProgress(checklist);
-        const checkedCount = checklist.items.filter((item) => item.checked).length;
+        const checkedCount = checklist.items?.filter((item) => item.checked).length || 0;
         return (
           <div key={checklist.id}>
             <div className="flex items-center justify-between mb-3">
@@ -50,7 +50,7 @@ export default function ChecklistsSection({
             <div className="ml-7">
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-trello-text-secondary">{checkedCount}/{checklist.items.length}</span>
+                  <span className="text-xs text-trello-text-secondary">{checkedCount}/{checklist.items?.length}</span>
                   <span className="text-xs font-semibold text-trello">{progress}%</span>
                 </div>
                 <div className="w-full bg-trello-border rounded-full h-2 overflow-hidden">
@@ -59,7 +59,7 @@ export default function ChecklistsSection({
               </div>
 
               <div className="space-y-2">
-                {checklist.items.map((item) => (
+                {checklist.items?.map((item) => (
                   <div key={item.id} className="flex items-start gap-2 p-2 rounded hover:bg-trello-hover group transition-colors">
                     <Checkbox
                       checked={item.checked}
@@ -67,7 +67,7 @@ export default function ChecklistsSection({
                       className="mt-0.5"
                     />
                     <LabelUI className={`text-sm flex-1 cursor-pointer ${item.checked ? "text-trello-text-secondary line-through" : "text-trello"}`}>
-                      {item.text}
+                      {item.content}
                     </LabelUI>
                   </div>
                 ))}

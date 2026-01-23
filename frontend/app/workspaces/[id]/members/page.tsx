@@ -119,7 +119,7 @@ export default function WorkspaceMembersPage() {
 
         <div className="bg-card rounded shadow p-4">
           {members.length === 0 && <div className="text-muted-foreground">No members</div>}
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-accent">
             {members.map(m => (
               <li key={m.id} className="py-3 flex items-center justify-between">
                 <div>

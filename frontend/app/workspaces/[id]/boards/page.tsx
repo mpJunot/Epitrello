@@ -65,7 +65,7 @@ export default function WorkspaceBoardsPage() {
       <div className="max-w-7xl mx-auto h-full flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">{workspaceName} — Boards</h1>
+            <h1 className="text-2xl font-semibold text-foreground">{workspaceName}</h1>
             <p className="text-sm text-muted-foreground">Boards inside this workspace</p>
           </div>
           <div>
@@ -78,11 +78,11 @@ export default function WorkspaceBoardsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {loading && (
             <div className="col-span-full flex items-center justify-center py-12">
-              <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+              <div className="animate-spin h-6 w-6 border-2 border-accent border-t-transparent rounded-full" />
             </div>
           )}
           {!loading && error && (
-            <div className="col-span-full bg-red-50 border border-red-200 text-red-700 p-4 rounded">
+            <div className="col-span-full bg-red-50 text-red-700 p-4 rounded">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="font-semibold">Erreur backend</div>
@@ -117,7 +117,7 @@ export default function WorkspaceBoardsPage() {
             </div>
           )}
           {!loading && !error && boards.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center bg-card border border-border rounded-lg p-8 text-center">
+            <div className="col-span-full flex flex-col items-center justify-center bg-card border border-accent rounded-lg p-8 text-center">
               <p className="text-muted-foreground mb-4">No boards in this workspace.</p>
               <Button
                 onClick={() => setShowCreate(true)}
