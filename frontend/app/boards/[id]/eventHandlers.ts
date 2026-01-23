@@ -19,14 +19,12 @@ export function createListEventHandlers(
       const newList = await createList({ boardId, title });
       if (!newList) throw new Error('Failed to create list');
       logAction('✅', 'List created');
-      setLists((prev) => [...prev, { ...newList, cards: [] }]);
+      setLists((prev) => [...prev, { ...newList, position: newList.position ?? prev.length, cards: [] }]);
 
-      // Notify UI component of success
       window.dispatchEvent(new CustomEvent('epitrello:list-create-success'));
     } catch (err) {
       handleAsyncError(err, 'create list');
 
-      // Notify UI component of error
       window.dispatchEvent(new CustomEvent('epitrello:list-create-error'));
     }
   }
@@ -92,7 +90,6 @@ export function createListEventHandlers(
     const tempListId = `temp-list-${Date.now()}`;
     let cardsToCreate: Card[] = [];
 
-    // Create temporary list with temporary cards (optimistic update)
     setLists((prevLists) => {
       const sourceList = prevLists.find((l) => l.id === sourceListId);
       if (!sourceList) return prevLists;
@@ -101,9 +98,12 @@ export function createListEventHandlers(
       const newList: List = {
         id: tempListId,
         title: newListTitle,
+        position: prevLists.length,
         cards: cardsToCreate.map((c, idx) => ({
           ...c,
           id: `temp-card-${Date.now()}-${idx}`,
+          position: c.position ?? idx,
+          completed: c.completed ?? false,
         })),
       };
       return [...prevLists, newList];
@@ -125,16 +125,22 @@ export function createListEventHandlers(
           const newCard = await createCard({
             listId: newList.id,
             title: sourceCard.title,
-            description: sourceCard.description,
+            description: sourceCard.description ?? undefined,
             position: i,
           });
-          createdCards.push(newCard);
+          // Map the returned card to match our Card type
+          createdCards.push({
+            ...newCard,
+            listId: newCard.listId ?? newList.id,
+            position: newCard.position ?? i,
+            completed: newCard.completed ?? sourceCard.completed ?? false,
+          });
         }
 
         // 3. Replace temp list with real list and cards
         setLists((prev) =>
           prev.map((l) =>
-            l.id === tempListId ? { ...newList, cards: createdCards } : l
+            l.id === tempListId ? { ...newList, position: newList.position ?? prev.length, cards: createdCards } : l
           )
         );
 
@@ -238,6 +244,9 @@ export function createCardEventHandlers(
     const tempCard: Card = {
       id: `temp-${Date.now()}`,
       title,
+      position: 0,
+      listId,
+      completed: false,
     };
 
     setLists((prevLists) =>
@@ -258,7 +267,12 @@ export function createCardEventHandlers(
             ? {
               ...l,
               cards: (l.cards || []).map((c) =>
-                c.id === tempCard.id ? newCard : c
+                c.id === tempCard.id ? {
+                  ...newCard,
+                  listId: newCard.listId ?? listId,
+                  position: newCard.position ?? 0,
+                  completed: newCard.completed ?? false,
+                } : c
               ),
             }
             : l
@@ -447,8 +461,7 @@ export function createCardEventHandlers(
     );
 
     try {
-      // TODO: Add completed field to updateCard API when backend supports it
-      // await updateCard({ id: cardId, completed });
+      await updateCard({ id: cardId, completed });
       logAction('✅', 'Card completed status updated');
     } catch (err) {
       handleAsyncError(err, 'update card completed status');

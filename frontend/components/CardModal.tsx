@@ -45,11 +45,11 @@ function emitEvent(name: BoardEventName, detail: Record<string, unknown>) {
   }
 }
 
-// Pure helpers (hoisted): formatting + calculations
 function getChecklistProgress(checklist: Checklist) {
-  if (checklist.items.length === 0) return 0;
-  const checkedCount = checklist.items.filter((item) => item.checked).length;
-  return Math.round((checkedCount / checklist.items.length) * 100);
+  const items = checklist.items || [];
+  if (items.length === 0) return 0;
+  const checkedCount = items.filter((item) => item.checked).length;
+  return Math.round((checkedCount / items.length) * 100);
 }
 
 function formatDueDate(dateStr: string) {
@@ -154,7 +154,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
   // État pour l'édition de la description
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [description, setDescription] = useSyncedState(card.description || "", isOpen, card.id);
+  const [description, setDescription] = useSyncedState(card.description ?? "", isOpen, card.id);
 
   // État pour les membres assignés
   const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(card.assignees || [], isOpen, card.id);
@@ -169,7 +169,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
   const [newItemText, setNewItemText] = useState("");
 
   // État pour la date d'échéance
-  const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(card.dueDate, isOpen, card.id);
+  const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(
+    card.dueDate ? { date: card.dueDate, isComplete: false } : undefined,
+    isOpen,
+    card.id
+  );
   const [selectedDate, setSelectedDate] = useState("");
 
   // État pour les commentaires
@@ -189,12 +193,12 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
   // Labels disponibles (simulés pour l'instant)
   const availableLabels: Label[] = [
-    { id: "label-1", name: "Bug", color: "bg-red-500" },
-    { id: "label-2", name: "Feature", color: "bg-green-500" },
-    { id: "label-3", name: "Enhancement", color: "bg-yellow-500" },
-    { id: "label-4", name: "Documentation", color: "bg-blue-500" },
-    { id: "label-5", name: "Urgent", color: "bg-orange-500" },
-    { id: "label-6", name: "Design", color: "bg-purple-500" },
+    { id: "label-1", name: "Bug", color: "bg-red-500", boardId: card.id },
+    { id: "label-2", name: "Feature", color: "bg-green-500", boardId: card.id },
+    { id: "label-3", name: "Enhancement", color: "bg-yellow-500", boardId: card.id },
+    { id: "label-4", name: "Documentation", color: "bg-blue-500", boardId: card.id },
+    { id: "label-5", name: "Urgent", color: "bg-orange-500", boardId: card.id },
+    { id: "label-6", name: "Design", color: "bg-purple-500", boardId: card.id },
   ];
 
   // Membres disponibles du workspace (simulés pour l'instant)
@@ -396,6 +400,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     const newChecklist: Checklist = {
       id: `checklist-${Date.now()}`,
       title,
+      cardId: card.id,
       items: [],
     };
 
@@ -417,11 +422,14 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
         return {
           ...checklist,
           items: [
-            ...checklist.items,
+            ...(checklist.items || []),
             {
               id: `item-${Date.now()}`,
-              text,
+              content: text,
+              text, // Alias for backward compatibility
               checked: false,
+              checklistId: checklist.id,
+              position: (checklist.items?.length || 0) + 1,
             },
           ],
         };
@@ -441,9 +449,11 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       if (checklist.id === checklistId) {
         return {
           ...checklist,
-          items: checklist.items.map((item) =>
-            item.id === itemId ? { ...item, checked: !item.checked } : item
-          ),
+          items: (checklist.items || []).map((item) => ({
+            ...item,
+            text: item.content, // Map content to text for backward compatibility
+            checked: item.id === itemId ? !item.checked : item.checked,
+          })),
         };
       }
       return checklist;
@@ -624,7 +634,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
           <DialogTitle className="sr-only">{card.title}</DialogTitle>
           <DialogDescription className="sr-only">Card details and actions</DialogDescription>
 
-          <div className="p-6 border-b border-trello-border shrink-0">
+          <div className="p-6 border-b border-accent shrink-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3">
@@ -785,7 +795,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
               {/* Description */}
               <DescriptionSection
-                cardDescription={card.description}
+                cardDescription={card.description ?? undefined}
                 isEditing={isEditingDescription}
                 description={description}
                 onChange={setDescription}
@@ -877,7 +887,7 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
         </div>
 
           {/* Footer avec actions - fixe */}
-          <div className="p-6 border-t border-trello-border bg-trello-hover rounded-b-lg shrink-0">
+          <div className="p-6 border-t border-accent bg-trello-hover rounded-b-lg shrink-0">
             <div className="text-xs text-trello-secondary">
               Card ID: <span className="font-mono">{card.id}</span>
             </div>

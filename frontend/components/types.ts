@@ -1,9 +1,13 @@
-export type Label = { id: string; name?: string; color?: string };
-export type UserRef = { id: string; name?: string; avatar?: string; email?: string };
-export type Card = {
-  id: string;
-  title: string;
-  description?: string;
+import type {
+  Label as GqlLabel,
+  MemberUser,
+  Card as GqlCard,
+} from '@/lib/graphql-types';
+
+export type Label = GqlLabel;
+export type UserRef = MemberUser;
+export type Card = Pick<GqlCard, 'id' | 'title' | 'description' | 'position'> & {
   labels?: Label[];
   assignees?: UserRef[];
+  completed?: boolean;
 };

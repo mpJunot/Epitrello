@@ -1,36 +1,22 @@
 import { graphqlRequest } from '../graphql-client';
+import type {
+  Board as GqlBoard,
+  BoardMemberWithUser,
+  Visibility,
+  List as GqlList,
+  Card as GqlCard,
+  CreateBoardInput as GqlCreateBoardInput,
+} from '../graphql-types';
 
-export type Visibility = 'PRIVATE' | 'PUBLIC' | 'WORKSPACE';
-
-export interface Board {
-  id: string;
-  title: string;
-  description?: string;
-  background?: string;
-  visibility: Visibility;
-  workspaceId?: string;
-  createdAt: string;
-  updatedAt: string;
-  lists?: Array<{
-    id: string;
-    title: string;
-    position: number;
-    cards?: Array<{
-      id: string;
-      title: string;
-      description?: string;
-      position: number;
-    }>;
+export type Board = Omit<GqlBoard, 'lists'> & {
+  lists?: Array<GqlList & {
+    cards?: Array<Pick<GqlCard, 'id' | 'title' | 'description' | 'position'>>;
   }>;
-}
+};
 
-export interface CreateBoardInput {
-  title: string;
-  description?: string;
-  background?: string;
-  visibility?: Visibility;
-  workspaceId?: string;
-}
+export type { Visibility, BoardMemberWithUser };
+
+export type CreateBoardInput = GqlCreateBoardInput;
 
 export type BoardDetail = Board;
 
@@ -73,6 +59,18 @@ export async function getBoard(id: string): Promise<BoardDetail> {
         workspaceId
         createdAt
         updatedAt
+        members {
+          id
+          userId
+          role
+          joinedAt
+          user {
+            id
+            name
+            email
+            avatar
+          }
+        }
         lists {
           id
           title
@@ -82,6 +80,7 @@ export async function getBoard(id: string): Promise<BoardDetail> {
             title
             description
             position
+            completed
           }
         }
       }
