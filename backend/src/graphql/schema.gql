@@ -26,6 +26,17 @@ input AssignMemberToCardInput {
   userId: ID!
 }
 
+type Attachment {
+  cardId: ID!
+  createdAt: DateTime!
+  filename: String!
+  id: ID!
+  size: Int!
+  uploader: User
+  uploaderId: ID!
+  url: String!
+}
+
 """Authentication response containing JWT token and user data"""
 type AuthPayload {
   """JWT token to use in Authorization header for authenticated requests"""
@@ -42,6 +53,7 @@ type Board {
   description: String
   id: ID!
   isArchived: Boolean!
+  lists: [List!]
   members: [BoardMemberWithUser!]
   title: String!
   updatedAt: DateTime!
@@ -59,7 +71,9 @@ type BoardMemberWithUser {
 }
 
 type Card {
+  assignees: [MemberUser!]
   checklists: [Checklist!]
+  completed: Boolean!
   coverUrl: String
   createdAt: DateTime!
   description: String
@@ -98,6 +112,23 @@ input ChecklistItemPositionInput {
   position: Float!
 }
 
+type Comment {
+  author: User
+  authorId: ID!
+  cardId: ID!
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  updatedAt: DateTime!
+}
+
+input CreateAttachmentInput {
+  cardId: ID!
+  filename: String!
+  size: Int!
+  url: String!
+}
+
 input CreateBoardInput {
   background: String
   description: String
@@ -107,6 +138,7 @@ input CreateBoardInput {
 }
 
 input CreateCardInput {
+  completed: Boolean
   coverUrl: String
 
   """Card description with markdown support"""
@@ -123,6 +155,11 @@ input CreateCardInput {
 input CreateChecklistInput {
   cardId: ID!
   title: String!
+}
+
+input CreateCommentInput {
+  cardId: ID!
+  content: String!
 }
 
 input CreateLabelInput {
@@ -147,6 +184,7 @@ input CreateUserInput {
 }
 
 input CreateWorkspaceInput {
+  description: String
   logoUrl: String
   name: String!
   visibility: String
@@ -186,6 +224,7 @@ type Label {
 
 type List {
   boardId: ID!
+  cards: [Card!]
   createdAt: DateTime!
   id: ID!
   isArchived: Boolean!
@@ -261,6 +300,9 @@ type Mutation {
   """
   cancelInvitation(invitationId: ID!): Boolean!
 
+  """Create an attachment on a card."""
+  createAttachment(input: CreateAttachmentInput!): Attachment!
+
   """
   Create a new board. User must be ADMIN or MEMBER of the workspace (if provided).
   """
@@ -273,6 +315,9 @@ type Mutation {
 
   """Create a new checklist for a card."""
   createChecklist(input: CreateChecklistInput!): Checklist!
+
+  """Create a comment on a card."""
+  createComment(input: CreateCommentInput!): Comment!
 
   """Create a new label for a board. User must have access to the board."""
   createLabel(input: CreateLabelInput!): Label!
@@ -288,6 +333,9 @@ type Mutation {
   """Create a new workspace. The creator becomes an ADMIN automatically."""
   createWorkspace(input: CreateWorkspaceInput!): Workspace!
 
+  """Delete an attachment. Uploader only."""
+  deleteAttachment(id: ID!): Boolean!
+
   """Delete a board. Only board ADMIN can delete."""
   deleteBoard(id: ID!): Boolean!
 
@@ -299,6 +347,9 @@ type Mutation {
 
   """Delete a checklist item."""
   deleteChecklistItem(id: ID!): Boolean!
+
+  """Delete a comment. Author only."""
+  deleteComment(id: ID!): Boolean!
 
   """Delete a label. User must have access to the board."""
   deleteLabel(id: ID!): Boolean!
@@ -374,6 +425,9 @@ type Mutation {
   """Unassign a member from a card. User must have access to the board."""
   unassignMemberFromCard(input: UnassignMemberFromCardInput!): Card!
 
+  """Update an attachment. Uploader only."""
+  updateAttachment(input: UpdateAttachmentInput!): Attachment!
+
   """Update a board. User must be ADMIN or MEMBER of the board."""
   updateBoard(input: UpdateBoardInput!): Board!
 
@@ -388,6 +442,9 @@ type Mutation {
 
   """Update a checklist item (content, checked, position)."""
   updateChecklistItem(input: UpdateChecklistItemInput!): ChecklistItem!
+
+  """Update a comment. Author only."""
+  updateComment(input: UpdateCommentInput!): Comment!
 
   """Update a label. User must have access to the board."""
   updateLabel(input: UpdateLabelInput!): Label!
@@ -411,6 +468,9 @@ type Mutation {
 }
 
 type Query {
+  """Get an attachment by ID. User must have access to the board."""
+  attachment(id: ID!): Attachment!
+
   """Get a board by ID. Access based on visibility and membership."""
   board(id: ID!): Board!
 
@@ -420,11 +480,20 @@ type Query {
   """Get a card by ID. User must have access to the board."""
   card(id: ID!): Card!
 
+  """List attachments for a card. User must have access to the board."""
+  cardAttachments(cardId: ID!): [Attachment!]!
+
   """List all checklists for a card. User must have access to the board."""
   cardChecklists(cardId: ID!): [Checklist!]!
 
+  """List comments for a card. User must have access to the board."""
+  cardComments(cardId: ID!): [Comment!]!
+
   """Get a checklist by ID. User must have access to the board."""
   checklist(id: ID!): Checklist!
+
+  """Get a comment by ID. User must have access to the board."""
+  comment(id: ID!): Comment!
 
   """Get a list by ID. User must have access to the board."""
   list(id: ID!): List!
@@ -515,6 +584,13 @@ input UnassignMemberFromCardInput {
   userId: ID!
 }
 
+input UpdateAttachmentInput {
+  filename: String
+  id: ID!
+  size: Int
+  url: String
+}
+
 input UpdateBoardInput {
   background: String
   description: String
@@ -530,6 +606,7 @@ input UpdateBoardMemberRoleInput {
 }
 
 input UpdateCardInput {
+  completed: Boolean
   coverUrl: String
 
   """Card description with markdown support"""
@@ -551,6 +628,11 @@ input UpdateChecklistItemInput {
   content: String
   id: ID!
   position: Float
+}
+
+input UpdateCommentInput {
+  content: String!
+  id: ID!
 }
 
 input UpdateLabelInput {
@@ -579,6 +661,7 @@ input UpdateUserInput {
 }
 
 input UpdateWorkspaceInput {
+  description: String
   logoUrl: String
   name: String
   visibility: String
@@ -602,6 +685,7 @@ enum Visibility {
 
 type Workspace {
   createdAt: DateTime!
+  description: String
   id: ID!
   logoUrl: String
   memberCount: Float!

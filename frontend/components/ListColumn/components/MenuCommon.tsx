@@ -16,7 +16,7 @@ type MenuHeaderProps = {
 };
 
 export const MenuHeader: React.FC<MenuHeaderProps> = ({ title, onClose }) => (
-  <div className="px-4 py-3 border-b border-trello-border flex items-center justify-between">
+  <div className="px-4 py-3 border-b border-accent flex items-center justify-between">
     <h4 className="text-sm font-semibold text-trello">{title}</h4>
     <Button
       onClick={onClose}
