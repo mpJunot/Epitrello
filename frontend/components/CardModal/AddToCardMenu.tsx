@@ -58,7 +58,7 @@ export default function AddToCardMenu({
             Members
           </Button>
           {openMenu === 'members' && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-trello-border p-3 z-10 animate-fade-in">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-accent p-3 z-10 animate-fade-in">
               <h4 className="text-sm font-semibold text-trello mb-2">Members</h4>
               <div className="space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
                 {availableMembers.map((member) => {
@@ -95,7 +95,7 @@ export default function AddToCardMenu({
             Labels
           </Button>
           {openMenu === 'labels' && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-trello-border p-3 z-10 animate-fade-in">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-accent p-3 z-10 animate-fade-in">
               <h4 className="text-sm font-semibold text-trello mb-3">Labels</h4>
               <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
                 {availableLabels.map((label) => {
@@ -110,7 +110,7 @@ export default function AddToCardMenu({
                   );
                 })}
               </div>
-              <div className="mt-3 pt-3 border-t border-trello-border">
+              <div className="mt-3 pt-3 border-t border-accent">
                 <Button variant="ghost" className="w-full justify-start">Create new label</Button>
               </div>
             </div>
@@ -123,7 +123,7 @@ export default function AddToCardMenu({
             Checklist
           </Button>
           {openMenu === 'checklist' && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-trello-border p-3 z-10 animate-fade-in">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-accent p-3 z-10 animate-fade-in">
               <h4 className="text-sm font-semibold text-trello mb-2">Add Checklist</h4>
               <Input
                 type="text"
@@ -154,7 +154,7 @@ export default function AddToCardMenu({
             Dates
           </Button>
           {openMenu === 'dates' && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-trello-border p-3 z-10 animate-fade-in">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-accent p-3 z-10 animate-fade-in">
               <h4 className="text-sm font-semibold text-trello mb-3">Dates</h4>
               <LabelUI className="block text-xs mb-1">Due date</LabelUI>
               <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="mb-3" />

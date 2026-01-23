@@ -31,7 +31,7 @@ export const SortMenu: React.FC<SortMenuProps> = ({
 }) => {
   return (
     <div
-      className="absolute right-0 top-full mt-1 w-64 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden"
+      className="absolute right-0 top-full mt-1 w-64 bg-trello-card-bg rounded-lg shadow-lg border border-accent z-50 animate-slide-down overflow-hidden"
       role="dialog"
       aria-label="Sort cards"
     >

@@ -3,18 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import CardModal from "./CardModal";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// Inline simple types + small label/avatar renderers to avoid module resolution issues
-type Label = { id: string; name?: string; color?: string };
-type UserRef = { id: string; name?: string; avatar?: string; email?: string };
-type Card = {
-  id: string;
-  title: string;
-  description?: string;
-  labels?: Label[];
-  assignees?: UserRef[];
-  completed?: boolean;
-};
+import type { Label, UserRef, Card } from "./types";
 
 function LabelBadgeInline({ label }: { label: Label }) {
   return (
@@ -53,13 +42,11 @@ export default function CardItem({
   const [isHovering, setIsHovering] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Log pour debug
   useEffect(() => {
     console.log('🃏 CardItem: card prop changed:', { id: card.id, title: card.title });
   }, [card, card.id, card.title]);
 
   const handleClick = (e: React.MouseEvent) => {
-    // Ne pas ouvrir la modale si on est en train de drag
     if (isDragging) {
       e.preventDefault();
       return;
@@ -68,7 +55,6 @@ export default function CardItem({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    // Prevent dragging temporary cards (not yet created on backend)
     if (card.id.startsWith('temp-')) {
       e.preventDefault();
       return;
@@ -80,7 +66,6 @@ export default function CardItem({
       onDragStart(e, card.id, index);
     }
 
-    // Add visual feedback
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '0.4';
     }
@@ -89,7 +74,6 @@ export default function CardItem({
   const handleDragEnd = (e: React.DragEvent) => {
     setIsDragging(false);
 
-    // Restore visual state
     if (e.currentTarget instanceof HTMLElement) {
       e.currentTarget.style.opacity = '1';
       e.currentTarget.classList.remove("opacity-70", "scale-105");
@@ -115,7 +99,7 @@ export default function CardItem({
     );
   };
 
-  const isCompleted = card.completed || false;
+  const isCompleted = card.completed ?? false;
 
   return (
     <>
@@ -181,14 +165,12 @@ export default function CardItem({
         </div>
       </div>
 
-      {/* Modale de détails de carte */}
       <CardModal
         card={card}
         listId={listId}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          // Restore focus to the card element
           setTimeout(() => cardRef.current?.focus(), 0);
         }}
       />
