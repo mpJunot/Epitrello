@@ -1,24 +1,18 @@
-import { toast as showToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 export const toast = {
   success: (message: string, title?: string) => {
-    showToast({
-      variant: "success",
-      title: title || "Success",
+    sonnerToast.success(title || "Success", {
       description: message,
     });
   },
   error: (message: string, title?: string) => {
-    showToast({
-      variant: "destructive",
-      title: title || "Error",
+    sonnerToast.error(title || "Error", {
       description: message,
     });
   },
   info: (message: string, title?: string) => {
-    showToast({
-      variant: "default",
-      title: title || "Info",
+    sonnerToast.info(title || "Info", {
       description: message,
     });
   },

@@ -1,6 +1,7 @@
 import { ObjectType, Field, ID, Float } from '@nestjs/graphql';
 import { Label } from '../../labels/entities/label.entity';
 import { Checklist } from '../../checklists/entities/checklist.entity';
+import { MemberUser } from '../../invitations/entities/workspace-member.entity';
 
 @ObjectType()
 export class Card {
@@ -28,6 +29,9 @@ export class Card {
   @Field(() => Float)
   position: number;
 
+  @Field(() => Boolean, { defaultValue: false })
+  completed: boolean;
+
   @Field()
   createdAt: Date;
 
@@ -39,4 +43,7 @@ export class Card {
 
   @Field(() => [Checklist], { nullable: true })
   checklists?: Checklist[];
+
+  @Field(() => [MemberUser], { nullable: true })
+  assignees?: MemberUser[];
 }

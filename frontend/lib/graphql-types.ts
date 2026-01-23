@@ -39,6 +39,18 @@ export type AssignMemberToCardInput = {
   userId: Scalars['ID']['input'];
 };
 
+export type Attachment = {
+  __typename?: 'Attachment';
+  cardId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  filename: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  size: Scalars['Int']['output'];
+  uploader?: Maybe<User>;
+  uploaderId: Scalars['ID']['output'];
+  url: Scalars['String']['output'];
+};
+
 /** Authentication response containing JWT token and user data */
 export type AuthPayload = {
   __typename?: 'AuthPayload';
@@ -56,6 +68,7 @@ export type Board = {
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isArchived: Scalars['Boolean']['output'];
+  lists?: Maybe<Array<List>>;
   members?: Maybe<Array<BoardMemberWithUser>>;
   title: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
@@ -75,7 +88,9 @@ export type BoardMemberWithUser = {
 
 export type Card = {
   __typename?: 'Card';
+  assignees?: Maybe<Array<MemberUser>>;
   checklists?: Maybe<Array<Checklist>>;
+  completed: Scalars['Boolean']['output'];
   coverUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
@@ -116,6 +131,24 @@ export type ChecklistItemPositionInput = {
   position: Scalars['Float']['input'];
 };
 
+export type Comment = {
+  __typename?: 'Comment';
+  author?: Maybe<User>;
+  authorId: Scalars['ID']['output'];
+  cardId: Scalars['ID']['output'];
+  content: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type CreateAttachmentInput = {
+  cardId: Scalars['ID']['input'];
+  filename: Scalars['String']['input'];
+  size: Scalars['Int']['input'];
+  url: Scalars['String']['input'];
+};
+
 export type CreateBoardInput = {
   background?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -125,6 +158,7 @@ export type CreateBoardInput = {
 };
 
 export type CreateCardInput = {
+  completed?: InputMaybe<Scalars['Boolean']['input']>;
   coverUrl?: InputMaybe<Scalars['String']['input']>;
   /** Card description with markdown support */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -139,6 +173,11 @@ export type CreateCardInput = {
 export type CreateChecklistInput = {
   cardId: Scalars['ID']['input'];
   title: Scalars['String']['input'];
+};
+
+export type CreateCommentInput = {
+  cardId: Scalars['ID']['input'];
+  content: Scalars['String']['input'];
 };
 
 export type CreateLabelInput = {
@@ -162,6 +201,7 @@ export type CreateUserInput = {
 };
 
 export type CreateWorkspaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
   logoUrl?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   visibility?: InputMaybe<Scalars['String']['input']>;
@@ -197,6 +237,7 @@ export type Label = {
 export type List = {
   __typename?: 'List';
   boardId: Scalars['ID']['output'];
+  cards?: Maybe<Array<Card>>;
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
   isArchived: Scalars['Boolean']['output'];
@@ -260,12 +301,16 @@ export type Mutation = {
   assignMemberToCard: Card;
   /** Cancel a pending invitation. Only the inviter or workspace admin can cancel. */
   cancelInvitation: Scalars['Boolean']['output'];
+  /** Create an attachment on a card. */
+  createAttachment: Attachment;
   /** Create a new board. User must be ADMIN or MEMBER of the workspace (if provided). */
   createBoard: Board;
   /** Create a new card. Position is calculated automatically if not provided. */
   createCard: Card;
   /** Create a new checklist for a card. */
   createChecklist: Checklist;
+  /** Create a comment on a card. */
+  createComment: Comment;
   /** Create a new label for a board. User must have access to the board. */
   createLabel: Label;
   /** Create a new list. Position is calculated automatically if not provided. */
@@ -274,6 +319,8 @@ export type Mutation = {
   createUser: User;
   /** Create a new workspace. The creator becomes an ADMIN automatically. */
   createWorkspace: Workspace;
+  /** Delete an attachment. Uploader only. */
+  deleteAttachment: Scalars['Boolean']['output'];
   /** Delete a board. Only board ADMIN can delete. */
   deleteBoard: Scalars['Boolean']['output'];
   /** Delete a card. User must have access to the board. */
@@ -282,6 +329,8 @@ export type Mutation = {
   deleteChecklist: Scalars['Boolean']['output'];
   /** Delete a checklist item. */
   deleteChecklistItem: Scalars['Boolean']['output'];
+  /** Delete a comment. Author only. */
+  deleteComment: Scalars['Boolean']['output'];
   /** Delete a label. User must have access to the board. */
   deleteLabel: Scalars['Boolean']['output'];
   /** Delete a list. Cards are automatically deleted via cascade. */
@@ -322,6 +371,8 @@ export type Mutation = {
   unarchiveBoard: Board;
   /** Unassign a member from a card. User must have access to the board. */
   unassignMemberFromCard: Card;
+  /** Update an attachment. Uploader only. */
+  updateAttachment: Attachment;
   /** Update a board. User must be ADMIN or MEMBER of the board. */
   updateBoard: Board;
   /** Update a member role in a board. Only board ADMIN can update roles. */
@@ -332,6 +383,8 @@ export type Mutation = {
   updateChecklist: Checklist;
   /** Update a checklist item (content, checked, position). */
   updateChecklistItem: ChecklistItem;
+  /** Update a comment. Author only. */
+  updateComment: Comment;
   /** Update a label. User must have access to the board. */
   updateLabel: Label;
   /** Update a list. User must have access to the board. */
@@ -387,6 +440,11 @@ export type MutationCancelInvitationArgs = {
 };
 
 
+export type MutationCreateAttachmentArgs = {
+  input: CreateAttachmentInput;
+};
+
+
 export type MutationCreateBoardArgs = {
   input: CreateBoardInput;
 };
@@ -399,6 +457,11 @@ export type MutationCreateCardArgs = {
 
 export type MutationCreateChecklistArgs = {
   input: CreateChecklistInput;
+};
+
+
+export type MutationCreateCommentArgs = {
+  input: CreateCommentInput;
 };
 
 
@@ -422,6 +485,11 @@ export type MutationCreateWorkspaceArgs = {
 };
 
 
+export type MutationDeleteAttachmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationDeleteBoardArgs = {
   id: Scalars['ID']['input'];
 };
@@ -438,6 +506,11 @@ export type MutationDeleteChecklistArgs = {
 
 
 export type MutationDeleteChecklistItemArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteCommentArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -543,6 +616,11 @@ export type MutationUnassignMemberFromCardArgs = {
 };
 
 
+export type MutationUpdateAttachmentArgs = {
+  input: UpdateAttachmentInput;
+};
+
+
 export type MutationUpdateBoardArgs = {
   input: UpdateBoardInput;
 };
@@ -565,6 +643,11 @@ export type MutationUpdateChecklistArgs = {
 
 export type MutationUpdateChecklistItemArgs = {
   input: UpdateChecklistItemInput;
+};
+
+
+export type MutationUpdateCommentArgs = {
+  input: UpdateCommentInput;
 };
 
 
@@ -601,16 +684,24 @@ export type MutationVerifyEmailArgs = {
 
 export type Query = {
   __typename?: 'Query';
+  /** Get an attachment by ID. User must have access to the board. */
+  attachment: Attachment;
   /** Get a board by ID. Access based on visibility and membership. */
   board: Board;
   /** List all labels for a board. User must have access to the board. */
   boardLabels: Array<Label>;
   /** Get a card by ID. User must have access to the board. */
   card: Card;
+  /** List attachments for a card. User must have access to the board. */
+  cardAttachments: Array<Attachment>;
   /** List all checklists for a card. User must have access to the board. */
   cardChecklists: Array<Checklist>;
+  /** List comments for a card. User must have access to the board. */
+  cardComments: Array<Comment>;
   /** Get a checklist by ID. User must have access to the board. */
   checklist: Checklist;
+  /** Get a comment by ID. User must have access to the board. */
+  comment: Comment;
   /** Get a list by ID. User must have access to the board. */
   list: List;
   /** Get the currently authenticated user information */
@@ -634,6 +725,11 @@ export type Query = {
 };
 
 
+export type QueryAttachmentArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type QueryBoardArgs = {
   id: Scalars['ID']['input'];
 };
@@ -649,12 +745,27 @@ export type QueryCardArgs = {
 };
 
 
+export type QueryCardAttachmentsArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
 export type QueryCardChecklistsArgs = {
   cardId: Scalars['ID']['input'];
 };
 
 
+export type QueryCardCommentsArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
 export type QueryChecklistArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryCommentArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -742,6 +853,13 @@ export type UnassignMemberFromCardInput = {
   userId: Scalars['ID']['input'];
 };
 
+export type UpdateAttachmentInput = {
+  filename?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  size?: InputMaybe<Scalars['Int']['input']>;
+  url?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateBoardInput = {
   background?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -757,6 +875,7 @@ export type UpdateBoardMemberRoleInput = {
 };
 
 export type UpdateCardInput = {
+  completed?: InputMaybe<Scalars['Boolean']['input']>;
   coverUrl?: InputMaybe<Scalars['String']['input']>;
   /** Card description with markdown support */
   description?: InputMaybe<Scalars['String']['input']>;
@@ -777,6 +896,11 @@ export type UpdateChecklistItemInput = {
   content?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   position?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type UpdateCommentInput = {
+  content: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
 };
 
 export type UpdateLabelInput = {
@@ -805,6 +929,7 @@ export type UpdateUserInput = {
 };
 
 export type UpdateWorkspaceInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
   logoUrl?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   visibility?: InputMaybe<Scalars['String']['input']>;
@@ -829,6 +954,7 @@ export type Visibility =
 export type Workspace = {
   __typename?: 'Workspace';
   createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   logoUrl?: Maybe<Scalars['String']['output']>;
   memberCount: Scalars['Float']['output'];

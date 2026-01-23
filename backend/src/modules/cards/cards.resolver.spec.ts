@@ -28,9 +28,14 @@ describe('CardsResolver', () => {
     load: jest.fn(),
   };
 
+  const mockAssigneesLoader = {
+    load: jest.fn(),
+  };
+
   const mockCardsDataLoader = {
     createLabelsByCardLoader: jest.fn(() => mockLabelsLoader),
     createChecklistsByCardLoader: jest.fn(() => mockChecklistsLoader),
+    createAssigneesByCardLoader: jest.fn(() => mockAssigneesLoader),
   };
 
   const mockUser = {

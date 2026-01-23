@@ -37,7 +37,7 @@ export default function NotificationsDropdown() {
         <Bell className="w-5 h-5" />
       </Button>
       {open && (
-        <div className="absolute right-0 mt-2 w-72 bg-trello-card-bg border border-trello-border rounded shadow p-3 z-20 text-sm">
+        <div className="absolute right-0 mt-2 w-72 bg-trello-card-bg border border-accent rounded shadow p-3 z-20 text-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="font-medium">Notifications</div>
             <Button onClick={markAll} variant="ghost" size="sm" className="text-xs h-auto p-0">Mark all</Button>
