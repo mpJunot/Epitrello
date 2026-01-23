@@ -212,6 +212,7 @@ model Card {
   startDate   DateTime?
   dueDate     DateTime?
   position    Float     @default(0)
+  completed   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
