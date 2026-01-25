@@ -4,17 +4,35 @@ import React, { useState, useEffect, useRef } from "react";
 import CardItem from "../CardItem";
 import { Card, ListColumnProps, SortOption } from "./types";
 import { dispatchCustomEvent, generateId, createCardsSignature } from "./utils";
-import { useMenuClose, useFocusWhen } from "./hooks";
+import { useFocusWhen } from "./hooks";
 import { CardComposer } from "./components/CardComposer";
-import { ActionsMenu } from "./components/ActionsMenu";
 import { CopyListMenu } from "./components/CopyListMenu";
 import { MoveListMenu } from "./components/MoveListMenu";
 import { MoveAllCardsMenu } from "./components/MoveAllCardsMenu";
-import { SortMenu } from "./components/SortMenu";
 import { DeleteListMenu } from "./components/DeleteListMenu";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Plus, Copy, Move, ArrowRight, ArrowUpDown, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ListColumn({
   list,
@@ -22,38 +40,28 @@ export default function ListColumn({
   allLists = [],
   dragHandleProps
 }: ListColumnProps) {
-  // Core state
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
 
-  // Title editing state
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title || "Untitled");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Drag & drop state
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Card composer state
   const [addingCard, setAddingCard] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Column actions menu state
-  const [showActions, setShowActions] = useState(false);
   const [isHoveringColumn, setIsHoveringColumn] = useState(false);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
-  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Submenu states
-  const [showCopyMenu, setShowCopyMenu] = useState(false);
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const [showMoveAllCardsMenu, setShowMoveAllCardsMenu] = useState(false);
-  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [showMoveDialog, setShowMoveDialog] = useState(false);
+  const [showMoveAllCardsDialog, setShowMoveAllCardsDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   const [activeSortOption, setActiveSortOption] = useState<string | null>(null);
-  const [showDeleteMenu, setShowDeleteMenu] = useState(false);
 
-  // Sync local cards with parent prop updates
   useEffect(() => {
     const incoming = list.cards || [];
     const localSignature = createCardsSignature(cards);
@@ -66,28 +74,28 @@ export default function ListColumn({
     setCards(incoming);
   }, [list.cards, cards, lastLocalChange, list.id, list.title]);
 
-  // Sync title with parent updates
   useEffect(() => {
     setTitle(list.title || "Untitled");
   }, [list.title]);
 
-  // Focus management
   useFocusWhen(editing, inputRef as React.RefObject<HTMLElement>, true);
 
-  // Menu close handlers
-  useMenuClose(showActions, () => setShowActions(false), actionsMenuRef as React.RefObject<HTMLElement>, actionsButtonRef as React.RefObject<HTMLElement>);
-  useMenuClose(showCopyMenu, () => setShowCopyMenu(false), actionsMenuRef as React.RefObject<HTMLElement>);
-  useMenuClose(showMoveMenu, () => setShowMoveMenu(false), actionsMenuRef as React.RefObject<HTMLElement>);
-  useMenuClose(showMoveAllCardsMenu, () => setShowMoveAllCardsMenu(false), actionsMenuRef as React.RefObject<HTMLElement>);
-  useMenuClose(showSortMenu, () => setShowSortMenu(false), actionsMenuRef as React.RefObject<HTMLElement>);
-  useMenuClose(showDeleteMenu, () => setShowDeleteMenu(false), actionsMenuRef as React.RefObject<HTMLElement>);
+  const sortOptions = [
+    { value: 'date-newest', label: 'Date created (newest first)' },
+    { value: 'date-oldest', label: 'Date created (oldest first)' },
+    { value: 'due-date', label: 'Due date' },
+    { value: 'alpha-asc', label: 'Alphabetically (A → Z)' },
+    { value: 'alpha-desc', label: 'Alphabetically (Z → A)' },
+  ] as const;
 
-  // Card operations
   const handleSubmitCard = (trimmedTitle: string) => {
     const newCard: Card = {
       id: generateId(),
       title: trimmedTitle,
-      description: ""
+      description: "",
+      position: cards.length,
+      listId: list.id,
+      completed: false,
     };
 
     setCards([...cards, newCard]);
@@ -131,7 +139,7 @@ export default function ListColumn({
       boardId: 'current',
     });
 
-    setShowCopyMenu(false);
+    setShowCopyDialog(false);
   };
 
   const handleMoveList = (position: number) => {
@@ -141,7 +149,7 @@ export default function ListColumn({
       boardId: 'current',
     });
 
-    setShowMoveMenu(false);
+    setShowMoveDialog(false);
   };
 
   const handleMoveAllCards = (targetListId: string) => {
@@ -154,12 +162,12 @@ export default function ListColumn({
     });
 
     setCards([]);
-    setShowMoveAllCardsMenu(false);
+    setShowMoveAllCardsDialog(false);
   };
 
   const handleDeleteList = () => {
     dispatchCustomEvent('epitrello:list-deleted', { listId: list.id });
-    setShowDeleteMenu(false);
+    setShowDeleteDialog(false);
   };
 
   const handleSort = (sortOption: SortOption) => {
@@ -172,10 +180,8 @@ export default function ListColumn({
         sortedCards.reverse();
         break;
       case 'date-oldest':
-        // Natural order
         break;
       case 'due-date':
-        // TODO: Implement when cards have dueDate field
         sortedCards.sort((a, b) => a.title.localeCompare(b.title));
         break;
       case 'alpha-asc':
@@ -188,7 +194,6 @@ export default function ListColumn({
 
     setCards(sortedCards);
     setLastLocalChange(Date.now());
-    setShowSortMenu(false);
   };
 
   // Drag & drop handlers
@@ -344,8 +349,8 @@ export default function ListColumn({
       onDragLeave={handleDragLeave}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
-      className={`w-[272px] min-w-[272px] shrink-0 border-2 border-amber-300 rounded-lg flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-muted'
+      className={`w-[272px] min-w-[272px] shrink-0 rounded-xl flex flex-col animate-slide-in transition-all duration-200 ${
+        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-white dark:bg-black'
       }`}
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
@@ -379,91 +384,195 @@ export default function ListColumn({
             />
           )}
 
-          <div className="relative">
-            <Button
-              ref={actionsButtonRef}
-              onClick={() => setShowActions(!showActions)}
-              variant="ghost"
-              size="icon"
-              className={`transition-all duration-200 ${
-                isHoveringColumn ? 'opacity-100' : 'opacity-30'
-              }`}
-              title="Column actions"
-              aria-label="Column actions menu"
-              aria-expanded={showActions}
-              aria-haspopup="true"
-            >
-              <MoreVertical className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`transition-all duration-200 ${
+                  isHoveringColumn ? 'opacity-100' : 'opacity-30'
+                }`}
+                title="Column actions"
+                aria-label="Column actions menu"
+              >
+                <MoreVertical className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 border-accent">
+              <DropdownMenuLabel>List actions</DropdownMenuLabel>
+              <DropdownMenuSeparator/>
 
-            {/* Menus */}
-            <div ref={actionsMenuRef}>
-              {showActions && !showCopyMenu && !showMoveMenu && !showMoveAllCardsMenu && !showSortMenu && !showDeleteMenu && (
-                <ActionsMenu
-                  onClose={() => setShowActions(false)}
-                  onAddCard={() => setAddingCard(true)}
-                  onCopyList={() => { setShowActions(false); setShowCopyMenu(true); }}
-                  onMoveList={() => { if (totalListsCount > 1) { setShowActions(false); setShowMoveMenu(true); } }}
-                  onMoveAllCards={() => { if (totalListsCount > 1) { setShowActions(false); setShowMoveAllCardsMenu(true); } }}
-                  onSort={() => { if (cards.length > 0) { setShowActions(false); setShowSortMenu(true); } }}
-                  onDelete={() => { setShowActions(false); setShowDeleteMenu(true); }}
-                  totalListsCount={totalListsCount}
-                  cardsCount={cards.length}
-                  activeSortOption={activeSortOption}
-                />
-              )}
+              <DropdownMenuItem onClick={() => setAddingCard(true)}>
+                <Plus className="w-4 h-4" />
+                <span>Add card</span>
+              </DropdownMenuItem>
 
-              {showCopyMenu && (
+              <DropdownMenuItem onClick={() => setShowCopyDialog(true)}>
+                <Copy className="w-4 h-4" />
+                <span>Copy list</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={totalListsCount <= 1}>
+                  <Move className="w-4 h-4" />
+                  <span>Move</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="border-accent">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (totalListsCount > 1) setShowMoveDialog(true);
+                    }}
+                    disabled={totalListsCount <= 1}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Move list</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (totalListsCount > 1 && cards.length > 0) setShowMoveAllCardsDialog(true);
+                    }}
+                    disabled={totalListsCount <= 1 || cards.length === 0}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                    <span>Move all cards</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger disabled={cards.length === 0}>
+                  <ArrowUpDown className="w-4 h-4" />
+                  <span>Sort by</span>
+                  {activeSortOption && cards.length > 0 && (
+                    <span className="ml-auto text-xs text-primary">●</span>
+                  )}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="border-accent">
+                  <DropdownMenuRadioGroup
+                    value={activeSortOption || undefined}
+                    onValueChange={(value) => {
+                      if (value) handleSort(value as SortOption);
+                    }}
+                  >
+                    {sortOptions.map((option) => (
+                      <DropdownMenuRadioItem
+                        key={option.value}
+                        value={option.value}
+                        disabled={cards.length === 0}
+                      >
+                        {option.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                variant="destructive"
+                className="text-red-600"
+                onClick={() => setShowDeleteDialog(true)}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete list</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Dialogs for complex actions */}
+          <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Copy list</DialogTitle>
+                <DialogDescription>
+                  Create a copy of this list with all its cards.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
                 <CopyListMenu
                   defaultName={`${title} (copy)`}
-                  onClose={() => setShowCopyMenu(false)}
-                  onSubmit={handleCopyList}
+                  onClose={() => setShowCopyDialog(false)}
+                  onSubmit={(name) => {
+                    handleCopyList(name);
+                    setShowCopyDialog(false);
+                  }}
                 />
-              )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
-              {showMoveMenu && (
+          <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Move list</DialogTitle>
+                <DialogDescription>
+                  Move this list to a different position.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
                 <MoveListMenu
                   totalListsCount={totalListsCount}
-                  onClose={() => setShowMoveMenu(false)}
-                  onSubmit={handleMoveList}
+                  onClose={() => setShowMoveDialog(false)}
+                  onSubmit={(position) => {
+                    handleMoveList(position);
+                    setShowMoveDialog(false);
+                  }}
                 />
-              )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
-              {showMoveAllCardsMenu && (
+          <Dialog open={showMoveAllCardsDialog} onOpenChange={setShowMoveAllCardsDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Move all cards</DialogTitle>
+                <DialogDescription>
+                  Move all cards from this list to another list.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
                 <MoveAllCardsMenu
                   sourceListId={list.id}
                   allLists={allLists}
                   cardsCount={cards.length}
                   totalListsCount={totalListsCount}
-                  onClose={() => setShowMoveAllCardsMenu(false)}
-                  onSubmit={handleMoveAllCards}
+                  onClose={() => setShowMoveAllCardsDialog(false)}
+                  onSubmit={(targetListId) => {
+                    handleMoveAllCards(targetListId);
+                    setShowMoveAllCardsDialog(false);
+                  }}
                 />
-              )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
-              {showSortMenu && (
-                <SortMenu
-                  cardsCount={cards.length}
-                  activeSortOption={activeSortOption}
-                  onClose={() => setShowSortMenu(false)}
-                  onSort={handleSort}
-                />
-              )}
-
-              {showDeleteMenu && (
+          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Delete list?</DialogTitle>
+                <DialogDescription>
+                  This action cannot be undone. This will permanently delete the list and all its cards.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
                 <DeleteListMenu
                   listTitle={title}
                   cardsCount={cards.length}
-                  onClose={() => setShowDeleteMenu(false)}
-                  onConfirm={handleDeleteList}
+                  onClose={() => setShowDeleteDialog(false)}
+                  onConfirm={() => {
+                    handleDeleteList();
+                    setShowDeleteDialog(false);
+                  }}
                 />
-              )}
-            </div>
-          </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       {/* Cards area */}
-      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-[calc(100vh-300px)]' : ''}`}>
+      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-full' : ''}`}>
         {cards.length === 0 && dragOverIndex === 0 && (
           <div className="h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-md flex items-center justify-center animate-drag-placeholder">
             <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
@@ -489,13 +598,13 @@ export default function ListColumn({
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-border shrink-0">
+      <div className="p-2 border-accent shrink-0">
         {!addingCard ? (
           <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
-            variant="default"
-            className="w-full justify-start cursor-pointer"
+            variant="secondary"
+            className="w-full justify-start cursor-pointer hover:bg-primary"
             aria-label="Add a card"
           >
             + Add a card
