@@ -122,6 +122,22 @@ export default function AccountSettingsPage() {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="language">Language</Label>
+            <select
+              id="language"
+              disabled
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground"
+              defaultValue="en"
+              aria-describedby="language-helper"
+            >
+              <option value="en">English</option>
+              <option value="fr">Français</option>
+              <option value="es">Español</option>
+            </select>
+            <p id="language-helper" className="text-xs text-muted-foreground">Language selection placeholder (disabled for now).</p>
+          </div>
+
           <Separator />
 
           <div className="flex justify-start">
