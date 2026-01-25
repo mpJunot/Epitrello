@@ -1,27 +1,24 @@
-export interface Card {
-  id: string;
-  title: string;
-  description?: string;
-  position?: number;
-  listId?: string;
-  completed?: boolean;
-}
+import type {
+  Board as GqlBoard,
+  BoardMemberWithUser,
+  List as GqlList,
+  Card as GqlCard,
+  Visibility,
+} from '@/lib/graphql-types';
 
-export interface List {
-  id: string;
-  title: string;
-  position?: number;
+export type Card = Pick<
+  GqlCard,
+  'id' | 'title' | 'description' | 'position' | 'listId' | 'dueDate' | 'startDate' | 'completed' | 'assignees'
+>;
+
+export type List = Pick<GqlList, 'id' | 'title' | 'position'> & {
   cards?: Card[];
-}
+};
 
-export interface Board {
-  id: string;
-  title: string;
-  description?: string;
-  background?: string;
-  visibility?: string;
-  workspaceId?: string;
-  createdAt?: string;
-  updatedAt?: string;
+export type BoardMember = BoardMemberWithUser;
+
+export type Board = Omit<GqlBoard, 'lists'> & {
+  visibility: Visibility;
+  members?: BoardMember[];
   lists?: List[];
-}
+};

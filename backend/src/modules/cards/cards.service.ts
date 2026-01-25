@@ -16,7 +16,7 @@ import { Card } from './entities/card.entity';
 
 @Injectable()
 export class CardsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Check if user has access to the board
@@ -145,6 +145,7 @@ export class CardsService {
         startDate: input.startDate,
         dueDate: input.dueDate,
         position,
+        completed: input.completed ?? false,
       },
     });
 
@@ -191,6 +192,7 @@ export class CardsService {
     if (input.startDate !== undefined) updateData.startDate = input.startDate;
     if (input.dueDate !== undefined) updateData.dueDate = input.dueDate;
     if (input.position !== undefined) updateData.position = input.position;
+    if (input.completed !== undefined) updateData.completed = input.completed;
 
     const card = await this.prisma.card.update({
       where: { id: input.id },
@@ -463,8 +465,6 @@ export class CardsService {
         position: 'asc',
       },
     });
-
-    // Group cards by listId
     const cardsByList = listIds.map((listId) =>
       cards.filter((card) => card.listId === listId),
     );
@@ -473,7 +473,7 @@ export class CardsService {
   }
 
   /**
-   * Get card assignees by card IDs (for DataLoader optimization)
+   * Get card assignees by card IDs
    */
   async findAssigneesByCardIds(cardIds: string[]): Promise<any[][]> {
     const assignees = await this.prisma.cardAssignee.findMany({

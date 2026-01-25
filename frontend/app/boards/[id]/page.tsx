@@ -26,9 +26,9 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const composedBoard: Board = { ...board, lists };
 
   return (
-    <div className="min-h-screen">
+    <div className={`h-screen w-full ${board.background} || bg-primary`}>
       <BoardHeader board={board} />
-      <main className="p-2">
+      <main className="h-full">
         <BoardView board={composedBoard} />
       </main>
     </div>

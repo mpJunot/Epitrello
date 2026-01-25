@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,49 +12,100 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type Member = { id: string; name: string; email?: string };
+import { getWorkspaceMembers, inviteMember, removeMember } from '@/lib/actions/workspaces';
+import { toast } from '@/lib/toast';
 
 export default function WorkspaceMembersPage() {
   const params = useParams();
   const workspaceId = params.id as string;
-  const [members, setMembers] = useState<Member[]>(() => {
-    try {
-      const storageKey = `epitrello_workspace_members_${workspaceId}`;
-      const raw = localStorage.getItem(storageKey);
-      const arr = raw ? (JSON.parse(raw) as Member[]) : null;
-      if (arr) return arr;
-
-      const sample: Member[] = [
-        { id: String(Date.now() - 3000), name: 'Alice Dupont', email: 'alice@example.com' },
-        { id: String(Date.now() - 2000), name: 'Bob Martin', email: 'bob@example.com' },
-      ];
-      try { localStorage.setItem(storageKey, JSON.stringify(sample)); } catch {}
-      return sample;
-    } catch {
-      return [];
-    }
-  });
-
-  const remove = (id: string) => {
-    const next = members.filter(m => m.id !== id);
-    setMembers(next);
-    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch {}
-  };
-
+  const [members, setMembers] = useState<Array<{ id: string; userId: string; name: string; email: string; role: string }>>([]);
+  const [loading, setLoading] = useState(true);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
-  const handleInvite = () => {
-    if (!inviteEmail.trim()) return;
-    const id = String(Date.now());
-    const name = inviteEmail.split('@')[0];
-    const next = [...members, { id, name, email: inviteEmail }];
-    setMembers(next);
-    try { localStorage.setItem(`epitrello_workspace_members_${workspaceId}`, JSON.stringify(next)); } catch {}
-    setInviteEmail("");
-    setShowInviteDialog(false);
+  useEffect(() => {
+    const loadMembers = async () => {
+      setLoading(true);
+      try {
+        const wsMembers = await getWorkspaceMembers(workspaceId);
+        const mapped = wsMembers.map((m) => ({
+          id: m.id,
+          userId: m.userId,
+          name: m.user.name,
+          email: m.user.email,
+          role: m.role,
+        }));
+        setMembers(mapped);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load members';
+        toast.error(message);
+        console.error('Failed to load workspace members', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, [workspaceId]);
+
+  const handleRemove = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this member?')) return;
+
+    setRemoving(userId);
+    try {
+      await removeMember(workspaceId, userId);
+      setMembers((prev) => prev.filter((m) => m.userId !== userId));
+      toast.success('Member removed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to remove member';
+      toast.error(message);
+      console.error('Failed to remove member', error);
+    } finally {
+      setRemoving(null);
+    }
   };
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+
+    setInviting(true);
+    try {
+      await inviteMember(workspaceId, inviteEmail.trim());
+      toast.success('Invitation sent');
+      setInviteEmail("");
+      setShowInviteDialog(false);
+      // Reload members to show the new invitation
+      const wsMembers = await getWorkspaceMembers(workspaceId);
+      const mapped = wsMembers.map((m) => ({
+        id: m.id,
+        userId: m.userId,
+        name: m.user.name,
+        email: m.user.email,
+        role: m.role,
+      }));
+      setMembers(mapped);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to invite member';
+      toast.error(message);
+      console.error('Failed to invite member', error);
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted p-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin h-6 w-6 border-2 border-indigo-600 border-t-transparent rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted p-6">
@@ -68,15 +119,23 @@ export default function WorkspaceMembersPage() {
 
         <div className="bg-card rounded shadow p-4">
           {members.length === 0 && <div className="text-muted-foreground">No members</div>}
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-accent">
             {members.map(m => (
               <li key={m.id} className="py-3 flex items-center justify-between">
                 <div>
                   <div className="font-medium text-foreground">{m.name}</div>
                   <div className="text-xs text-muted-foreground">{m.email}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Role: {m.role}</div>
                 </div>
                 <div>
-                  <Button onClick={() => remove(m.id)} variant="secondary" size="sm">Remove</Button>
+                  <Button
+                    onClick={() => handleRemove(m.userId)}
+                    variant="secondary"
+                    size="sm"
+                    disabled={removing === m.userId}
+                  >
+                    {removing === m.userId ? 'Removing...' : 'Remove'}
+                  </Button>
                 </div>
               </li>
             ))}
@@ -106,8 +165,10 @@ export default function WorkspaceMembersPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="secondary" onClick={() => setShowInviteDialog(false)}>Cancel</Button>
-            <Button onClick={handleInvite} disabled={!inviteEmail.trim()}>Invite</Button>
+            <Button variant="secondary" onClick={() => setShowInviteDialog(false)} disabled={inviting}>Cancel</Button>
+            <Button onClick={handleInvite} disabled={!inviteEmail.trim() || inviting}>
+              {inviting ? 'Inviting...' : 'Invite'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -15,6 +15,11 @@ export class CreateWorkspaceInput {
   @IsOptional()
   logoUrl?: string;
 
+  @Field({ nullable: true })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
   @Field(() => String, { nullable: true })
   @IsEnum(Visibility)
   @IsOptional()

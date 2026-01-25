@@ -26,6 +26,7 @@ describe('WorkspacesService', () => {
     id: '1',
     name: 'Test Workspace',
     logoUrl: null,
+    description: null,
     visibility: Visibility.PRIVATE,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -80,6 +81,46 @@ describe('WorkspacesService', () => {
         data: {
           name: createInput.name,
           logoUrl: createInput.logoUrl,
+          visibility: createInput.visibility,
+          memberships: {
+            create: {
+              userId,
+              role: Role.ADMIN,
+            },
+          },
+        },
+        include: {
+          memberships: true,
+          _count: {
+            select: { memberships: true },
+          },
+        },
+      });
+    });
+
+    it('should create a workspace with description', async () => {
+      const createInput = {
+        name: 'New Workspace',
+        description: 'Workspace description',
+        visibility: Visibility.PRIVATE,
+      };
+      const userId = 'user1';
+
+      const workspaceWithDescription = {
+        ...mockWorkspace,
+        description: 'Workspace description',
+      };
+
+      mockPrismaService.workspace.create.mockResolvedValue(workspaceWithDescription);
+
+      const result = await service.create(createInput, userId);
+
+      expect(result).toBeDefined();
+      expect(result.description).toBe('Workspace description');
+      expect(prisma.workspace.create).toHaveBeenCalledWith({
+        data: {
+          name: createInput.name,
+          description: createInput.description,
           visibility: createInput.visibility,
           memberships: {
             create: {
@@ -231,6 +272,35 @@ describe('WorkspacesService', () => {
 
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Workspace');
+      expect(prisma.workspace.update).toHaveBeenCalledWith({
+        where: { id: workspaceId },
+        data: updateInput,
+        include: {
+          memberships: true,
+          _count: {
+            select: { memberships: true },
+          },
+        },
+      });
+    });
+
+    it('should update workspace description when user is ADMIN', async () => {
+      const workspaceId = '1';
+      const userId = 'user1';
+      const updateInput = {
+        description: 'Updated description',
+      };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(mockWorkspace);
+      mockPrismaService.workspace.update.mockResolvedValue({
+        ...mockWorkspace,
+        ...updateInput,
+      });
+
+      const result = await service.update(workspaceId, updateInput, userId);
+
+      expect(result).toBeDefined();
+      expect(result.description).toBe('Updated description');
       expect(prisma.workspace.update).toHaveBeenCalledWith({
         where: { id: workspaceId },
         data: updateInput,

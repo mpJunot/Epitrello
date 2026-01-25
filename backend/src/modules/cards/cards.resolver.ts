@@ -16,12 +16,14 @@ import { CardsDataLoader } from './dataloaders/cards.dataloader';
 import { Label } from '../labels/entities/label.entity';
 import DataLoader = require('dataloader');
 import { Checklist } from '../checklists/entities/checklist.entity';
+import { MemberUser } from '../invitations/entities/workspace-member.entity';
 
 @Resolver(() => Card)
 @UseGuards(GqlAuthGuard)
 export class CardsResolver {
   private readonly labelsLoader: DataLoader<string, Label[]>;
   private readonly checklistsLoader: DataLoader<string, Checklist[]>;
+  private readonly assigneesLoader: DataLoader<string, any[]>;
 
   constructor(
     private readonly cardsService: CardsService,
@@ -29,6 +31,7 @@ export class CardsResolver {
   ) {
     this.labelsLoader = this.cardsDataLoader.createLabelsByCardLoader();
     this.checklistsLoader = this.cardsDataLoader.createChecklistsByCardLoader();
+    this.assigneesLoader = this.cardsDataLoader.createAssigneesByCardLoader();
   }
 
   @Mutation(() => Card, {
@@ -140,5 +143,11 @@ export class CardsResolver {
   @ResolveField(() => [Checklist], { nullable: true })
   async checklists(@Parent() card: Card): Promise<Checklist[]> {
     return this.checklistsLoader.load(card.id);
+  }
+
+  @ResolveField(() => [MemberUser], { nullable: true })
+  async assignees(@Parent() card: Card): Promise<MemberUser[]> {
+    const assignees = await this.assigneesLoader.load(card.id);
+    return assignees.map((assignee: any) => assignee.user);
   }
 }

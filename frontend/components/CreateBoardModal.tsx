@@ -23,8 +23,18 @@ import {
 
 type Workspace = { id: string; title: string };
 
-export default function CreateBoardModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (payload: { name: string; workspaceId?: string; visibility?: string }) => void }) {
+const BOARD_COLORS = [
+  { value: 'bg-gradient-to-r from-purple-700 to-purple-500', label: 'Purple Gradient', preview: 'bg-gradient-to-r from-purple-700 to-purple-500' },
+  { value: 'bg-gradient-to-r from-pink-500 to-purple-400', label: 'Pink Purple Gradient', preview: 'bg-gradient-to-r from-pink-500 to-purple-400' },
+  { value: 'bg-gradient-to-r from-orange-500 to-red-500', label: 'Orange Red Gradient', preview: 'bg-gradient-to-r from-orange-500 to-red-500' },
+  { value: 'bg-gradient-to-r from-blue-600 to-blue-400', label: 'Blue Gradient', preview: 'bg-gradient-to-r from-blue-600 to-blue-400' },
+  { value: 'bg-gradient-to-r from-green-600 to-green-400', label: 'Green Gradient', preview: 'bg-gradient-to-r from-green-600 to-green-400' },
+  { value: 'bg-gradient-to-r from-indigo-600 to-indigo-400', label: 'Indigo Gradient', preview: 'bg-gradient-to-r from-indigo-600 to-indigo-400' },
+];
+
+export default function CreateBoardModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (payload: { name: string; workspaceId?: string; visibility?: string; background?: string }) => void }) {
   const [name, setName] = useState("");
+  const [selectedColor, setSelectedColor] = useState<string>(BOARD_COLORS[1].value);
   const loadWorkspaces = (): Workspace[] => {
     try {
       const raw = localStorage.getItem('epitrello_workspaces');
@@ -53,8 +63,9 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
       toast.error('Please provide a name');
       return;
     }
-    onCreate({ name: name.trim(), workspaceId, visibility });
+    onCreate({ name: name.trim(), workspaceId, visibility, background: selectedColor });
     setName("");
+    setSelectedColor(BOARD_COLORS[1].value);
     onClose();
   };
 
@@ -106,6 +117,44 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
                 <SelectItem value="public">Public</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Background Color</Label>
+            <div className="grid grid-cols-6 gap-2">
+              {BOARD_COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  onClick={() => setSelectedColor(color.value)}
+                  className={`relative h-12 w-full rounded-md transition-all hover:scale-105 ${
+                    selectedColor === color.value
+                      ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                      : ''
+                  } ${color.preview}`}
+                  aria-label={`Select ${color.label} color`}
+                  title={color.label}
+                >
+                  {selectedColor === color.value && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg
+                        className="w-6 h-6 text-white drop-shadow-lg"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           <DialogFooter>
