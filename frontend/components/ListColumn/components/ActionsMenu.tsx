@@ -27,8 +27,8 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
   activeSortOption,
 }) => {
   return (
-    <div className="absolute right-0 top-full mt-1 w-60 bg-trello-card-bg rounded-lg shadow-lg border border-trello-border z-50 animate-slide-down overflow-hidden" role="menu">
-      <div className="px-4 py-3 border-b border-trello-border">
+    <div className="absolute right-0 top-full mt-1 w-60 bg-trello-card-bg rounded-lg shadow-lg border border-accent z-50 animate-slide-down overflow-hidden" role="menu">
+      <div className="px-4 py-3 border-b border-accent">
         <h4 className="text-sm font-semibold text-trello">List actions</h4>
       </div>
 
@@ -99,7 +99,7 @@ export const ActionsMenu: React.FC<ActionsMenuProps> = ({
           )}
         </Button>
 
-        <div className="border-t border-trello-border my-1"></div>
+        <div className="border-t border-accent my-1"></div>
 
         <Button
           variant="destructive"

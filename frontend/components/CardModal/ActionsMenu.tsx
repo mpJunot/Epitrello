@@ -29,7 +29,7 @@ export default function ActionsMenu({
             Move
           </Button>
           {showMoveMenu && (
-            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-trello-border p-3 z-10 animate-fade-in">
+            <div className="absolute top-full left-0 mt-1 w-64 bg-trello-card-bg rounded-lg shadow-xl border border-accent p-3 z-10 animate-fade-in">
               <h4 className="text-sm font-semibold text-trello mb-2">Select a list</h4>
               <div className="space-y-1">
                 {["To Do", "In Progress", "Review", "Done"].map((listName) => (

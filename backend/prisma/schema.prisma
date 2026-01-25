@@ -72,12 +72,13 @@ enum OAuthProvider {
 // A workspace is the top-level organizational unit.
 
 model Workspace {
-  id         String     @id @default(uuid())
-  name       String
-  logoUrl    String?
-  visibility Visibility @default(PRIVATE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id          String     @id @default(uuid())
+  name        String
+  logoUrl     String?
+  description String?
+  visibility  Visibility @default(PRIVATE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   boards      Board[]
   memberships WorkspaceMember[]
@@ -211,6 +212,7 @@ model Card {
   startDate   DateTime?
   dueDate     DateTime?
   position    Float     @default(0)
+  completed   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

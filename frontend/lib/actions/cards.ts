@@ -9,6 +9,7 @@ export interface Card {
   coverUrl?: string;
   dueDate?: string;
   startDate?: string;
+  completed?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -35,6 +36,7 @@ export async function createCard(input: CreateCardInput): Promise<Card> {
         description
         listId
         position
+        completed
         createdAt
         updatedAt
       }
@@ -54,6 +56,7 @@ export async function moveCard(input: MoveCardInput): Promise<Card> {
         description
         listId
         position
+        completed
         updatedAt
       }
     }
@@ -72,6 +75,7 @@ export async function reorderCards(input: { listId: string; cardPositions: { id:
         description
         listId
         position
+        completed
       }
     }
   `;
@@ -88,6 +92,7 @@ export interface UpdateCardInput {
   dueDate?: string;
   startDate?: string;
   position?: number;
+  completed?: boolean;
 }
 
 export async function updateCard(input: UpdateCardInput): Promise<Card> {
@@ -102,6 +107,7 @@ export async function updateCard(input: UpdateCardInput): Promise<Card> {
         coverUrl
         dueDate
         startDate
+        completed
         createdAt
         updatedAt
       }
@@ -137,6 +143,7 @@ export async function assignMemberToCard(input: AssignMemberInput): Promise<Card
         description
         listId
         position
+        completed
         createdAt
         updatedAt
       }
@@ -156,6 +163,7 @@ export async function unassignMemberFromCard(input: AssignMemberInput): Promise<
         description
         listId
         position
+        completed
         createdAt
         updatedAt
       }

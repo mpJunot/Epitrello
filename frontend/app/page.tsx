@@ -6,7 +6,7 @@ import { ArrowRight, CheckCircle2, LayoutGrid, Users, BarChart3, Zap, FolderKanb
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen  w-full">
+    <div className="min-h-screen w-full">
       {/* Header */}
       <header>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,7 +73,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <FolderKanban className="h-6 w-6 text-primary" />
               </div>
@@ -84,7 +84,7 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <Users className="h-6 w-6 text-primary" />
               </div>
@@ -95,7 +95,7 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <BarChart3 className="h-6 w-6 text-primary" />
               </div>
@@ -106,7 +106,7 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 4 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <Zap className="h-6 w-6 text-primary" />
               </div>
@@ -117,7 +117,7 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 5 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <CheckCircle2 className="h-6 w-6 text-primary" />
               </div>
@@ -128,7 +128,7 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 6 */}
-            <div className="p-6 rounded-lg bg-card border border-border hover:shadow-lg transition-shadow">
+            <div className="p-6 rounded-lg bg-card border border-accent hover:shadow-lg transition-shadow">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                 <LayoutGrid className="h-6 w-6 text-primary" />
               </div>
@@ -160,7 +160,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12">
+      <footer className="border-t border-accent py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-3 mb-4 md:mb-0">

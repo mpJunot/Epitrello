@@ -5,19 +5,9 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities"
 import ListColumn from "./ListColumn";
-import { Board } from "@/app/boards/[id]/types";
+import type { Board, List } from "@/app/boards/[id]/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-type Label = { id: string; name?: string; color?: string };
-type UserRef = { id: string; name?: string; avatar?: string; email?: string };
-type Card = {
-  id: string;
-  title: string;
-  description?: string;
-  labels?: Label[];
-  assignees?: UserRef[];
-  completed?: boolean;
-};
 
 export default function BoardView({ board }: { board: Board }) {
   const lists = useMemo(() => board.lists || [], [board.lists]);
@@ -30,7 +20,7 @@ export default function BoardView({ board }: { board: Board }) {
   );
 
   useEffect(() => {
-    console.log('🎨 BoardView: board.lists changed, count:', lists.length);
+    console.log('BoardView: board.lists changed, count:', lists.length);
     lists.forEach((l, idx) => {
       console.log(`  List ${idx}:`, l.id, l.title, 'cards:', l.cards?.length);
       l.cards?.forEach((c, cidx) => {
@@ -65,12 +55,11 @@ export default function BoardView({ board }: { board: Board }) {
   const listIds = useMemo(() => lists.map((l) => l.id), [lists]);
 
   return (
-    <div id="main-board-content">
+    <div id="main-board-content" className="h-full">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={listIds} strategy={horizontalListSortingStrategy}>
           <div
-            className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth snap-x snap-mandatory md:snap-none custom-scrollbar items-start"
-            style={{ minHeight: 'calc(100vh - 200px)' }}
+            className="h-full p-4 flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory md:snap-none items-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {lists.map((l) => (
               <SortableColumn key={l.id} list={l} totalListsCount={lists.length} allLists={lists} />
@@ -86,7 +75,7 @@ export default function BoardView({ board }: { board: Board }) {
   );
 }
 
-function SortableColumn({ list, totalListsCount, allLists }: { list: { id: string; title: string; position?: number; cards?: Card[] }; totalListsCount: number; allLists: { id: string; title: string; position?: number; cards?: Card[] }[] }) {
+function SortableColumn({ list, totalListsCount, allLists }: { list: List; totalListsCount: number; allLists: List[] }) {
   const {
     attributes,
     listeners,
@@ -176,8 +165,8 @@ function AddListInline() {
         <Button
           ref={buttonRef}
           onClick={openInput}
-          variant="ghost"
-          className="w-full justify-start"
+          variant="secondary"
+          className="w-full justify-start hover:bg-trello-blue-hover"
           aria-label="Add another list"
         >
           + Add another list

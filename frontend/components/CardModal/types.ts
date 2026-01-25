@@ -1,17 +1,29 @@
-export type Label = { id: string; name?: string; color?: string };
-export type UserRef = { id: string; name?: string; avatar?: string; email?: string };
-export type ChecklistItem = { id: string; text: string; checked: boolean };
-export type Checklist = { id: string; title: string; items: ChecklistItem[] };
+import type {
+  Label as GqlLabel,
+  MemberUser,
+  Checklist as GqlChecklist,
+  ChecklistItem as GqlChecklistItem,
+  Card as GqlCard,
+} from '@/lib/graphql-types';
+
+export type Label = Omit<GqlLabel, 'boardId'> & {
+  boardId?: string;
+};
+export type UserRef = MemberUser;
+export type ChecklistItem = GqlChecklistItem & {
+  text?: string;
+};
+export type Checklist = Omit<GqlChecklist, 'cardId'> & {
+  cardId?: string;
+  items?: ChecklistItem[];
+};
 export type DueDate = { date: string; isComplete: boolean };
 export type Comment = { id: string; text: string; author: UserRef; createdAt: string };
-export type Card = {
-  id: string;
-  title: string;
-  description?: string;
+export type Card = Pick<GqlCard, 'id' | 'title' | 'description' | 'position' | 'dueDate' | 'startDate' | 'coverUrl'> & {
+  listId?: string;
   labels?: Label[];
   assignees?: UserRef[];
   checklists?: Checklist[];
-  dueDate?: DueDate;
   comments?: Comment[];
   completed?: boolean;
 };
