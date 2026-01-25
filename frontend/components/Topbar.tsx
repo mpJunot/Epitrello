@@ -314,17 +314,17 @@ export default function Topbar() {
                 <div className="text-xs text-muted-foreground font-medium mb-2">Trello</div>
                 <div className="space-y-1">
                   <DropdownMenuItem asChild>
-                    <a href="/auth/me" className="cursor-pointer">
+                    <a href="/profile" className="cursor-pointer">
                       Profile and visibility
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Activity (not implemented)'); }} className="cursor-pointer">
+                    <a href="/activity" className="cursor-pointer">
                       Activity
                     </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Cards (not implemented)'); }} className="cursor-pointer">
+                    <a href="/cards" className="cursor-pointer">
                       Cards
                     </a>
                   </DropdownMenuItem>
