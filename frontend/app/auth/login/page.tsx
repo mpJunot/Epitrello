@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { setAuthToken } from "@/lib/graphql-client";
+import { setAuthToken, setAuthTokenCookie } from "@/lib/graphql-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,8 +103,9 @@ export default function LoginPage() {
 
       // Store the token
       if (json.data?.login?.token) {
-        console.log('[Login] Login successful, storing token');
+        console.log('[Login] Login successful, storing token in localStorage and cookie');
         setAuthToken(json.data.login.token);
+        setAuthTokenCookie(json.data.login.token);
       } else {
         console.warn('[Login] No token in response', json.data);
       }
