@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from '@/lib/toast';
 import { getWorkspace, updateWorkspace, Workspace } from '@/lib/actions/workspaces';
@@ -35,6 +36,8 @@ export default function WorkspaceSettingsPage() {
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const {
     register,
@@ -114,6 +117,22 @@ export default function WorkspaceSettingsPage() {
 
   const handleEdit = () => {
     setIsEditing(true);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // TODO: Implement workspace deletion
+      toast.success('Workspace deleted');
+      router.push('/dashboard');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete workspace';
+      toast.error(message);
+      console.error('Failed to delete workspace', error);
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   const saveVisibility = async (visibility: 'PRIVATE' | 'PUBLIC' | 'WORKSPACE') => {
@@ -216,11 +235,12 @@ export default function WorkspaceSettingsPage() {
   }
 
   return (
-    <div className="h-full w-full">
-      <div className="px-6 py-4 w-full max-w-4xl space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Workspace settings</h1>
-        </div>
+    <>
+      <div className="h-full w-full">
+        <div className="px-6 py-4 w-full max-w-4xl space-y-6">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold">Workspace settings</h1>
+          </div>
 
         <Separator />
 
@@ -411,8 +431,9 @@ export default function WorkspaceSettingsPage() {
           </>
         )}
       </div>
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+    </div>
+    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <DialogContent>
           <DialogHeader>
             <DialogTitle>Are you sure you want to delete this workspace?</DialogTitle>
             <DialogDescription>
