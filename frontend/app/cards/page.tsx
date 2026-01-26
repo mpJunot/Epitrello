@@ -101,32 +101,59 @@ async function fetchBoards(workspaceId: string) {
 }
 
 async function fetchUserCards(): Promise<CardWithBoard[]> {
+  const P = '[CardsPage]';
   let me = null;
   try {
     me = await getCurrentUser(quietOptions);
   } catch (err) {
+    console.error(P, 'getCurrentUser error:', err);
     if (err instanceof Error && err.message === 'UNAUTHORIZED_QUIET') {
       return [];
     }
     return [];
   }
 
-  if (!me) return [];
-
+  if (!me) {
+    console.log('Server', '❌ No current user found - Backend returned null');
+    console.log('Server', '⚠️ Check: Is the token valid? Is the user in the database?');
+    return [];
+  }
+  console.log(P, 'Current user:', { id: me.id, email: me.email, name: me.name });
   const workspaces = await fetchWorkspaces();
-  if (!workspaces.length) return [];
+  console.log(P, 'Workspaces fetched:', workspaces.length);
+  if (!workspaces.length) {
+    console.warn(P, 'No workspaces for user', me.id);
+    return [];
+  }
 
   const cards: CardWithBoard[] = [];
+  let totalBoards = 0;
+  let totalLists = 0;
+  let totalCards = 0;
+  let assignedCards = 0;
 
   for (const ws of workspaces) {
+    console.log(P, 'Fetching boards for workspace', ws.id);
     const boards = await fetchBoards(ws.id);
+    console.log(P, 'Boards fetched for workspace', ws.id, ':', boards.length);
+    totalBoards += boards.length;
     for (const board of boards) {
-      for (const list of board.lists || []) {
-        for (const card of list.cards || []) {
+      const lists = board.lists || [];
+      totalLists += lists.length;
+      console.log(P, 'Board', board.id, `"${board.title}"`, 'lists:', lists.length);
+      for (const list of lists) {
+        const listCards = list.cards || [];
+        totalCards += listCards.length;
+        console.log(P, '  List', list.id, `"${list.title}"`, 'cards:', listCards.length);
+        for (const card of listCards) {
           const assigneeIds = (card.assignees || []).map((a) => a.id);
           const isMine = assigneeIds.includes(me.id);
           // We don't have creator info in the schema, so we filter by assignment only.
-          if (!isMine) continue;
+          if (!isMine) {
+            // Uncomment for very verbos  e logs per card not assigned
+            console.log(P, '    Card not assigned to me:', { cardId: card.id, title: card.title });
+            continue;
+          }
 
           cards.push({
             id: card.id,
@@ -138,10 +165,14 @@ async function fetchUserCards(): Promise<CardWithBoard[]> {
             listTitle: list.title,
             updatedAt: card.updatedAt || card.createdAt || undefined,
           });
+          assignedCards++;
+          console.log(P, '    ✓ Assigned card found:', { cardId: card.id, title: card.title });
         }
       }
     }
   }
+
+  console.log(P, 'Summary:', { totalBoards, totalLists, totalCards, assignedCards });
 
   return cards.sort((a, b) => {
     const da = a.updatedAt ? Date.parse(a.updatedAt) : 0;

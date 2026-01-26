@@ -7,6 +7,7 @@ import { ConditionalLayout } from "../components/ConditionalLayout";
 import { PageTransition } from "../components/PageTransition";
 import { NavigationProvider } from "../components/NavigationProvider";
 import { SidebarProvider } from "../components/ui/sidebar";
+import TokenSync from "../components/TokenSync";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
         >
           <SidebarProvider className="w-full h-full">
             <NavigationProvider>
+              <TokenSync />
               <PageTransition />
               <ConditionalLayout>{children}</ConditionalLayout>
               <Toaster />

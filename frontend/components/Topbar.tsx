@@ -4,11 +4,14 @@ import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import CreateBoardModal from "./CreateBoardModal";
 import { toast } from "@/lib/toast";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, HelpCircle, Keyboard, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "./ThemeToggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { clearAuthToken } from "@/lib/graphql-client";
 import { getCurrentUser } from "@/lib/actions/users";
 import {
   DropdownMenu,
@@ -40,6 +43,7 @@ export default function Topbar() {
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -103,7 +107,7 @@ export default function Topbar() {
       localStorage.removeItem('epitrello_active_board');
       localStorage.removeItem('epitrello_workspaces');
       localStorage.removeItem('epitrello_expanded_workspaces');
-      localStorage.removeItem('auth_token');
+      clearAuthToken();  // ← Nettoie localStorage et le cookie
 
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/auth/login');
@@ -338,7 +342,7 @@ export default function Topbar() {
               <DropdownMenuSeparator />
               <div className="px-2 py-1.5">
                 <DropdownMenuItem asChild>
-                  <a href="#" onClick={(e) => { e.preventDefault(); alert('Help (not implemented)'); }} className="cursor-pointer">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowHelpDialog(true); }} className="cursor-pointer">
                     Help
                   </a>
                 </DropdownMenuItem>
@@ -370,6 +374,104 @@ export default function Topbar() {
           </form>
         </div>
       )}
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5" />
+              Centre d'aide Epitrello
+            </DialogTitle>
+            <DialogDescription>
+              Découvrez comment utiliser Epitrello pour organiser vos projets efficacement.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* Getting Started */}
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Démarrage rapide
+              </h3>
+              <ul className="space-y-2 text-sm text-muted-foreground ml-6">
+                <li className="list-disc">Créez un <strong>workspace</strong> pour organiser vos projets par équipe ou domaine</li>
+                <li className="list-disc">Ajoutez des <strong>boards</strong> pour chaque projet dans votre workspace</li>
+                <li className="list-disc">Utilisez les <strong>listes</strong> pour représenter les étapes de votre workflow (À faire, En cours, Terminé)</li>
+                <li className="list-disc">Créez des <strong>cartes</strong> pour chaque tâche et faites-les glisser entre les listes</li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            {/* Key Features */}
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold">Fonctionnalités clés</h3>
+              <div className="space-y-3 text-sm">
+                <div>
+                  <strong className="text-foreground">Cartes interactives</strong>
+                  <p className="text-muted-foreground">Ajoutez des descriptions, des checklists, des labels et des dates d'échéance à vos cartes.</p>
+                </div>
+                <div>
+                  <strong className="text-foreground">Collaboration en équipe</strong>
+                  <p className="text-muted-foreground">Invitez des membres, assignez des tâches et commentez les cartes pour collaborer.</p>
+                </div>
+                <div>
+                  <strong className="text-foreground">Personnalisation</strong>
+                  <p className="text-muted-foreground">Choisissez des arrière-plans pour vos boards et organisez-les selon vos préférences.</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Keyboard Shortcuts */}
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Keyboard className="h-4 w-4" />
+                Raccourcis clavier
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between p-2 rounded bg-muted/50">
+                  <span className="text-muted-foreground">Nouvelle carte</span>
+                  <kbd className="px-2 py-1 text-xs bg-background border rounded">N</kbd>
+                </div>
+                <div className="flex justify-between p-2 rounded bg-muted/50">
+                  <span className="text-muted-foreground">Recherche</span>
+                  <kbd className="px-2 py-1 text-xs bg-background border rounded">Ctrl+F</kbd>
+                </div>
+                <div className="flex justify-between p-2 rounded bg-muted/50">
+                  <span className="text-muted-foreground">Nouveau board</span>
+                  <kbd className="px-2 py-1 text-xs bg-background border rounded">B</kbd>
+                </div>
+                <div className="flex justify-between p-2 rounded bg-muted/50">
+                  <span className="text-muted-foreground">Aide</span>
+                  <kbd className="px-2 py-1 text-xs bg-background border rounded">?</kbd>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Support */}
+            <div className="space-y-3">
+              <h3 className="text-base font-semibold">Besoin d'aide supplémentaire ?</h3>
+              <p className="text-sm text-muted-foreground">
+                Consultez la documentation complète ou contactez le support pour plus d'informations.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => toast.info('Documentation à venir')}>
+                  Documentation
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => toast.info('Support à venir')}>
+                  Contacter le support
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
