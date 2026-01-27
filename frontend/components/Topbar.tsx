@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "./ThemeToggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SearchWithAdvancedInput } from "./SearchWithAdvancedInput";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { clearAuthToken } from "@/lib/graphql-client";
@@ -191,18 +192,8 @@ export default function Topbar() {
       <div className="w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <SidebarTrigger className="shrink-0" />
-          {/* Desktop search */}
-          <form onSubmit={onSearch} className="hidden lg:flex items-center gap-2 ml-4 min-w-0 flex-1 max-w-md">
-            <label htmlFor="global-search" className="sr-only">Global search</label>
-            <Input
-              id="global-search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search cards, boards, members..."
-              className="w-full min-w-0"
-            />
-            <Button aria-label="Search" type="submit" variant="secondary" className="shrink-0">Search</Button>
-          </form>
+          {/* Desktop search with keyboard navigation */}
+          <SearchWithAdvancedInput />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
