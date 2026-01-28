@@ -5,6 +5,7 @@ import type {
   CreateWorkspaceInput as GqlCreateWorkspaceInput,
   WorkspaceMember as GqlWorkspaceMember,
   WorkspaceMemberWithUser as GqlWorkspaceMemberWithUser,
+  WorkspaceInvitation,
   Visibility,
 } from '../graphql-types';
 
@@ -208,18 +209,27 @@ export async function updateWorkspace(id: string, input: UpdateWorkspaceInput): 
 /**
  * Invite a member to a workspace
  */
-export async function inviteMember(workspaceId: string, inviteeEmail: string, role: string = 'MEMBER'): Promise<{ id: string; inviteeEmail: string; status: string }> {
+export async function inviteMember(workspaceId: string, inviteeEmail: string, role: string = 'MEMBER'): Promise<WorkspaceInvitation> {
   const mutation = `
     mutation InviteMember($input: InviteMemberInput!) {
       inviteMember(input: $input) {
         id
+        workspaceId
         inviteeEmail
+        inviteeId
+        inviterId
+        inviterName
+        role
         status
+        expiresAt
+        createdAt
+        updatedAt
+        workspaceName
       }
     }
   `;
 
-  const result = await graphqlRequest<{ inviteMember: { id: string; inviteeEmail: string; status: string } }>(mutation, {
+  const result = await graphqlRequest<{ inviteMember: WorkspaceInvitation }>(mutation, {
     input: { workspaceId, inviteeEmail, role },
   });
   return result.inviteMember;
@@ -239,4 +249,116 @@ export async function removeMember(workspaceId: string, userId: string): Promise
     input: { workspaceId, userId },
   });
   return result.removeMember;
+}
+
+/**
+ * Get pending invitations for a workspace (admin only)
+ */
+export async function getWorkspaceInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
+  const query = `
+    query WorkspaceInvitations($workspaceId: ID!) {
+      workspaceInvitations(workspaceId: $workspaceId) {
+        id
+        workspaceId
+        inviteeEmail
+        inviteeId
+        inviterId
+        inviterName
+        role
+        status
+        expiresAt
+        createdAt
+        updatedAt
+        workspaceName
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ workspaceInvitations: WorkspaceInvitation[] }>(query, { workspaceId });
+  return result.workspaceInvitations;
+}
+
+/**
+ * Get current user's pending invitations
+ */
+export async function getMyInvitations(): Promise<WorkspaceInvitation[]> {
+  const query = `
+    query MyInvitations {
+      myInvitations {
+        id
+        workspaceId
+        inviteeEmail
+        inviteeId
+        inviterId
+        inviterName
+        role
+        status
+        expiresAt
+        createdAt
+        updatedAt
+        workspaceName
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ myInvitations: WorkspaceInvitation[] }>(query);
+  return result.myInvitations;
+}
+
+/**
+ * Accept a workspace invitation
+ */
+export async function acceptInvitation(invitationId: string): Promise<WorkspaceInvitation> {
+  const mutation = `
+    mutation AcceptInvitation($input: RespondInvitationInput!) {
+      acceptInvitation(input: $input) {
+        id
+        workspaceId
+        inviteeEmail
+        inviteeId
+        inviterId
+        inviterName
+        role
+        status
+        expiresAt
+        createdAt
+        updatedAt
+        workspaceName
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ acceptInvitation: WorkspaceInvitation }>(mutation, {
+    input: { invitationId },
+  });
+  return result.acceptInvitation;
+}
+
+/**
+ * Reject a workspace invitation
+ */
+export async function rejectInvitation(invitationId: string): Promise<WorkspaceInvitation> {
+  const mutation = `
+    mutation RejectInvitation($input: RespondInvitationInput!) {
+      rejectInvitation(input: $input) {
+        id
+        workspaceId
+        inviteeEmail
+        inviteeId
+        inviterId
+        inviterName
+        role
+        status
+        expiresAt
+        createdAt
+        updatedAt
+        workspaceName
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ rejectInvitation: WorkspaceInvitation }>(mutation, {
+    input: { invitationId },
+  });
+  return result.rejectInvitation;
 }

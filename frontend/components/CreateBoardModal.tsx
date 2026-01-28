@@ -71,7 +71,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="border-accent">
         <DialogHeader>
           <DialogTitle>Create a new board</DialogTitle>
           <DialogDescription>
@@ -95,7 +95,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
               <SelectTrigger id="board-workspace">
                 <SelectValue placeholder="Select workspace" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-accent">
                 {workspaces.map((w) => (
                   <SelectItem key={w.id} value={w.id}>
                     {w.title}
@@ -111,7 +111,7 @@ export default function CreateBoardModal({ open, onClose, onCreate }: { open: bo
               <SelectTrigger id="board-visibility">
                 <SelectValue placeholder="Select visibility" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-accent">
                 <SelectItem value="personal">Personal</SelectItem>
                 <SelectItem value="workspace">Workspace</SelectItem>
                 <SelectItem value="public">Public</SelectItem>

@@ -2,9 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { getMyWorkspaces, createWorkspace } from "@/lib/actions/workspaces";
-import { getAuthToken } from "@/lib/graphql-client";
-import { Home, Plus, LayoutGrid, Users, Settings, ChevronDown } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { createWorkspace } from "@/lib/actions/workspaces";
+import { useWorkspacesQuery, workspacesQueryKey, useMyInvitationsQuery } from "@/lib/queries/workspaces";
+import { Home, Plus, LayoutGrid, Users, Settings, ChevronDown, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,16 +57,21 @@ function saveExpanded(ids: string[]) {
 
 export default function AppSidebar() {
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>([]);
-  const [loadingWorkspaces, setLoadingWorkspaces] = useState(true);
-  const [workspacesError, setWorkspacesError] = useState<string | null>(null);
+  const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => loadExpanded());
   const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [creatingWorkspace, setCreatingWorkspace] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith("/auth");
+  const queryClient = useQueryClient();
+
+  const { data: workspacesData, isLoading: loadingWorkspaces, error: workspacesQueryError, refetch: refetchWorkspaces } = useWorkspacesQuery(!isAuthPage);
+  const workspaces: Workspace[] = (workspacesData ?? []).map((w) => ({ id: w.id, name: w.name }));
+  const workspacesError = workspacesQueryError?.message ?? null;
+  
+  const { data: myInvitations } = useMyInvitationsQuery();
+  const pendingInvitationsCount = myInvitations?.length ?? 0;
 
   useEffect(() => {
     try {
@@ -85,55 +91,10 @@ export default function AppSidebar() {
   }, [pathname]);
 
   useEffect(() => {
-    if (isAuthPage) {
-      setLoadingWorkspaces(false);
-      return;
-    }
-
-    const token = getAuthToken();
-    if (!token) {
-      setLoadingWorkspaces(false);
-      setWorkspaces([]);
-      return;
-    }
-
-    const loadWorkspacesFromBackend = async () => {
-      setLoadingWorkspaces(true);
-      setWorkspacesError(null);
-      try {
-        const ws = await getMyWorkspaces();
-        setWorkspaces(ws);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
-        setWorkspacesError(errorMessage);
-        setWorkspaces([]);
-      } finally {
-        setLoadingWorkspaces(false);
-      }
-    };
-
-    loadWorkspacesFromBackend();
-    setExpandedWorkspaces(loadExpanded());
-  }, [isAuthPage]);
-
-  const retryLoadWorkspaces = async () => {
-    setLoadingWorkspaces(true);
-    setWorkspacesError(null);
-    try {
-      const ws = await getMyWorkspaces();
-      setWorkspaces(ws);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
-      setWorkspacesError(errorMessage);
-      setWorkspaces([]);
-    } finally {
-      setLoadingWorkspaces(false);
-    }
-  };
-
-  useEffect(() => {
     saveExpanded(expandedWorkspaces);
   }, [expandedWorkspaces]);
+
+  const retryLoadWorkspaces = () => refetchWorkspaces();
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,8 +104,7 @@ export default function AppSidebar() {
     setCreatingWorkspace(true);
     try {
       const newWorkspace = await createWorkspace({ name: workspaceName });
-
-      setWorkspaces([...workspaces, newWorkspace]);
+      await queryClient.invalidateQueries({ queryKey: workspacesQueryKey });
 
       setFeedback(`Workspace "${newWorkspace.name}" créé avec succès`);
 
@@ -209,6 +169,22 @@ export default function AppSidebar() {
                   >
                     <Home />
                     <span>Home</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => router.push("/invitations")}
+                    isActive={pathname === "/invitations"}
+                    tooltip="Invitations"
+                    className="relative"
+                  >
+                    <Mail />
+                    <span>Invitations</span>
+                    {pendingInvitationsCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full min-w-5 h-5">
+                        {pendingInvitationsCount}
+                      </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -354,7 +330,7 @@ export default function AppSidebar() {
 
       {/* Create Workspace Modal */}
       <Dialog open={showCreateWorkspaceModal} onOpenChange={setShowCreateWorkspaceModal}>
-        <DialogContent>
+        <DialogContent className="border-accent">
           <DialogHeader>
             <DialogTitle>Create a new workspace</DialogTitle>
             <DialogDescription>

@@ -18,7 +18,7 @@ export class Card {
   description?: string;
 
   @Field({ nullable: true })
-  coverUrl?: string;
+  background?: string;
 
   @Field({ nullable: true })
   startDate?: Date;
