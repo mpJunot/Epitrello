@@ -1,225 +1,472 @@
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Label, UserRef, Checklist, DueDate, Comment, Card } from "./CardModal/types";
-import DescriptionSection from "./CardModal/DescriptionSection";
-import ChecklistsSection from "./CardModal/ChecklistsSection";
-import ActivitySection from "./CardModal/ActivitySection";
-import AddToCardMenu from "./CardModal/AddToCardMenu";
-import ActionsMenu from "./CardModal/ActionsMenu";
-import { FileText, X, Clock } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label as LabelUI } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  Label as LabelType,
+  UserRef,
+  Checklist,
+  DueDate,
+  Comment,
+  Card,
+} from './CardModal/types';
+import DescriptionSection from './CardModal/DescriptionSection';
+import ChecklistsSection from './CardModal/ChecklistsSection';
+import { CardModalQuickActions } from './CardModal/CardModalQuickActions';
+import { CardModalComments } from './CardModal/CardModalComments';
+import { CardModalDates } from './CardModal/CardModalDates';
+import { CardModalMembersPopover } from './CardModal/CardModalMembersPopover';
+import { Button } from '@/components/ui/button';
+import {
+  Move,
+  X,
+  ChevronDown,
+  Copy,
+  Archive,
+  Eye,
+  Share2,
+  User,
+  Image as ImageIcon,
+  MoreHorizontal,
+  Plus,
+} from 'lucide-react';
+import { getAvatarColor } from '@/lib/utils/avatar-colors';
+import { getLabelDisplayColor } from '@/lib/constants/label-colors';
+import { LabelsPopover } from './CardModal/LabelsPopover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label as LabelComponent } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
+  DialogClose,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
+import {
+  addLabelToCard,
+  removeLabelFromCard,
+  assignMemberToCard,
+  unassignMemberFromCard,
+  updateCard,
+} from '@/lib/actions/cards';
+import {
+  createChecklist as createChecklistAPI,
+  deleteChecklist as deleteChecklistAPI,
+  addChecklistItem as addChecklistItemAPI,
+  updateChecklistItem as updateChecklistItemAPI,
+  deleteChecklistItem as deleteChecklistItemAPI,
+} from '@/lib/actions/checklists';
+import { boardQueryKey, useBoardQuery } from '@/app/boards/[id]/queries';
+import { useWorkspaceQuery } from '@/lib/queries/workspaces';
+import { toast } from '@/lib/toast';
+import {
+  emitEvent,
+  formatCommentDate,
+  getChecklistProgress,
+} from './CardModal/utils';
+import { useSyncedState } from './CardModal/hooks/useSyncedState';
+import { BACKGROUND_COLORS } from './CardModal/constants';
+import { BoardMember } from '@/app/boards/[id]/types';
 
-// Typed event names for board interactions
-type BoardEventName =
-  | "epitrello:card-title-updated"
-  | "epitrello:card-description-updated"
-  | "epitrello:card-members-updated"
-  | "epitrello:card-labels-updated"
-  | "epitrello:card-checklists-updated"
-  | "epitrello:card-duedate-updated"
-  | "epitrello:card-comments-updated"
-  | "epitrello:card-moved"
-  | "epitrello:card-copied"
-  | "epitrello:card-archived"
-  | "epitrello:card-deleted";
+// Move Card Content Component
+function MoveCardContent({
+  selectedBoardId,
+  setSelectedBoardId,
+  selectedListId,
+  setSelectedListId,
+  selectedPosition,
+  setSelectedPosition,
+  availableLists,
+  availableBoards,
+  currentBoardId,
+  handleMoveCard,
+  setIsMovePopoverOpen,
+}: {
+  selectedBoardId: string;
+  setSelectedBoardId: (id: string) => void;
+  selectedListId: string;
+  setSelectedListId: (id: string) => void;
+  selectedPosition: string;
+  setSelectedPosition: (pos: string) => void;
+  availableLists: Array<{ id: string; name: string }>;
+  availableBoards?: Array<{
+    id: string;
+    name: string;
+    workspaceId: string;
+    workspaceName: string;
+  }>;
+  currentBoardId?: string;
+  handleMoveCard: () => void;
+  setIsMovePopoverOpen: (open: boolean) => void;
+}) {
+  return (
+    <>
+      <div className='mb-4'>
+        <div className='flex items-center justify-between mb-4'>
+          <h3 className='text-lg font-semibold'>Move card</h3>
+          <Button
+            variant='ghost'
+            size='icon'
+            className='h-6 w-6'
+            onClick={() => setIsMovePopoverOpen(false)}
+          >
+            <X className='w-4 h-4' />
+          </Button>
+        </div>
+      </div>
+      <div className='space-y-4'>
+        <div>
+          <LabelComponent
+            htmlFor='board-select'
+            className='text-sm font-medium mb-2 block'
+          >
+            Select destination
+          </LabelComponent>
+          <div className='space-y-4'>
+            <div>
+              <LabelComponent
+                htmlFor='board'
+                className='text-xs text-muted-foreground mb-1 block'
+              >
+                Board
+              </LabelComponent>
+              <Select
+                value={selectedBoardId}
+                onValueChange={setSelectedBoardId}
+              >
+                <SelectTrigger id='board' className='w-full'>
+                  <SelectValue placeholder='Select a board' />
+                </SelectTrigger>
+                <SelectContent className='border-accent'>
+                  {availableBoards && availableBoards.length > 0 ? (
+                    (() => {
+                      // Group boards by workspace
+                      const boardsByWorkspace = availableBoards.reduce(
+                        (acc, board) => {
+                          if (!acc[board.workspaceId]) {
+                            acc[board.workspaceId] = {
+                              workspaceName: board.workspaceName,
+                              boards: [],
+                            };
+                          }
+                          acc[board.workspaceId].boards.push(board);
+                          return acc;
+                        },
+                        {} as Record<
+                          string,
+                          {
+                            workspaceName: string;
+                            boards: typeof availableBoards;
+                          }
+                        >,
+                      );
 
-// Centralized CustomEvent emitter with logging and error safety
-function emitEvent(name: BoardEventName, detail: Record<string, unknown>) {
-  try {
-    console.log("📤 CardModal:", name, detail);
-    window.dispatchEvent(new CustomEvent(name, { detail }));
-  } catch (err) {
-    console.error("CardModal: failed to dispatch event", name, err);
-  }
-}
-
-function getChecklistProgress(checklist: Checklist) {
-  const items = checklist.items || [];
-  if (items.length === 0) return 0;
-  const checkedCount = items.filter((item) => item.checked).length;
-  return Math.round((checkedCount / items.length) * 100);
-}
-
-function formatDueDate(dateStr: string) {
-  const date = new Date(dateStr);
-  const options: Intl.DateTimeFormatOptions = {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
-  };
-  return date.toLocaleDateString("en-US", options);
-}
-
-function formatCommentDate(dateStr: string) {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
-
-function useSyncedState<T>(source: T, isOpen: boolean, cardId: string): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const prevIsOpenRef = useRef<boolean>(isOpen);
-  const prevCardIdRef = useRef<string | null>(null);
-
-  const [value, setValue] = useState(source);
-
-  useEffect(() => {
-    const cardChanged = cardId !== prevCardIdRef.current;
-    const modalJustOpened = isOpen && !prevIsOpenRef.current;
-
-    if (cardChanged || modalJustOpened) {
-      prevCardIdRef.current = cardId;
-      prevIsOpenRef.current = isOpen;
-      const timeoutId = setTimeout(() => {
-        setValue(source);
-      }, 0);
-      return () => clearTimeout(timeoutId);
-    } else {
-      prevIsOpenRef.current = isOpen;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, cardId]);
-
-  return [value, setValue];
+                      const workspaceEntries =
+                        Object.entries(boardsByWorkspace);
+                      return workspaceEntries.map(
+                        ([workspaceId, { workspaceName, boards }], index) => (
+                          <SelectGroup key={workspaceId}>
+                            <SelectLabel className='text-xs font-semibold text-muted-foreground px-2 py-1.5'>
+                              {workspaceName}
+                            </SelectLabel>
+                            {boards.map((board) => (
+                              <SelectItem
+                                key={board.id}
+                                value={board.id}
+                                className='pl-6'
+                              >
+                                {board.name}
+                              </SelectItem>
+                            ))}
+                            {index < workspaceEntries.length - 1 && (
+                              <SelectSeparator />
+                            )}
+                          </SelectGroup>
+                        ),
+                      );
+                    })()
+                  ) : currentBoardId ? (
+                    <SelectItem value={currentBoardId}>
+                      Current Board
+                    </SelectItem>
+                  ) : (
+                    <SelectItem value='' disabled>
+                      No boards available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='flex gap-4'>
+              <div className='flex-1'>
+                <LabelComponent
+                  htmlFor='list'
+                  className='text-xs text-muted-foreground mb-1 block'
+                >
+                  List
+                </LabelComponent>
+                <Select
+                  value={selectedListId}
+                  onValueChange={setSelectedListId}
+                >
+                  <SelectTrigger id='list' className='w-full'>
+                    <SelectValue placeholder='Select a list' />
+                  </SelectTrigger>
+                  <SelectContent className='border-accent'>
+                    {availableLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id}>
+                        {list.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className='w-24'>
+                <LabelComponent
+                  htmlFor='position'
+                  className='text-xs text-muted-foreground mb-1 block'
+                >
+                  Position
+                </LabelComponent>
+                <Select
+                  value={selectedPosition}
+                  onValueChange={setSelectedPosition}
+                >
+                  <SelectTrigger id='position' className='w-full'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className='border-accent'>
+                    {Array.from({ length: 10 }, (_, i) => i + 1).map((pos) => (
+                      <SelectItem key={pos} value={pos.toString()}>
+                        {pos}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className='mt-4 flex justify-start'>
+          <Button
+            onClick={() => {
+              handleMoveCard();
+              setIsMovePopoverOpen(false);
+            }}
+            disabled={!selectedBoardId || !selectedListId}
+            size='sm'
+          >
+            Move
+          </Button>
+        </div>
+      </div>
+    </>
+  );
 }
 
 interface CardModalProps {
   card: Card;
-  listId?: string;
   isOpen: boolean;
   onClose: () => void;
+  currentBoardId?: string;
+  availableLists?: Array<{ id: string; name: string }>;
+  availableBoards?: Array<{
+    id: string;
+    name: string;
+    workspaceId: string;
+    workspaceName: string;
+  }>;
 }
 
-/**
- * CardModal Component - Comprehensive card details editor
- *
- * Closing Mechanisms (1️⃣5️⃣ Fermeture de la modale):
- * 1. Close Button (✕) - Click the button in the top-right
- * 2. Backdrop Click - Click outside the modal on the overlay
- * 3. Escape Key - Press Esc to close (hierarchical handling):
- *    - If editing title: cancel title editing
- *    - Else if editing description: cancel description editing
- *    - Else: close the modal
- *
- * Behaviors on Close:
- * - All saved modifications are preserved (dispatched via CustomEvents)
- * - Board focus is restored to the card element (via cardRef in CardItem)
- * - Body overflow is restored
- * - Modal blur class is removed from board
- * - Focus trap is removed
- *
- * State Management:
- * - All changes (title, description, members, labels, etc.) are managed locally
- * - CustomEvents dispatch changes to parent components
- * - No intermediate saving - changes persist until explicitly reverted via Escape
- */
-export default function CardModal({ card, listId, isOpen, onClose }: CardModalProps) {
+export default function CardModal({
+  card,
+  isOpen,
+  onClose,
+  currentBoardId,
+  availableLists = [],
+  availableBoards = [],
+}: CardModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
   const cardIdRef = useRef<string>(card.id);
+  const queryClient = useQueryClient();
 
-  // Reset states when card changes or modal opens
+  const currentList = availableLists.find((list) => list.id === card.listId);
+  const currentListName = currentList?.name || 'List';
+
   useEffect(() => {
     if (card.id !== cardIdRef.current) {
       cardIdRef.current = card.id;
     }
   }, [card.id]);
 
-  // État pour l'édition du titre
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useSyncedState(card.title, isOpen, card.id);
 
-  // État pour l'édition de la description
   const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [description, setDescription] = useSyncedState(card.description ?? "", isOpen, card.id);
+  const [description, setDescription] = useSyncedState(
+    card.description ?? '',
+    isOpen,
+    card.id,
+  );
 
-  // État pour les membres assignés
-  const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(card.assignees || [], isOpen, card.id);
+  const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(
+    card.assignees || [],
+    isOpen,
+    card.id,
+  );
 
-  // État pour les labels assignés
-  const [assignedLabels, setAssignedLabels] = useSyncedState<Label[]>(card.labels || [], isOpen, card.id);
+  const [assignedLabels, setAssignedLabels] = useSyncedState<LabelType[]>(
+    card.labels || [],
+    isOpen,
+    card.id,
+  );
 
-  // État pour les checklists
-  const [checklists, setChecklists] = useSyncedState<Checklist[]>(card.checklists || [], isOpen, card.id);
-  const [newChecklistTitle, setNewChecklistTitle] = useState("");
-  const [addingItemToChecklist, setAddingItemToChecklist] = useState<string | null>(null);
-  const [newItemText, setNewItemText] = useState("");
+  const [checklists, setChecklists] = useSyncedState<Checklist[]>(
+    card.checklists || [],
+    isOpen,
+    card.id,
+  );
+  const [newChecklistTitle, setNewChecklistTitle] = useState('');
+  const [addingItemToChecklist, setAddingItemToChecklist] = useState<
+    string | null
+  >(null);
+  const [newItemText, setNewItemText] = useState('');
 
-  // État pour la date d'échéance
   const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(
     card.dueDate ? { date: card.dueDate, isComplete: false } : undefined,
     isOpen,
-    card.id
+    card.id,
   );
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState('');
 
-  // État pour les commentaires
-  const [comments, setComments] = useSyncedState<Comment[]>(card.comments || [], isOpen, card.id);
-  const [newComment, setNewComment] = useState("");
+  const [startDate, setStartDate] = useSyncedState<string | undefined>(
+    card.startDate || undefined,
+    isOpen,
+    card.id,
+  );
+  const [selectedStartDate, setSelectedStartDate] = useState('');
+
+  const [comments, setComments] = useSyncedState<Comment[]>(
+    card.comments || [],
+    isOpen,
+    card.id,
+  );
+  const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingCommentText, setEditingCommentText] = useState("");
+  const [editingCommentText, setEditingCommentText] = useState('');
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Utilisateur courant simulé
+  const [background, setBackground] = useSyncedState<string | undefined>(
+    card.background || undefined,
+    isOpen,
+    card.id,
+  );
+
+  const [headerBackground, setHeaderBackground] = useState<string | null>(null);
+  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+
+  useEffect(() => {
+    if (
+      background &&
+      !background.startsWith('data:image') &&
+      !background.startsWith('http') &&
+      !background.startsWith('https')
+    ) {
+      const isColor = BACKGROUND_COLORS.some((c) => c.value === background);
+      if (isColor) {
+        const timeoutId = setTimeout(() => {
+          setHeaderBackground(background);
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      } else {
+        const timeoutId = setTimeout(() => {
+          setHeaderBackground(null);
+        }, 0);
+        return () => clearTimeout(timeoutId);
+      }
+    } else if (!background) {
+      const timeoutId = setTimeout(() => {
+        setHeaderBackground(null);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [background]);
+
   const currentUser: UserRef = {
-    id: "current-user",
-    name: "Current User",
-    email: "user@example.com",
-    avatar: "",
+    id: 'current-user',
+    name: 'Current User',
+    email: 'user@example.com',
+    avatar: '',
   };
 
-  // Labels disponibles (simulés pour l'instant)
-  const availableLabels: Label[] = [
-    { id: "label-1", name: "Bug", color: "bg-red-500", boardId: card.id },
-    { id: "label-2", name: "Feature", color: "bg-green-500", boardId: card.id },
-    { id: "label-3", name: "Enhancement", color: "bg-yellow-500", boardId: card.id },
-    { id: "label-4", name: "Documentation", color: "bg-blue-500", boardId: card.id },
-    { id: "label-5", name: "Urgent", color: "bg-orange-500", boardId: card.id },
-    { id: "label-6", name: "Design", color: "bg-purple-500", boardId: card.id },
-  ];
+  const { data: boardData } = useBoardQuery(
+    currentBoardId && isOpen ? currentBoardId : '',
+  );
 
-  // Membres disponibles du workspace (simulés pour l'instant)
-  const availableMembers: UserRef[] = [
-    { id: "1", name: "Alice Martin", email: "alice@example.com", avatar: "" },
-    { id: "2", name: "Bob Dupont", email: "bob@example.com", avatar: "" },
-    { id: "3", name: "Charlie Bernard", email: "charlie@example.com", avatar: "" },
-    { id: "4", name: "Diana Petit", email: "diana@example.com", avatar: "" },
-    { id: "5", name: "Eva Moreau", email: "eva@example.com", avatar: "" },
-  ];
+  const workspaceId = boardData?.workspaceId;
+  const { data: workspaceData } = useWorkspaceQuery(
+    workspaceId && isOpen ? workspaceId : '',
+  );
 
-  // État pour les menus "Add to card"
+  const availableMembers: (UserRef & {
+    workspaceName?: string;
+    workspaceId?: string;
+  })[] = useMemo(() => {
+    if (!boardData?.members || !isOpen) return [];
+
+    const workspaceName = workspaceData?.name || 'Board Members';
+    const wsId = boardData.workspaceId || 'default';
+
+    return boardData.members.map((member: BoardMember) => ({
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email,
+
+      avatar: member.user.avatar || undefined,
+      workspaceName,
+      workspaceId: wsId,
+    }));
+  }, [boardData, workspaceData, isOpen]);
+
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  // État pour les modales de confirmation et les actions
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
 
-  // Focus sur l'input quand on commence à éditer
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
@@ -227,14 +474,12 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
     }
   }, [isEditingTitle]);
 
-  // Focus sur le textarea quand on commence à éditer la description
   useEffect(() => {
     if (isEditingDescription && descriptionTextareaRef.current) {
       descriptionTextareaRef.current.focus();
     }
   }, [isEditingDescription]);
 
-  // Fermer le menu au clic extérieur
   useEffect(() => {
     if (!openMenu) return;
 
@@ -247,53 +492,50 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenu]);
 
   const cancelEditDescription = useCallback(() => {
-    setDescription(card.description || "");
+    setDescription(card.description || '');
     setIsEditingDescription(false);
   }, [card.description, setDescription]);
 
-  // Gérer la fermeture avec Escape et focus trap
   useEffect(() => {
     if (!isOpen) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        // Si on est en train d'éditer le titre, juste annuler l'édition
+      if (e.key === 'Escape') {
         if (isEditingTitle) {
           setIsEditingTitle(false);
           setTitle(card.title);
         } else if (isEditingDescription) {
-          // Si on est en train d'éditer la description, annuler
           cancelEditDescription();
         } else {
-          // Sinon, fermer la modale
           onClose();
         }
       }
     };
 
-    // Focus trap: capturer Tab pour rester dans la modale
     const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== "Tab" || !modalRef.current) return;
+      if (e.key !== 'Tab' || !modalRef.current) return;
 
       const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       const firstElement = focusableElements[0] as HTMLElement;
-      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+      const lastElement = focusableElements[
+        focusableElements.length - 1
+      ] as HTMLElement;
 
       if (e.shiftKey) {
-        // Shift + Tab: si on est sur le premier élément, aller au dernier
+        // Shift + Tab: if on first element, go to last
         if (document.activeElement === firstElement) {
           e.preventDefault();
           lastElement?.focus();
         }
       } else {
-        // Tab: si on est sur le dernier élément, aller au premier
+        // Tab: if on last element, go to first
         if (document.activeElement === lastElement) {
           e.preventDefault();
           firstElement?.focus();
@@ -301,238 +543,464 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       }
     };
 
-    document.addEventListener("keydown", handleEscape);
-    document.addEventListener("keydown", handleTab);
+    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', handleTab);
 
-    // Bloquer le scroll du board (on évite de flouter le conteneur pour ne pas rendre la modale floue/inactive)
-    document.body.style.overflow = "hidden";
+    document.body.style.overflow = 'hidden';
 
-    // Mettre le focus sur le bouton de fermeture au montage UNIQUEMENT
-    // Ne pas remettre le focus si on est en train d'éditer
     if (!isEditingTitle && !isEditingDescription) {
       setTimeout(() => closeButtonRef.current?.focus(), 100);
     }
 
     return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.removeEventListener("keydown", handleTab);
-      document.body.style.overflow = "unset";
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', handleTab);
+      document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose, isEditingTitle, isEditingDescription, card.title, cancelEditDescription, setTitle]);
+  }, [
+    isOpen,
+    onClose,
+    isEditingTitle,
+    isEditingDescription,
+    card.title,
+    cancelEditDescription,
+    setTitle,
+  ]);
 
-  // Sauvegarder le titre
   const saveTitle = () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      // Ne pas accepter de titre vide : revenir au titre original
       setTitle(card.title);
       setIsEditingTitle(false);
       return;
     }
 
-    // Sauvegarder le nouveau titre
     setIsEditingTitle(false);
 
-    // Notifier le changement (événement custom pour plus tard)
     if (trimmedTitle !== card.title) {
-      emitEvent("epitrello:card-title-updated", { cardId: card.id, title: trimmedTitle });
+      emitEvent('epitrello:card-title-updated', {
+        cardId: card.id,
+        title: trimmedTitle,
+      });
     }
   };
 
-  // Annuler l'édition du titre
   const cancelEditTitle = () => {
     setTitle(card.title);
     setIsEditingTitle(false);
   };
 
-  // Sauvegarder la description
   const saveDescription = () => {
     setIsEditingDescription(false);
 
-    // Notifier le changement
-    if (description !== (card.description || "")) {
-      emitEvent("epitrello:card-description-updated", { cardId: card.id, description });
+    if (description !== (card.description || '')) {
+      emitEvent('epitrello:card-description-updated', {
+        cardId: card.id,
+        description,
+      });
     }
   };
 
-  // Toggle menu
   const toggleMenu = (menuName: string) => {
-    setOpenMenu(openMenu === menuName ? null : menuName);
+    if (openMenu === menuName) {
+      setOpenMenu(null);
+    } else {
+      setOpenMenu(menuName);
+      if (menuName === 'dueDate') {
+        if (dueDate) {
+          setSelectedDate(dueDate.date);
+        } else {
+          setSelectedDate('');
+        }
+        if (startDate) {
+          setSelectedStartDate(startDate);
+        } else {
+          setSelectedStartDate('');
+        }
+      }
+    }
   };
 
-  // Ajouter/Supprimer un membre
-  const toggleMember = (member: UserRef) => {
+  const toggleMember = async (member: UserRef) => {
     const isAssigned = assignedMembers.some((m) => m.id === member.id);
 
     const updated = isAssigned
       ? assignedMembers.filter((m) => m.id !== member.id)
       : [...assignedMembers, member];
-    setAssignedMembers(updated);
-    emitEvent("epitrello:card-members-updated", { cardId: card.id, members: updated });
+
+    try {
+      if (isAssigned) {
+        await unassignMemberFromCard({ cardId: card.id, userId: member.id });
+      } else {
+        await assignMemberToCard({ cardId: card.id, userId: member.id });
+      }
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+      setAssignedMembers(updated);
+      emitEvent('epitrello:card-members-updated', {
+        cardId: card.id,
+        members: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update member',
+      );
+    }
   };
 
-  // Vérifier si un membre est assigné
-  const isMemberAssigned = (memberId: string) => {
-    return assignedMembers.some((m) => m.id === memberId);
-  };
-
-  // Ajouter/Supprimer un label
-  const toggleLabel = (label: Label) => {
+  const toggleLabel = async (label: LabelType) => {
     const isAssigned = assignedLabels.some((l) => l.id === label.id);
-
     const updated = isAssigned
       ? assignedLabels.filter((l) => l.id !== label.id)
       : [...assignedLabels, label];
-    setAssignedLabels(updated);
-    emitEvent("epitrello:card-labels-updated", { cardId: card.id, labels: updated });
+
+    try {
+      if (isAssigned) {
+        await removeLabelFromCard({ cardId: card.id, labelId: label.id });
+      } else {
+        await addLabelToCard({ cardId: card.id, labelId: label.id });
+      }
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+      setAssignedLabels(updated);
+      emitEvent('epitrello:card-labels-updated', {
+        cardId: card.id,
+        labels: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update label',
+      );
+    }
   };
 
-  // Vérifier si un label est assigné
-  const isLabelAssigned = (labelId: string) => {
-    return assignedLabels.some((l) => l.id === labelId);
-  };
-
-  // Créer une checklist
-  const createChecklist = () => {
+  const createChecklist = async () => {
     const title = newChecklistTitle.trim();
     if (!title) return;
 
-    const newChecklist: Checklist = {
-      id: `checklist-${Date.now()}`,
-      title,
-      cardId: card.id,
-      items: [],
-    };
+    try {
+      const newChecklistAPI = await createChecklistAPI({
+        cardId: card.id,
+        title,
+      });
 
-    const updated = [...checklists, newChecklist];
-    setChecklists(updated);
-    setNewChecklistTitle("");
-    setOpenMenu(null);
+      const mappedItems = (newChecklistAPI.items || []).map((item) => ({
+        ...item,
+        text: item.content,
+      }));
 
-    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
+      const newChecklist: Checklist = {
+        id: newChecklistAPI.id,
+        title: newChecklistAPI.title,
+        cardId: newChecklistAPI.cardId,
+        items: mappedItems,
+      };
+
+      const updated = [...checklists, newChecklist];
+      setChecklists(updated);
+      setNewChecklistTitle('');
+      setOpenMenu(null);
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+
+      emitEvent('epitrello:card-checklists-updated', {
+        cardId: card.id,
+        checklists: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to create checklist',
+      );
+    }
   };
 
-  // Ajouter un item à une checklist
-  const addChecklistItem = (checklistId: string) => {
+  const addChecklistItem = async (checklistId: string) => {
     const text = newItemText.trim();
     if (!text) return;
 
-    const updated = checklists.map((checklist) => {
-      if (checklist.id === checklistId) {
-        return {
-          ...checklist,
-          items: [
-            ...(checklist.items || []),
-            {
-              id: `item-${Date.now()}`,
-              content: text,
-              text, // Alias for backward compatibility
-              checked: false,
-              checklistId: checklist.id,
-              position: (checklist.items?.length || 0) + 1,
-            },
-          ],
-        };
+    try {
+      const newItem = await addChecklistItemAPI({
+        checklistId,
+        content: text,
+      });
+
+      const mappedItem = {
+        ...newItem,
+        text: newItem.content,
+      };
+
+      const updated = checklists.map((checklist) => {
+        if (checklist.id === checklistId) {
+          return {
+            ...checklist,
+            items: [...(checklist.items || []), mappedItem],
+          };
+        }
+        return checklist;
+      });
+
+      setChecklists(updated);
+      setNewItemText('');
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
       }
-      return checklist;
-    });
 
-    setChecklists(updated);
-    setNewItemText("");
-
-    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
+      emitEvent('epitrello:card-checklists-updated', {
+        cardId: card.id,
+        checklists: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to add checklist item',
+      );
+    }
   };
 
-  // Toggle item checklist
-  const toggleChecklistItem = (checklistId: string, itemId: string) => {
-    const updated = checklists.map((checklist) => {
-      if (checklist.id === checklistId) {
-        return {
-          ...checklist,
-          items: (checklist.items || []).map((item) => ({
-            ...item,
-            text: item.content, // Map content to text for backward compatibility
-            checked: item.id === itemId ? !item.checked : item.checked,
-          })),
-        };
+  const toggleChecklistItem = async (checklistId: string, itemId: string) => {
+    const checklist = checklists.find((c) => c.id === checklistId);
+    const item = checklist?.items?.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const newChecked = !item.checked;
+
+    try {
+      await updateChecklistItemAPI({
+        id: itemId,
+        checked: newChecked,
+      });
+
+      const updated = checklists.map((checklist) => {
+        if (checklist.id === checklistId) {
+          return {
+            ...checklist,
+            items: (checklist.items || []).map((item) => ({
+              ...item,
+              text: item.content,
+              checked: item.id === itemId ? newChecked : item.checked,
+            })),
+          };
+        }
+        return checklist;
+      });
+
+      setChecklists(updated);
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
       }
-      return checklist;
-    });
 
-    setChecklists(updated);
-
-    emitEvent("epitrello:card-checklists-updated", { cardId: card.id, checklists: updated });
+      emitEvent('epitrello:card-checklists-updated', {
+        cardId: card.id,
+        checklists: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update checklist item',
+      );
+    }
   };
 
-  // Supprimer une checklist
-  const deleteChecklist = (checklistId: string) => {
-    const updated = checklists.filter((c) => c.id !== checklistId);
-    setChecklists(updated);
+  const deleteChecklist = async (checklistId: string) => {
+    try {
+      await deleteChecklistAPI(checklistId);
 
-    // Notifier le changement
-    window.dispatchEvent(
-      new CustomEvent("epitrello:card-checklists-updated", {
-        detail: { cardId: card.id, checklists: updated },
-      })
-    );
+      const updated = checklists.filter((c) => c.id !== checklistId);
+      setChecklists(updated);
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('epitrello:card-checklists-updated', {
+          detail: { cardId: card.id, checklists: updated },
+        }),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to delete checklist',
+      );
+    }
   };
 
+  const deleteChecklistItem = async (checklistId: string, itemId: string) => {
+    try {
+      await deleteChecklistItemAPI(itemId);
 
-  // Sauvegarder la date d'échéance
-  const saveDueDate = () => {
-    if (!selectedDate) return;
+      const updated = checklists.map((checklist) => {
+        if (checklist.id === checklistId) {
+          return {
+            ...checklist,
+            items: (checklist.items || []).filter((item) => item.id !== itemId),
+          };
+        }
+        return checklist;
+      });
+
+      setChecklists(updated);
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+
+      emitEvent('epitrello:card-checklists-updated', {
+        cardId: card.id,
+        checklists: updated,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to delete checklist item',
+      );
+    }
+  };
+
+  const saveDueDate = (date?: string) => {
+    const dateToUse = date ?? selectedDate;
+    if (!dateToUse) return;
 
     const newDueDate: DueDate = {
-      date: selectedDate,
+      date: dateToUse,
       isComplete: false,
     };
 
     setDueDate(newDueDate);
     setOpenMenu(null);
 
-    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: newDueDate });
+    emitEvent('epitrello:card-duedate-updated', {
+      cardId: card.id,
+      dueDate: newDueDate,
+    });
   };
 
-  // Toggle complete sur la date
-  const toggleDueDateComplete = () => {
-    if (!dueDate) return;
-
-    const updated: DueDate = {
-      ...dueDate,
-      isComplete: !dueDate.isComplete,
-    };
-
-    setDueDate(updated);
-
-    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: updated });
-  };
-
-  // Supprimer la date d'échéance
   const removeDueDate = () => {
     setDueDate(undefined);
 
-    emitEvent("epitrello:card-duedate-updated", { cardId: card.id, dueDate: undefined });
+    emitEvent('epitrello:card-duedate-updated', {
+      cardId: card.id,
+      dueDate: undefined,
+    });
   };
 
-  // Déterminer le statut de la date
-  const getDueDateStatus = (dueDate: DueDate) => {
-    if (dueDate.isComplete) return "complete";
+  const saveStartDate = (date?: string) => {
+    const dateToUse = date ?? selectedStartDate;
+    if (!dateToUse) return;
 
-    const now = new Date();
-    const due = new Date(dueDate.date);
+    setStartDate(dateToUse);
+    setOpenMenu(null);
 
-    if (due < now) return "overdue";
-
-    // Si dans les prochaines 24h
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (due < tomorrow) return "soon";
-
-    return "upcoming";
+    emitEvent('epitrello:card-startdate-updated', {
+      cardId: card.id,
+      startDate: dateToUse,
+    });
   };
 
+  const removeStartDate = () => {
+    setStartDate(undefined);
+    setOpenMenu(null);
 
-  // Ajouter un commentaire
+    emitEvent('epitrello:card-startdate-updated', {
+      cardId: card.id,
+      startDate: undefined,
+    });
+  };
+
+  const saveBackground = async (url: string) => {
+    if (!url.trim()) return;
+
+    try {
+      await updateCard({ id: card.id, background: url.trim() });
+
+      setBackground(url.trim());
+
+      const isColor = BACKGROUND_COLORS.some((c) => c.value === url.trim());
+      if (isColor) {
+        setHeaderBackground(url.trim());
+      } else {
+        setHeaderBackground(null);
+      }
+
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+
+      emitEvent('epitrello:card-background-updated', {
+        cardId: card.id,
+        background: url.trim(),
+      });
+
+      toast.success('Background updated successfully');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update background',
+      );
+    }
+  };
+
+  const removeBackground = async () => {
+    try {
+      await updateCard({ id: card.id, background: null });
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+      setBackground(undefined);
+      setHeaderBackground(null);
+      emitEvent('epitrello:card-background-updated', {
+        cardId: card.id,
+        background: null,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to remove background',
+      );
+    }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        saveBackground(base64);
+        setHeaderBackground(null);
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read image file');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const addComment = () => {
     const text = newComment.trim();
     if (!text) return;
@@ -546,56 +1014,74 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
 
     const updated = [...comments, comment];
     setComments(updated);
-    setNewComment("");
+    setNewComment('');
 
-    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
+    emitEvent('epitrello:card-comments-updated', {
+      cardId: card.id,
+      comments: updated,
+    });
   };
 
-  // Commencer l'édition d'un commentaire
   const startEditComment = (comment: Comment) => {
     setEditingCommentId(comment.id);
     setEditingCommentText(comment.text);
   };
 
-  // Sauvegarder l'édition d'un commentaire
   const saveEditComment = (commentId: string) => {
     const text = editingCommentText.trim();
     if (!text) return;
 
     const updated = comments.map((comment) =>
-      comment.id === commentId ? { ...comment, text } : comment
+      comment.id === commentId ? { ...comment, text } : comment,
     );
 
     setComments(updated);
     setEditingCommentId(null);
-    setEditingCommentText("");
+    setEditingCommentText('');
 
-    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
+    emitEvent('epitrello:card-comments-updated', {
+      cardId: card.id,
+      comments: updated,
+    });
   };
 
-  // Annuler l'édition
   const cancelEditComment = () => {
     setEditingCommentId(null);
-    setEditingCommentText("");
+    setEditingCommentText('');
   };
 
-  // Supprimer un commentaire
   const deleteComment = (commentId: string) => {
     const updated = comments.filter((c) => c.id !== commentId);
     setComments(updated);
 
-    emitEvent("epitrello:card-comments-updated", { cardId: card.id, comments: updated });
+    emitEvent('epitrello:card-comments-updated', {
+      cardId: card.id,
+      comments: updated,
+    });
   };
 
+  const [selectedBoardId, setSelectedBoardId] = useState<string>(
+    currentBoardId || card.listId || '',
+  );
+  const [selectedListId, setSelectedListId] = useState<string>(
+    card.listId || '',
+  );
+  const [selectedPosition, setSelectedPosition] = useState<string>('1');
+  // Menu de déplacement dans le header
+  const [isHeaderMoveOpen, setIsHeaderMoveOpen] = useState(false);
+  // Popover de déplacement utilisé dans la section Dates (overdue)
+  const [isMovePopoverOpen, setIsMovePopoverOpen] = useState(false);
 
-  // Actions
-  const moveCard = () => {
-    setShowMoveMenu(!showMoveMenu);
-  };
-
-  const moveCardToList = (listName: string) => {
-    emitEvent("epitrello:card-moved", { cardId: card.id, toList: listName });
-    onClose();
+  const handleMoveCard = () => {
+    if (selectedBoardId && selectedListId) {
+      emitEvent('epitrello:card-move', {
+        cardId: card.id,
+        sourceListId: card.listId,
+        targetListId: selectedListId,
+        targetIndex: parseInt(selectedPosition, 10) - 1,
+        fromIndex: card.position,
+      });
+    }
   };
 
   const copyCard = () => {
@@ -604,316 +1090,544 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
       id: `card-${Date.now()}`,
       title: `${card.title} (copy)`,
     };
-    emitEvent("epitrello:card-copied", { cardId: card.id, copiedCard });
+    emitEvent('epitrello:card-copied', { cardId: card.id, copiedCard });
     onClose();
   };
 
   const archiveCard = () => {
-    emitEvent("epitrello:card-archived", { cardId: card.id });
+    emitEvent('epitrello:card-archived', { cardId: card.id });
     setShowArchiveConfirm(false);
     onClose();
   };
 
   const deleteCard = () => {
-    emitEvent("epitrello:card-deleted", { cardId: card.id });
+    emitEvent('epitrello:card-deleted', { cardId: card.id });
     setShowDeleteConfirm(false);
     onClose();
   };
 
-
   if (!isOpen) return null;
+
+  const isImageHeaderBackground =
+    !!background &&
+    (background.startsWith('data:image') ||
+      background.startsWith('http') ||
+      background.startsWith('https'));
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           ref={modalRef}
-          className="max-w-[768px] w-full max-h-[90vh] p-0 flex flex-col overflow-hidden"
+          className='sm:max-w-5xl w-full p-0 overflow-hidden max-h-[calc(100vh-200px)] flex flex-col'
           showCloseButton={false}
         >
-          <DialogTitle className="sr-only">{card.title}</DialogTitle>
-          <DialogDescription className="sr-only">Card details and actions</DialogDescription>
+          <DialogHeader className='px-6 pt-4 pb-2 h-30  border-b border-accent relative overflow-visible'>
+            <div
+              className={`absolute inset-0 -z-10 ${
+                !isImageHeaderBackground
+                  ? background &&
+                    BACKGROUND_COLORS.some((c) => c.value === background)
+                    ? background
+                    : headerBackground
+                      ? headerBackground
+                      : 'bg-background'
+                  : 'bg-background'
+              }`}
+              style={
+                isImageHeaderBackground
+                  ? {
+                      backgroundImage: `url(${background})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    }
+                  : undefined
+              }
+            />
+            <DialogTitle className='sr-only'>Card Details</DialogTitle>
+            <DialogDescription className='sr-only'>
+              View and edit card details, including description, checklists,
+              comments, and attachments.
+            </DialogDescription>
+            <div className='flex items-center justify-between gap-2 min-w-0'>
+              <div className='flex items-center gap-2 min-w-0 overflow-visible'>
+                <Popover
+                  open={isHeaderMoveOpen}
+                  onOpenChange={setIsHeaderMoveOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='secondary'
+                      size='sm'
+                      className='flex items-center gap-1 min-w-0 bg-trello-hover text-trello px-3 py-1.5 rounded-full cursor-pointer hover:bg-trello-border border-none shadow-none'
+                    >
+                      <span className='text-sm font-medium truncate max-w-40'>
+                        {currentListName}
+                      </span>
+                      <ChevronDown className='w-4 h-4 shrink-0' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align='start'
+                    className='w-80 p-4 border-accent bg-trello-card-bg'
+                  >
+                    <MoveCardContent
+                      selectedBoardId={selectedBoardId}
+                      setSelectedBoardId={setSelectedBoardId}
+                      selectedListId={selectedListId}
+                      setSelectedListId={setSelectedListId}
+                      selectedPosition={selectedPosition}
+                      setSelectedPosition={setSelectedPosition}
+                      availableLists={availableLists}
+                      availableBoards={availableBoards}
+                      currentBoardId={currentBoardId}
+                      handleMoveCard={handleMoveCard}
+                      setIsMovePopoverOpen={setIsHeaderMoveOpen}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-          <div className="p-6 border-b border-accent shrink-0">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start gap-3">
-                  <FileText className="w-6 h-6 text-trello-secondary shrink-0 mt-1" aria-hidden="true" />
-                  <div className="flex-1 min-w-0">
-                    {!isEditingTitle ? (
-                      <h2
-                        className="text-xl font-semibold text-trello cursor-pointer hover:bg-trello-hover px-2 py-1 -mx-2 -my-1 rounded transition-colors"
-                        onClick={() => setIsEditingTitle(true)}
-                        title="Click to edit title"
-                      >
-                        {card.title}
-                      </h2>
-                    ) : (
-                      <Input
-                        ref={titleInputRef}
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onBlur={saveTitle}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            saveTitle();
-                          } else if (e.key === "Escape") {
-                            e.preventDefault();
-                            cancelEditTitle();
-                          }
-                        }}
-                        className="w-full text-xl font-semibold text-trello px-2 py-1 -mx-2 -my-1 border-2 border-trello-blue h-auto"
-                        aria-label="Edit card title"
-                      />
-                    )}
-                    {listId && (
-                      <p className="text-sm text-trello-secondary mt-1">
-                        in list <span className="underline">List Name</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className='flex items-center gap-2 shrink-0'>
+                <Popover
+                  open={showBackgroundPicker}
+                  onOpenChange={setShowBackgroundPicker}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                    >
+                      <ImageIcon className='w-4 h-4' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align='end'
+                    className='w-80 p-4 border-accent bg-trello-card-bg'
+                  >
+                    <div className='space-y-4'>
+                      <div className='flex items-center justify-between'>
+                        <h3 className='text-lg font-semibold'>
+                          Change background
+                        </h3>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          className='h-6 w-6'
+                          onClick={() => setShowBackgroundPicker(false)}
+                        >
+                          <X className='w-4 h-4' />
+                        </Button>
+                      </div>
+                      <div className='space-y-4'>
+                        <div className='space-y-2'>
+                          <div className='text-sm font-medium'>
+                            Upload Image
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <Input
+                              type='file'
+                              accept='image/*'
+                              onChange={handleImageUpload}
+                              className='flex-1'
+                              id='background-image-upload-header'
+                            />
+                            <LabelComponent
+                              htmlFor='background-image-upload-header'
+                              className='cursor-pointer'
+                            >
+                              <Button variant='outline' size='sm' asChild>
+                                <span>Choose File</span>
+                              </Button>
+                            </LabelComponent>
+                          </div>
+                        </div>
+                        <div className='space-y-2'>
+                          <div className='text-sm font-medium'>Colors</div>
+                          <div className='grid grid-cols-4 gap-2'>
+                            {BACKGROUND_COLORS.map((color) => (
+                              <button
+                                key={color.value}
+                                onClick={async () => {
+                                  setHeaderBackground(color.value);
+                                  await saveBackground(color.value);
+                                  setShowBackgroundPicker(false);
+                                }}
+                                className={`h-12 rounded-lg ${color.value} border-2 transition-all ${
+                                  (headerBackground === color.value ||
+                                    background === color.value) &&
+                                  !background?.startsWith('data:image')
+                                    ? 'border-primary ring-2 ring-primary ring-offset-2'
+                                    : 'border-transparent hover:border-accent'
+                                }`}
+                                title={color.label}
+                              />
+                            ))}
+                          </div>
+                          {(background || headerBackground) && (
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='w-full'
+                              onClick={() => {
+                                if (background) {
+                                  removeBackground();
+                                } else {
+                                  setHeaderBackground(null);
+                                }
+                                setShowBackgroundPicker(false);
+                              }}
+                            >
+                              Remove background
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                    >
+                      <MoreHorizontal className='w-4 h-4' />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align='end'
+                    className='border-accent bg-trello-card-bg'
+                  >
+                    <DropdownMenuItem>
+                      <User className='w-4 h-4 mr-2' />
+                      Leave
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setIsMovePopoverOpen(true)}
+                    >
+                      <Move className='w-4 h-4 mr-2' />
+                      Move
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyCard}>
+                      <Copy className='w-4 h-4 mr-2' />
+                      Copy
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Eye className='w-4 h-4 mr-2' />
+                      Watch
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Share2 className='w-4 h-4 mr-2' />
+                      Share
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setShowArchiveConfirm(true)}
+                    >
+                      <Archive className='w-4 h-4 mr-2' />
+                      Archive
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DialogClose asChild>
+                  <Button
+                    ref={closeButtonRef}
+                    variant='ghost'
+                    size='icon'
+                    className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                  >
+                    <X className='w-4 h-4' />
+                  </Button>
+                </DialogClose>
               </div>
             </div>
-          </div>
+          </DialogHeader>
 
-          <div className="p-6 overflow-y-auto flex-1 custom-scrollbar" style={{ minHeight: 0 }}>
-          <div className="flex gap-6 flex-col lg:flex-row">
-            <div className="flex-1 lg:w-[70%] space-y-6">
-              {assignedLabels && assignedLabels.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-trello mb-2">Labels</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {assignedLabels.map((label) => (
-                      <Button
-                        key={label.id}
-                        onClick={() => toggleLabel(label)}
-                        variant="ghost"
-                        size="sm"
-                        className={`inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full text-white ${
-                          label.color || "bg-trello-text-secondary"
-                        } hover:opacity-90 transition-opacity group`}
-                        title="Click to remove"
-                      >
-                        <span>{label.name || "Untitled"}</span>
-                        <X className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {assignedMembers && assignedMembers.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-trello mb-2">Members</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {assignedMembers.map((user) => {
-                      const initials = user.name
-                        ? user.name
-                            .split(" ")
-                            .map((s) => s[0])
-                            .slice(0, 2)
-                            .join("")
-                        : (user.email || "U")[0].toUpperCase();
-                      return (
-                        <div
-                          key={user.id}
-                          className="flex items-center gap-2 bg-trello-hover rounded-full pr-3 hover:bg-trello-border transition-colors group relative"
-                          title={user.name || user.email}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-trello-blue flex items-center justify-center text-xs font-medium text-white">
-                            {user.avatar ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={user.avatar}
-                                alt={user.name}
-                                className="w-full h-full object-cover rounded-full"
-                              />
-                            ) : (
-                              initials
-                            )}
-                          </div>
-                          <span className="text-sm text-trello">{user.name || user.email}</span>
-                          <Button
-                            onClick={() => toggleMember(user)}
-                            variant="ghost"
-                            size="icon"
-                            className="ml-1 opacity-0 group-hover:opacity-100 text-trello-secondary hover:text-red-600 h-auto w-auto p-0"
-                            aria-label={`Remove ${user.name || user.email}`}
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Due Date */}
-              {dueDate && (
-                <div>
-                  <h3 className="text-sm font-semibold text-trello mb-2">Due Date</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={dueDate.isComplete}
-                        onCheckedChange={toggleDueDateComplete}
-                      />
-                      <LabelUI className="cursor-pointer">
-                        <div
-                          className={`px-3 py-1.5 rounded text-sm font-medium ${
-                            getDueDateStatus(dueDate) === "complete"
-                              ? "bg-green-100 text-green-800"
-                              : getDueDateStatus(dueDate) === "overdue"
-                              ? "bg-red-100 text-red-800"
-                              : getDueDateStatus(dueDate) === "soon"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-trello-hover text-trello"
-                          }`}
-                        >
-                          {formatDueDate(dueDate.date)}
-                          {dueDate.isComplete && " (complete)"}
-                          {getDueDateStatus(dueDate) === "overdue" && !dueDate.isComplete && " (overdue)"}
-                        </div>
-                      </LabelUI>
-                    </div>
-                    <Button
-                      onClick={removeDueDate}
-                      variant="ghost"
-                      size="icon"
-                      className="text-trello-text-secondary hover:text-red-600 h-auto w-auto p-0"
-                      title="Remove due date"
+          <div className='flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden'>
+            <div className='flex-1 lg:w-[60%] px-6 pt-4 pb-4 overflow-y-auto custom-scrollbar'>
+              <div className='flex items-start gap-3 mb-6'>
+                <Checkbox
+                  checked={card.completed ?? false}
+                  onCheckedChange={(checked) => {
+                    window.dispatchEvent(
+                      new CustomEvent('epitrello:card-completed-updated', {
+                        detail: {
+                          cardId: card.id,
+                          completed: checked as boolean,
+                        },
+                      }),
+                    );
+                  }}
+                  className='mt-1.5 w-5 h-5'
+                />
+                <div className='flex-1 min-w-0'>
+                  {!isEditingTitle ? (
+                    <h2
+                      className='text-2xl font-bold text-foreground cursor-pointer hover:bg-accent/50 px-2 py-1 -mx-2 -my-1 rounded transition-colors'
+                      onClick={() => setIsEditingTitle(true)}
+                      title='Click to edit title'
                     >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
+                      {title || card.title}
+                    </h2>
+                  ) : (
+                    <Input
+                      ref={titleInputRef}
+                      type='text'
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      onBlur={saveTitle}
+                      onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          saveTitle();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEditTitle();
+                        }
+                      }}
+                      className='w-full text-2xl font-bold text-foreground px-2 py-1 -mx-2 -my-1 border border-accent h-auto'
+                      aria-label='Edit card title'
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className='mb-6'>
+                <CardModalQuickActions
+                  availableMembers={availableMembers}
+                  assignedMembers={assignedMembers}
+                  assignedLabels={assignedLabels}
+                  boardId={currentBoardId ?? ''}
+                  dueDate={dueDate}
+                  startDate={startDate}
+                  selectedDate={selectedDate}
+                  selectedStartDate={selectedStartDate}
+                  newChecklistTitle={newChecklistTitle}
+                  onToggleMenu={toggleMenu}
+                  onToggleMember={toggleMember}
+                  onToggleLabel={toggleLabel}
+                  onSetSelectedDate={setSelectedDate}
+                  onSetSelectedStartDate={setSelectedStartDate}
+                  onSaveDueDate={saveDueDate}
+                  onRemoveDueDate={removeDueDate}
+                  onSaveStartDate={saveStartDate}
+                  onRemoveStartDate={removeStartDate}
+                  onSetNewChecklistTitle={setNewChecklistTitle}
+                  onCreateChecklist={createChecklist}
+                />
+              </div>
+
+              {(assignedMembers.length > 0 ||
+                assignedLabels.length > 0 ||
+                startDate ||
+                dueDate) && (
+                <div className='mb-6 space-y-4'>
+                  {(assignedMembers.length > 0 ||
+                    assignedLabels.length > 0) && (
+                    <div className='flex flex-wrap gap-x-6 gap-y-4 items-start'>
+                      {assignedMembers.length > 0 && (
+                        <div>
+                          <h3 className='text-sm font-semibold text-trello mb-2'>
+                            Members
+                          </h3>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            {assignedMembers.map((member) => {
+                              const initials = member.name
+                                ? member.name
+                                    .split(' ')
+                                    .map((s) => s[0])
+                                    .slice(0, 2)
+                                    .join('')
+                                    .toUpperCase()
+                                : (member.email || 'U')[0].toUpperCase();
+                              return (
+                                <div
+                                  key={member.id}
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white shrink-0 ${getAvatarColor(member.name || member.email)}`}
+                                  title={member.name || member.email}
+                                >
+                                  {member.avatar ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={member.avatar}
+                                      alt={member.name}
+                                      className='w-full h-full object-cover rounded-full'
+                                    />
+                                  ) : (
+                                    initials
+                                  )}
+                                </div>
+                              );
+                            })}
+                            <CardModalMembersPopover
+                              availableMembers={availableMembers}
+                              assignedMembers={assignedMembers}
+                              onToggleMember={toggleMember}
+                              trigger={
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  className='w-8 h-8 shrink-0 rounded-full bg-trello-hover hover:bg-trello-border text-trello-secondary'
+                                >
+                                  <Plus className='w-4 h-4' />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {assignedLabels.length > 0 && (
+                        <div>
+                          <h3 className='text-sm font-semibold text-trello mb-2'>
+                            Labels
+                          </h3>
+                          <div className='flex flex-wrap items-center gap-2'>
+                            {assignedLabels.map((label) => (
+                              <button
+                                key={label.id}
+                                type='button'
+                                onClick={() => toggleLabel(label)}
+                                className='inline-block text-xs px-2 py-0.5 rounded shrink-0 text-white cursor-pointer hover:opacity-90 transition-opacity'
+                                style={{
+                                  backgroundColor: getLabelDisplayColor(
+                                    label.color,
+                                  ),
+                                }}
+                                title={label.name || 'Untitled'}
+                              >
+                                {label.name || 'Untitled'}
+                              </button>
+                            ))}
+                            <LabelsPopover
+                              boardId={currentBoardId ?? ''}
+                              assignedLabels={assignedLabels}
+                              onToggleLabel={toggleLabel}
+                              trigger={
+                                <Button
+                                  variant='ghost'
+                                  size='icon'
+                                  className='w-8 h-8 shrink-0 rounded-full bg-trello-hover hover:bg-trello-border text-trello-secondary'
+                                >
+                                  <Plus className='w-4 h-4' />
+                                </Button>
+                              }
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(startDate || dueDate) && (
+                    <CardModalDates
+                      startDate={startDate}
+                      dueDate={dueDate}
+                      selectedStartDate={selectedStartDate}
+                      selectedDate={selectedDate}
+                      onSetSelectedStartDate={setSelectedStartDate}
+                      onSetSelectedDate={setSelectedDate}
+                      onSaveStartDate={saveStartDate}
+                      onRemoveStartDate={removeStartDate}
+                      onSaveDueDate={saveDueDate}
+                      onRemoveDueDate={removeDueDate}
+                      isMovePopoverOpen={isMovePopoverOpen}
+                      onMovePopoverOpenChange={setIsMovePopoverOpen}
+                      moveCardContent={
+                        <MoveCardContent
+                          selectedBoardId={selectedBoardId}
+                          setSelectedBoardId={setSelectedBoardId}
+                          selectedListId={selectedListId}
+                          setSelectedListId={setSelectedListId}
+                          selectedPosition={selectedPosition}
+                          setSelectedPosition={setSelectedPosition}
+                          availableLists={availableLists}
+                          availableBoards={availableBoards}
+                          currentBoardId={currentBoardId}
+                          handleMoveCard={handleMoveCard}
+                          setIsMovePopoverOpen={setIsMovePopoverOpen}
+                        />
+                      }
+                    />
+                  )}
                 </div>
               )}
 
-              {/* Description */}
-              <DescriptionSection
-                cardDescription={card.description ?? undefined}
-                isEditing={isEditingDescription}
-                description={description}
-                onChange={setDescription}
-                onStartEdit={() => setIsEditingDescription(true)}
-                onSave={saveDescription}
-                onCancel={cancelEditDescription}
-                textareaRef={descriptionTextareaRef}
-              />
+              <div className='space-y-6'>
+                <DescriptionSection
+                  cardDescription={card.description ?? undefined}
+                  isEditing={isEditingDescription}
+                  description={description}
+                  onChange={setDescription}
+                  onStartEdit={() => setIsEditingDescription(true)}
+                  onSave={saveDescription}
+                  onCancel={cancelEditDescription}
+                  textareaRef={descriptionTextareaRef}
+                />
 
-              {/* Checklists */}
-              <ChecklistsSection
-                checklists={checklists}
-                addingItemToChecklist={addingItemToChecklist}
-                newItemText={newItemText}
-                onDeleteChecklist={deleteChecklist}
-                onToggleItem={toggleChecklistItem}
-                onStartAddItem={(id) => setAddingItemToChecklist(id)}
-                onAddItem={addChecklistItem}
-                onCancelAddItem={() => {
-                  setAddingItemToChecklist(null);
-                  setNewItemText("");
-                }}
-                onChangeNewItemText={setNewItemText}
-                getProgress={getChecklistProgress}
-              />
-
-              {/* Activity section */}
-              <ActivitySection
-                currentUser={currentUser}
+                <ChecklistsSection
+                  checklists={checklists}
+                  addingItemToChecklist={addingItemToChecklist}
+                  newItemText={newItemText}
+                  onDeleteChecklist={deleteChecklist}
+                  onDeleteItem={deleteChecklistItem}
+                  onToggleItem={toggleChecklistItem}
+                  onStartAddItem={(id) => setAddingItemToChecklist(id)}
+                  onAddItem={addChecklistItem}
+                  onCancelAddItem={() => {
+                    setAddingItemToChecklist(null);
+                    setNewItemText('');
+                  }}
+                  onChangeNewItemText={setNewItemText}
+                  getProgress={getChecklistProgress}
+                />
+              </div>
+            </div>
+            <div className='hidden lg:block w-px bg-accent' />
+            <div className='lg:w-[40%] overflow-y-auto custom-scrollbar'>
+              <CardModalComments
                 comments={comments}
                 newComment={newComment}
+                editingCommentId={editingCommentId}
+                editingCommentText={editingCommentText}
+                commentTextareaRef={commentTextareaRef}
                 onChangeNewComment={setNewComment}
                 onAddComment={addComment}
                 onStartEditComment={startEditComment}
-                editingCommentId={editingCommentId}
-                editingCommentText={editingCommentText}
                 onEditCommentTextChange={setEditingCommentText}
                 onSaveEditComment={saveEditComment}
                 onCancelEditComment={cancelEditComment}
                 onDeleteComment={deleteComment}
                 formatCommentDate={formatCommentDate}
-                commentTextareaRef={commentTextareaRef}
               />
-
-              {/* Historique (optionnel) */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-5 h-5 text-trello-secondary" />
-                  <h3 className="text-sm font-semibold text-trello">History</h3>
-                </div>
-                <div className="ml-7">
-                  <p className="text-sm text-trello-text-secondary italic">No history available</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Colonne droite - Actions (~30%) */}
-            <div className="lg:w-[30%] space-y-4">
-              <AddToCardMenu
-                openMenu={openMenu}
-                toggleMenu={toggleMenu}
-                registerMenuRef={(key, el) => { menuRefs.current[key] = el; }}
-                availableMembers={availableMembers}
-                isMemberAssigned={isMemberAssigned}
-                toggleMember={toggleMember}
-                availableLabels={availableLabels}
-                isLabelAssigned={isLabelAssigned}
-                toggleLabel={toggleLabel}
-                newChecklistTitle={newChecklistTitle}
-                setNewChecklistTitle={setNewChecklistTitle}
-                createChecklist={createChecklist}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                dueDate={dueDate}
-                saveDueDate={saveDueDate}
-                removeDueDate={removeDueDate}
-              />
-
-              <ActionsMenu
-                showMoveMenu={showMoveMenu}
-                onToggleMove={moveCard}
-                onMoveCardToList={moveCardToList}
-                onCopyCard={copyCard}
-                onRequestArchive={() => setShowArchiveConfirm(true)}
-                onRequestDelete={() => setShowDeleteConfirm(true)}
-              />
-            </div>
-          </div>
-        </div>
-
-          {/* Footer avec actions - fixe */}
-          <div className="p-6 border-t border-accent bg-trello-hover rounded-b-lg shrink-0">
-            <div className="text-xs text-trello-secondary">
-              Card ID: <span className="font-mono">{card.id}</span>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Archive Confirmation Modal */}
       <Dialog open={showArchiveConfirm} onOpenChange={setShowArchiveConfirm}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className='max-w-sm border-accent'>
           <DialogHeader>
             <DialogTitle>Archive card?</DialogTitle>
             <DialogDescription>
-              The card &quot;{card.title}&quot; will be archived. You can restore it later from the board&apos;s archive.
+              The card &quot;{card.title}&quot; will be archived. You can
+              restore it later from the board&apos;s archive.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               onClick={() => setShowArchiveConfirm(false)}
-              variant="secondary"
+              variant='secondary'
             >
               Cancel
             </Button>
             <Button
               onClick={archiveCard}
-              className="bg-orange-500 hover:bg-orange-600"
+              className='bg-orange-500 hover:bg-orange-600'
             >
               Archive
             </Button>
@@ -921,26 +1635,23 @@ export default function CardModal({ card, listId, isOpen, onClose }: CardModalPr
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className='max-w-sm border-accent'>
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete card?</DialogTitle>
+            <DialogTitle className='text-red-600'>Delete card?</DialogTitle>
             <DialogDescription>
-              The card &quot;{card.title}&quot; will be permanently deleted. This action cannot be undone.
+              The card &quot;{card.title}&quot; will be permanently deleted.
+              This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               onClick={() => setShowDeleteConfirm(false)}
-              variant="secondary"
+              variant='secondary'
             >
               Cancel
             </Button>
-            <Button
-              onClick={deleteCard}
-              variant="destructive"
-            >
+            <Button onClick={deleteCard} variant='destructive'>
               Delete
             </Button>
           </DialogFooter>

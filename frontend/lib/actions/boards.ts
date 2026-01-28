@@ -6,6 +6,7 @@ import type {
   List as GqlList,
   Card as GqlCard,
   CreateBoardInput as GqlCreateBoardInput,
+  UpdateBoardInput as GqlUpdateBoardInput,
 } from '../graphql-types';
 
 export type Board = Omit<GqlBoard, 'lists'> & {
@@ -17,6 +18,7 @@ export type Board = Omit<GqlBoard, 'lists'> & {
 export type { Visibility, BoardMemberWithUser };
 
 export type CreateBoardInput = GqlCreateBoardInput;
+export type UpdateBoardInput = GqlUpdateBoardInput;
 
 export type BoardDetail = Board;
 
@@ -81,6 +83,31 @@ export async function getBoard(id: string): Promise<BoardDetail> {
             description
             position
             completed
+            background
+            dueDate
+            startDate
+            assignees {
+              id
+              name
+              email
+              avatar
+            }
+            labels {
+              id
+              name
+              color
+            }
+            checklists {
+              id
+              title
+              items {
+                id
+                checked
+                content
+                position
+                checklistId
+              }
+            }
           }
         }
       }
@@ -89,4 +116,54 @@ export async function getBoard(id: string): Promise<BoardDetail> {
 
   const result = await graphqlRequest<{ board: BoardDetail }>(query, { id });
   return result.board;
+}
+
+/**
+ * Update a board
+ */
+export async function updateBoard(input: UpdateBoardInput): Promise<Board> {
+  const mutation = `
+    mutation UpdateBoard($input: UpdateBoardInput!) {
+      updateBoard(input: $input) {
+        id
+        title
+        description
+        background
+        visibility
+        workspaceId
+        updatedAt
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ updateBoard: Board }>(mutation, { input });
+  return result.updateBoard;
+}
+
+/**
+ * Remove a member from a board (admin only)
+ */
+export async function removeBoardMember(boardId: string, userId: string): Promise<boolean> {
+  const mutation = `
+    mutation RemoveBoardMember($boardId: ID!, $userId: ID!) {
+      removeBoardMember(boardId: $boardId, userId: $userId)
+    }
+  `;
+
+  const result = await graphqlRequest<{ removeBoardMember: boolean }>(mutation, { boardId, userId });
+  return result.removeBoardMember;
+}
+
+/**
+ * Leave a board (any member can leave)
+ */
+export async function leaveBoard(boardId: string): Promise<boolean> {
+  const mutation = `
+    mutation LeaveBoard($boardId: ID!) {
+      leaveBoard(boardId: $boardId)
+    }
+  `;
+
+  const result = await graphqlRequest<{ leaveBoard: boolean }>(mutation, { boardId });
+  return result.leaveBoard;
 }

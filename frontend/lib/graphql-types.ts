@@ -89,9 +89,9 @@ export type BoardMemberWithUser = {
 export type Card = {
   __typename?: 'Card';
   assignees?: Maybe<Array<MemberUser>>;
+  background?: Maybe<Scalars['String']['output']>;
   checklists?: Maybe<Array<Checklist>>;
   completed: Scalars['Boolean']['output'];
-  coverUrl?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   dueDate?: Maybe<Scalars['DateTime']['output']>;
@@ -158,8 +158,8 @@ export type CreateBoardInput = {
 };
 
 export type CreateCardInput = {
+  background?: InputMaybe<Scalars['String']['input']>;
   completed?: InputMaybe<Scalars['Boolean']['input']>;
-  coverUrl?: InputMaybe<Scalars['String']['input']>;
   /** Card description with markdown support */
   description?: InputMaybe<Scalars['String']['input']>;
   dueDate?: InputMaybe<Scalars['DateTime']['input']>;
@@ -343,6 +343,8 @@ export type Mutation = {
   forgotPassword: MessageResponse;
   /** Invite a member to a workspace. Only ADMIN members can invite. */
   inviteMember: WorkspaceInvitation;
+  /** Leave a board. Cannot leave if you are the last admin. */
+  leaveBoard: Scalars['Boolean']['output'];
   /** Leave a workspace. Cannot leave if you are the last admin. */
   leaveWorkspace: Scalars['Boolean']['output'];
   /** Login with email and password. Returns a JWT token for authenticated requests. */
@@ -542,6 +544,11 @@ export type MutationForgotPasswordArgs = {
 
 export type MutationInviteMemberArgs = {
   input: InviteMemberInput;
+};
+
+
+export type MutationLeaveBoardArgs = {
+  boardId: Scalars['ID']['input'];
 };
 
 
@@ -875,8 +882,8 @@ export type UpdateBoardMemberRoleInput = {
 };
 
 export type UpdateCardInput = {
+  background?: InputMaybe<Scalars['String']['input']>;
   completed?: InputMaybe<Scalars['Boolean']['input']>;
-  coverUrl?: InputMaybe<Scalars['String']['input']>;
   /** Card description with markdown support */
   description?: InputMaybe<Scalars['String']['input']>;
   dueDate?: InputMaybe<Scalars['DateTime']['input']>;

@@ -208,7 +208,7 @@ model Card {
   listId      String
   title       String
   description String?
-  coverUrl    String?
+  background  String?
   startDate   DateTime?
   dueDate     DateTime?
   position    Float     @default(0)

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBoardInput } from './dto/create-board.input';
 import { UpdateBoardInput } from './dto/update-board.input';
@@ -396,6 +396,49 @@ export class BoardsService {
         boardId_userId: {
           boardId,
           userId: memberUserId,
+        },
+      },
+    });
+
+    return true;
+  }
+
+  /**
+   * Leave a board
+   * - Any member can leave a board
+   * - Cannot leave if you are the last ADMIN
+   */
+  async leaveBoard(boardId: string, userId: string): Promise<boolean> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    // Check if user is a member
+    const member = board.members.find((m) => m.userId === userId);
+    if (!member) {
+      throw new NotFoundException('You are not a member of this board');
+    }
+
+    // Prevent last ADMIN from leaving
+    if (member.role === Role.ADMIN) {
+      const adminCount = board.members.filter((m) => m.role === Role.ADMIN).length;
+      if (adminCount <= 1) {
+        throw new BadRequestException(
+          'You are the last admin. Please assign another admin before leaving',
+        );
+      }
+    }
+
+    await this.prisma.boardMember.delete({
+      where: {
+        boardId_userId: {
+          boardId,
+          userId,
         },
       },
     });
