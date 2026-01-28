@@ -34,7 +34,7 @@ export const MoveListMenu: React.FC<MoveListMenuProps> = ({
           <SelectTrigger id="move-list-position">
             <SelectValue placeholder="Select position" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="border-accent">
             {Array.from({ length: totalListsCount }, (_, i) => (
               <SelectItem key={i} value={i.toString()}>
                 {i + 1} {i === 0 ? '(first)' : i === totalListsCount - 1 ? '(last)' : ''}

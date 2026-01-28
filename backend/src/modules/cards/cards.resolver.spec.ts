@@ -49,7 +49,7 @@ describe('CardsResolver', () => {
     listId: 'list-1',
     title: 'Test Card',
     description: null,
-    coverUrl: null,
+    background: null,
     startDate: null,
     dueDate: null,
     position: 0,
