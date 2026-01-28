@@ -41,7 +41,7 @@ export const MoveAllCardsMenu: React.FC<MoveAllCardsMenuProps> = ({
           <SelectTrigger id="move-cards-destination">
             <SelectValue placeholder="Select a list..." />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="border-accent">
             {allLists
               .filter((l) => l.id !== sourceListId)
               .map((l) => (

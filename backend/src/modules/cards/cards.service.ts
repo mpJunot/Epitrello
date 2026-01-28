@@ -141,7 +141,7 @@ export class CardsService {
         listId: input.listId,
         title: input.title,
         description: input.description,
-        coverUrl: input.coverUrl,
+        background: input.background,
         startDate: input.startDate,
         dueDate: input.dueDate,
         position,
@@ -188,7 +188,9 @@ export class CardsService {
     const updateData: any = {};
     if (input.title !== undefined) updateData.title = input.title;
     if (input.description !== undefined) updateData.description = input.description;
-    if (input.coverUrl !== undefined) updateData.coverUrl = input.coverUrl;
+    if (input.background !== undefined) {
+      updateData.background = input.background === null ? null : input.background;
+    }
     if (input.startDate !== undefined) updateData.startDate = input.startDate;
     if (input.dueDate !== undefined) updateData.dueDate = input.dueDate;
     if (input.position !== undefined) updateData.position = input.position;

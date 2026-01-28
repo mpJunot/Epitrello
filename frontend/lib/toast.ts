@@ -13,7 +13,7 @@ export const toast = {
   },
   info: (message: string, title?: string) => {
     sonnerToast.info(title || "Info", {
-      description: message,
+      description: message
     });
   },
 };
