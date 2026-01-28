@@ -1,18 +1,26 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import CardItem from "../CardItem";
-import { Card, ListColumnProps, SortOption } from "./types";
-import { dispatchCustomEvent, generateId, createCardsSignature } from "./utils";
-import { useFocusWhen } from "./hooks";
-import { CardComposer } from "./components/CardComposer";
-import { CopyListMenu } from "./components/CopyListMenu";
-import { MoveListMenu } from "./components/MoveListMenu";
-import { MoveAllCardsMenu } from "./components/MoveAllCardsMenu";
-import { DeleteListMenu } from "./components/DeleteListMenu";
-import { MoreVertical, Plus, Copy, Move, ArrowRight, ArrowUpDown, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect, useRef } from 'react';
+import CardItem from '../CardItem';
+import { Card, ListColumnProps, SortOption } from './types';
+import { dispatchCustomEvent, generateId, createCardsSignature } from './utils';
+import { useFocusWhen } from './hooks';
+import { CardComposer } from './components/CardComposer';
+import { CopyListMenu } from './components/CopyListMenu';
+import { MoveListMenu } from './components/MoveListMenu';
+import { MoveAllCardsMenu } from './components/MoveAllCardsMenu';
+import { DeleteListMenu } from './components/DeleteListMenu';
+import {
+  MoreVertical,
+  Plus,
+  Copy,
+  Move,
+  ArrowRight,
+  ArrowUpDown,
+  Trash2,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,26 +33,27 @@ import {
   DropdownMenuTrigger,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 
 export default function ListColumn({
   list,
   totalListsCount = 1,
   allLists = [],
-  dragHandleProps
+  dragHandleProps,
+  boardId,
 }: ListColumnProps) {
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
 
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(list.title || "Untitled");
+  const [title, setTitle] = useState(list.title || 'Untitled');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -70,12 +79,16 @@ export default function ListColumn({
     if (localSignature === incomingSignature) return;
     if (Date.now() - lastLocalChange < 400) return;
 
-    console.log('🔄 ListColumn: Updating cards from parent for list:', list.id, list.title);
+    console.log(
+      '🔄 ListColumn: Updating cards from parent for list:',
+      list.id,
+      list.title,
+    );
     setCards(incoming);
   }, [list.cards, cards, lastLocalChange, list.id, list.title]);
 
   useEffect(() => {
-    setTitle(list.title || "Untitled");
+    setTitle(list.title || 'Untitled');
   }, [list.title]);
 
   useFocusWhen(editing, inputRef as React.RefObject<HTMLElement>, true);
@@ -92,7 +105,8 @@ export default function ListColumn({
     const newCard: Card = {
       id: generateId(),
       title: trimmedTitle,
-      description: "",
+      description: '',
+      createdAt: new Date().toISOString(),
       position: cards.length,
       listId: list.id,
       completed: false,
@@ -100,7 +114,10 @@ export default function ListColumn({
 
     setCards([...cards, newCard]);
     setLastLocalChange(Date.now());
-    dispatchCustomEvent("epitrello:card-created", { listId: list.id, title: trimmedTitle });
+    dispatchCustomEvent('epitrello:card-created', {
+      listId: list.id,
+      title: trimmedTitle,
+    });
   };
 
   const handleCancelAdd = () => {
@@ -110,9 +127,9 @@ export default function ListColumn({
 
   // List operations
   const saveTitle = () => {
-    const trimmedTitle = (title || "").trim();
+    const trimmedTitle = (title || '').trim();
     if (!trimmedTitle) {
-      setTitle(list.title || "Untitled");
+      setTitle(list.title || 'Untitled');
       setEditing(false);
       return;
     }
@@ -120,14 +137,17 @@ export default function ListColumn({
     setTitle(trimmedTitle);
     setEditing(false);
 
-    if (trimmedTitle !== (list.title || "")) {
-      dispatchCustomEvent("epitrello:list-updated", { listId: list.id, title: trimmedTitle });
+    if (trimmedTitle !== (list.title || '')) {
+      dispatchCustomEvent('epitrello:list-updated', {
+        listId: list.id,
+        title: trimmedTitle,
+      });
     }
   };
 
   // Menu action handlers
   const handleCopyList = (newListName: string) => {
-    const copiedCards = cards.map(card => ({
+    const copiedCards = cards.map((card) => ({
       ...card,
       id: generateId(),
     }));
@@ -177,12 +197,28 @@ export default function ListColumn({
 
     switch (sortOption) {
       case 'date-newest':
-        sortedCards.reverse();
+        sortedCards.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA; // Newest first
+        });
         break;
       case 'date-oldest':
+        sortedCards.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateA - dateB; // Oldest first
+        });
         break;
       case 'due-date':
-        sortedCards.sort((a, b) => a.title.localeCompare(b.title));
+        sortedCards.sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0;
+          if (!a.dueDate) return 1; // Cards without due date go to the end
+          if (!b.dueDate) return -1;
+          const dateA = new Date(a.dueDate).getTime();
+          const dateB = new Date(b.dueDate).getTime();
+          return dateA - dateB; // Earliest due date first
+        });
         break;
       case 'alpha-asc':
         sortedCards.sort((a, b) => a.title.localeCompare(b.title));
@@ -197,12 +233,16 @@ export default function ListColumn({
   };
 
   // Drag & drop handlers
-  const handleCardDragStart = (e: React.DragEvent, cardId: string, fromIndex?: number) => {
+  const handleCardDragStart = (
+    e: React.DragEvent,
+    cardId: string,
+    fromIndex?: number,
+  ) => {
     console.log('🎬 Drag start:', {
       cardId,
       isTemp: cardId?.startsWith('temp-'),
       fromIndex,
-      listId: list.id
+      listId: list.id,
     });
 
     // CRITICAL: Extra safety check - should not reach here due to draggable=false, but just in case
@@ -213,12 +253,15 @@ export default function ListColumn({
     }
 
     try {
-      const fromIndexCalculated = typeof fromIndex === 'number' ? fromIndex : cards.findIndex((c) => c.id === cardId);
+      const fromIndexCalculated =
+        typeof fromIndex === 'number'
+          ? fromIndex
+          : cards.findIndex((c) => c.id === cardId);
 
       const dragData = {
         cardId,
         fromListId: list.id,
-        fromIndex: fromIndexCalculated
+        fromIndex: fromIndexCalculated,
       };
       e.dataTransfer.setData('application/json', JSON.stringify(dragData));
       e.dataTransfer.effectAllowed = 'move';
@@ -229,11 +272,11 @@ export default function ListColumn({
       dispatchCustomEvent('epitrello:drag-start', {
         cardId,
         fromListId: list.id,
-        fromIndex: fromIndexCalculated
+        fromIndex: fromIndexCalculated,
       });
 
       // Set drag image for better UX
-      const draggedCard = cards.find(c => c.id === cardId);
+      const draggedCard = cards.find((c) => c.id === cardId);
       if (draggedCard && e.currentTarget instanceof HTMLElement) {
         const clone = e.currentTarget.cloneNode(true) as HTMLElement;
         clone.style.opacity = '0.8';
@@ -254,7 +297,8 @@ export default function ListColumn({
 
     // Calculate precise drop index based on mouse position
     if (typeof overIndex === 'number') {
-      const cardElements = e.currentTarget.parentElement?.querySelectorAll('[draggable="true"]');
+      const cardElements =
+        e.currentTarget.parentElement?.querySelectorAll('[draggable="true"]');
       if (cardElements && cardElements[overIndex]) {
         const rect = cardElements[overIndex].getBoundingClientRect();
         const midpoint = rect.top + rect.height / 2;
@@ -283,7 +327,7 @@ export default function ListColumn({
         cardId: data?.cardId,
         fromListId: data?.fromListId,
         toListId: list.id,
-        isTemp: data?.cardId?.startsWith('temp-')
+        isTemp: data?.cardId?.startsWith('temp-'),
       });
 
       if (!data?.cardId) {
@@ -323,7 +367,12 @@ export default function ListColumn({
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const { clientX, clientY } = e;
 
-    if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+    if (
+      clientX < rect.left ||
+      clientX > rect.right ||
+      clientY < rect.top ||
+      clientY > rect.bottom
+    ) {
       setIsDragOver(false);
       setDragOverIndex(null);
     }
@@ -350,18 +399,20 @@ export default function ListColumn({
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
       className={`w-[272px] min-w-[272px] shrink-0 rounded-xl flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver ? 'bg-primary/20 ring-2 ring-primary shadow-lg' : 'bg-white dark:bg-black'
+        isDragOver
+          ? 'bg-primary/20 ring-2 ring-primary shadow-lg'
+          : 'bg-white dark:bg-black'
       }`}
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       {/* Header */}
-      <div className="p-4 pb-3 shrink-0">
-        <div className="flex items-center justify-between gap-2">
+      <div className='p-4 pb-3 shrink-0'>
+        <div className='flex items-center justify-between gap-2'>
           {!editing ? (
             <h3
-              className="font-medium text-foreground text-sm cursor-text flex-1"
+              className='font-medium text-foreground text-sm cursor-text flex-1'
               onClick={() => setEditing(true)}
-              title="Click to edit"
+              title='Click to edit'
               {...dragHandleProps}
             >
               {title}
@@ -373,67 +424,71 @@ export default function ListColumn({
               onChange={(e) => setTitle(e.target.value)}
               onBlur={saveTitle}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
+                if (e.key === 'Enter') {
                   (e.target as HTMLInputElement).blur();
-                } else if (e.key === "Escape") {
+                } else if (e.key === 'Escape') {
                   setEditing(false);
-                  setTitle(list.title || "Untitled");
+                  setTitle(list.title || 'Untitled');
                 }
               }}
-              className="flex-1 h-auto p-2 text-sm"
+              className='flex-1 h-auto p-2 text-sm'
             />
           )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
+                variant='ghost'
+                size='icon'
                 className={`transition-all duration-200 ${
                   isHoveringColumn ? 'opacity-100' : 'opacity-30'
                 }`}
-                title="Column actions"
-                aria-label="Column actions menu"
+                title='Column actions'
+                aria-label='Column actions menu'
               >
-                <MoreVertical className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
+                <MoreVertical
+                  className='w-4 h-4 text-muted-foreground'
+                  aria-hidden='true'
+                />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 border-accent">
+            <DropdownMenuContent align='end' className='w-56 border-accent'>
               <DropdownMenuLabel>List actions</DropdownMenuLabel>
-              <DropdownMenuSeparator/>
+              <DropdownMenuSeparator />
 
               <DropdownMenuItem onClick={() => setAddingCard(true)}>
-                <Plus className="w-4 h-4" />
+                <Plus className='w-4 h-4' />
                 <span>Add card</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => setShowCopyDialog(true)}>
-                <Copy className="w-4 h-4" />
+                <Copy className='w-4 h-4' />
                 <span>Copy list</span>
               </DropdownMenuItem>
 
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger disabled={totalListsCount <= 1}>
-                  <Move className="w-4 h-4" />
+                  <Move className='w-4 h-4' />
                   <span>Move</span>
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="border-accent">
+                <DropdownMenuSubContent className='border-accent'>
                   <DropdownMenuItem
                     onClick={() => {
                       if (totalListsCount > 1) setShowMoveDialog(true);
                     }}
                     disabled={totalListsCount <= 1}
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className='w-4 h-4' />
                     <span>Move list</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
-                      if (totalListsCount > 1 && cards.length > 0) setShowMoveAllCardsDialog(true);
+                      if (totalListsCount > 1 && cards.length > 0)
+                        setShowMoveAllCardsDialog(true);
                     }}
                     disabled={totalListsCount <= 1 || cards.length === 0}
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className='w-4 h-4' />
                     <span>Move all cards</span>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
@@ -441,13 +496,13 @@ export default function ListColumn({
 
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger disabled={cards.length === 0}>
-                  <ArrowUpDown className="w-4 h-4" />
+                  <ArrowUpDown className='w-4 h-4' />
                   <span>Sort by</span>
                   {activeSortOption && cards.length > 0 && (
-                    <span className="ml-auto text-xs text-primary">●</span>
+                    <span className='ml-auto text-xs text-primary'>●</span>
                   )}
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="border-accent">
+                <DropdownMenuSubContent className='border-accent'>
                   <DropdownMenuRadioGroup
                     value={activeSortOption || undefined}
                     onValueChange={(value) => {
@@ -470,11 +525,11 @@ export default function ListColumn({
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
-                variant="destructive"
-                className="text-red-600"
+                variant='destructive'
+                className='text-red-600'
                 onClick={() => setShowDeleteDialog(true)}
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className='w-4 h-4' />
                 <span>Delete list</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -482,14 +537,14 @@ export default function ListColumn({
 
           {/* Dialogs for complex actions */}
           <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className='sm:max-w-md border-accent'>
               <DialogHeader>
                 <DialogTitle>Copy list</DialogTitle>
                 <DialogDescription>
                   Create a copy of this list with all its cards.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className='py-4'>
                 <CopyListMenu
                   defaultName={`${title} (copy)`}
                   onClose={() => setShowCopyDialog(false)}
@@ -503,14 +558,14 @@ export default function ListColumn({
           </Dialog>
 
           <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className='sm:max-w-md border-accent'>
               <DialogHeader>
                 <DialogTitle>Move list</DialogTitle>
                 <DialogDescription>
                   Move this list to a different position.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className='py-4'>
                 <MoveListMenu
                   totalListsCount={totalListsCount}
                   onClose={() => setShowMoveDialog(false)}
@@ -523,15 +578,18 @@ export default function ListColumn({
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showMoveAllCardsDialog} onOpenChange={setShowMoveAllCardsDialog}>
-            <DialogContent className="sm:max-w-md">
+          <Dialog
+            open={showMoveAllCardsDialog}
+            onOpenChange={setShowMoveAllCardsDialog}
+          >
+            <DialogContent className='sm:max-w-md border-accent'>
               <DialogHeader>
                 <DialogTitle>Move all cards</DialogTitle>
                 <DialogDescription>
                   Move all cards from this list to another list.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className='py-4'>
                 <MoveAllCardsMenu
                   sourceListId={list.id}
                   allLists={allLists}
@@ -548,14 +606,15 @@ export default function ListColumn({
           </Dialog>
 
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className='sm:max-w-md border-accent'>
               <DialogHeader>
                 <DialogTitle>Delete list?</DialogTitle>
                 <DialogDescription>
-                  This action cannot be undone. This will permanently delete the list and all its cards.
+                  This action cannot be undone. This will permanently delete the
+                  list and all its cards.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className='py-4'>
                 <DeleteListMenu
                   listTitle={title}
                   cardsCount={cards.length}
@@ -572,40 +631,48 @@ export default function ListColumn({
       </div>
 
       {/* Cards area */}
-      <div className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-full' : ''}`}>
+      <div
+        className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 custom-scrollbar ${cards.length > 0 ? 'max-h-full' : ''}`}
+      >
         {cards.length === 0 && dragOverIndex === 0 && (
-          <div className="h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-md flex items-center justify-center animate-drag-placeholder">
-            <span className="text-indigo-400 text-sm font-medium">Drop card here</span>
+          <div className='h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-md flex items-center justify-center animate-drag-placeholder'>
+            <span className='text-indigo-400 text-sm font-medium'>
+              Drop card here
+            </span>
           </div>
         )}
         {cards.map((c, i) => (
-          <div key={`${c.id}-${i}`} className="relative animate-fade-in">
+          <div key={`${c.id}-${i}`} className='relative animate-fade-in'>
             {dragOverIndex === i && (
-              <div className="mb-2 h-2 bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder" />
+              <div className='mb-2 h-2 bg-linear-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder' />
             )}
             <CardItem
               card={c}
-              listId={list.id}
               index={i}
               onDragStart={handleCardDragStart}
               onDragOver={handleCardDragOver}
+              availableLists={allLists.map((l) => ({
+                id: l.id,
+                name: l.title,
+              }))}
+              currentBoardId={boardId}
             />
           </div>
         ))}
         {dragOverIndex === cards.length && cards.length > 0 && (
-          <div className="h-2 bg-gradient-to-r from-[var(--trello-blue)] to-[var(--trello-blue-hover)] rounded-full shadow-lg animate-drag-placeholder" />
+          <div className='h-2 bg-linear-to-r from-(--trello-blue) to-(--trello-blue-hover) rounded-full shadow-lg animate-drag-placeholder' />
         )}
       </div>
 
       {/* Footer */}
-      <div className="p-2 border-accent shrink-0">
+      <div className='p-2 border-accent shrink-0'>
         {!addingCard ? (
           <Button
             ref={addButtonRef}
             onClick={() => setAddingCard(true)}
-            variant="secondary"
-            className="w-full justify-start cursor-pointer hover:bg-primary"
-            aria-label="Add a card"
+            variant='secondary'
+            className='w-full justify-start cursor-pointer hover:bg-primary'
+            aria-label='Add a card'
           >
             + Add a card
           </Button>

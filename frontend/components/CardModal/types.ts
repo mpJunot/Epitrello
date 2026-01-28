@@ -19,7 +19,7 @@ export type Checklist = Omit<GqlChecklist, 'cardId'> & {
 };
 export type DueDate = { date: string; isComplete: boolean };
 export type Comment = { id: string; text: string; author: UserRef; createdAt: string };
-export type Card = Pick<GqlCard, 'id' | 'title' | 'description' | 'position' | 'dueDate' | 'startDate' | 'coverUrl'> & {
+export type Card = Pick<GqlCard, 'id' | 'title' | 'description' | 'position' | 'dueDate' | 'startDate' | 'background'> & {
   listId?: string;
   labels?: Label[];
   assignees?: UserRef[];

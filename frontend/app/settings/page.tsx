@@ -1,44 +1,34 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/lib/toast';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCurrentUser, updateUser } from '@/lib/actions/users';
+import { updateUser } from '@/lib/actions/users';
+import { useCurrentUserQuery, currentUserQueryKey } from '@/lib/queries/users';
 
 export default function AccountSettingsPage() {
+  const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const loadUser = async () => {
-      setLoading(true);
-      try {
-        const user = await getCurrentUser();
-        if (user) {
-          setUserId(user.id);
-          setName(user.name || '');
-          setEmail(user.email || '');
-        } else {
-          toast.error('Failed to load user information');
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to load user information';
-        toast.error(message);
-        console.error('Failed to load user', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: user, isLoading: loading } = useCurrentUserQuery();
 
-    loadUser();
-  }, []);
+  useEffect(() => {
+    if (user) {
+      setUserId(user.id);
+      setName(user.name || '');
+      setEmail(user.email || '');
+    } else if (user === null && !loading) {
+      toast.error('Failed to load user information');
+    }
+  }, [user, loading]);
 
   const save = async () => {
     if (!userId) {
@@ -49,6 +39,7 @@ export default function AccountSettingsPage() {
     setSaving(true);
     try {
       await updateUser(userId, { name, email });
+      await queryClient.invalidateQueries({ queryKey: currentUserQueryKey });
       toast.success('Account updated');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save';
