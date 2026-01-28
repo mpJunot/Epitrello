@@ -62,7 +62,13 @@ export default function BoardView({ board }: { board: Board }) {
             className="h-full p-4 flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory md:snap-none items-start [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {lists.map((l) => (
-              <SortableColumn key={l.id} list={l} totalListsCount={lists.length} allLists={lists} />
+              <SortableColumn
+                key={l.id}
+                list={l}
+                totalListsCount={lists.length}
+                allLists={lists}
+                boardId={board.id}
+              />
             ))}
 
             <div className="w-[272px] min-w-[272px] shrink-0 p-3 rounded-md snap-center md:snap-align-none">
@@ -75,7 +81,17 @@ export default function BoardView({ board }: { board: Board }) {
   );
 }
 
-function SortableColumn({ list, totalListsCount, allLists }: { list: List; totalListsCount: number; allLists: List[] }) {
+function SortableColumn({
+  list,
+  totalListsCount,
+  allLists,
+  boardId,
+}: {
+  list: List;
+  totalListsCount: number;
+  allLists: List[];
+  boardId: string;
+}) {
   const {
     attributes,
     listeners,
@@ -101,6 +117,7 @@ function SortableColumn({ list, totalListsCount, allLists }: { list: List; total
         list={list}
         totalListsCount={totalListsCount}
         allLists={allLists}
+        boardId={boardId}
         dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
