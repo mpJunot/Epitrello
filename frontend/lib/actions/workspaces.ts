@@ -35,7 +35,7 @@ export interface GqlBoard {
   background?: string;
   visibility: 'PRIVATE' | 'PUBLIC' | 'WORKSPACE';
   workspaceId?: string;
-  members?: { id: string }[];
+  members?: { id: string; userId: string }[];
 }
 
 /**
@@ -113,13 +113,52 @@ export async function getWorkspaceBoards(workspaceId: string): Promise<GqlBoard[
         background
         visibility
         workspaceId
-        members { id }
+        members { id userId }
       }
     }
   `;
 
   const result = await graphqlRequest<{ workspaceBoards: GqlBoard[] }>(query, { workspaceId });
   return result.workspaceBoards;
+}
+
+/**
+ * Get workspace invite info (id, name, logoUrl) for the invite link page.
+ * Public query – no auth required.
+ */
+export async function getWorkspaceInviteInfo(
+  workspaceId: string,
+): Promise<{ id: string; name: string; logoUrl?: string }> {
+  const query = `
+    query WorkspaceInviteInfo($workspaceId: ID!) {
+      workspaceInviteInfo(workspaceId: $workspaceId) {
+        id
+        name
+        logoUrl
+      }
+    }
+  `;
+  const result = await graphqlRequest<{
+    workspaceInviteInfo: { id: string; name: string; logoUrl?: string };
+  }>(query, { workspaceId });
+  return result.workspaceInviteInfo;
+}
+
+/**
+ * Join a workspace via invite link (adds current user as MEMBER).
+ */
+export async function joinWorkspaceByInviteLink(
+  workspaceId: string,
+): Promise<boolean> {
+  const mutation = `
+    mutation JoinWorkspaceByInviteLink($workspaceId: ID!) {
+      joinWorkspaceByInviteLink(workspaceId: $workspaceId)
+    }
+  `;
+  const result = await graphqlRequest<{
+    joinWorkspaceByInviteLink: boolean;
+  }>(mutation, { workspaceId });
+  return result.joinWorkspaceByInviteLink;
 }
 
 /**
@@ -374,4 +413,19 @@ export async function rejectInvitation(invitationId: string): Promise<WorkspaceI
     input: { invitationId },
   });
   return result.rejectInvitation;
+}
+
+/**
+ * Leave a workspace (current user removes themselves).
+ */
+export async function leaveWorkspace(workspaceId: string): Promise<boolean> {
+  const mutation = `
+    mutation LeaveWorkspace($workspaceId: ID!) {
+      leaveWorkspace(workspaceId: $workspaceId)
+    }
+  `;
+  const result = await graphqlRequest<{ leaveWorkspace: boolean }>(mutation, {
+    workspaceId,
+  });
+  return result.leaveWorkspace;
 }

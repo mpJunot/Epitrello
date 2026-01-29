@@ -29,6 +29,7 @@ interface CardModalQuickActionsProps {
   onRemoveStartDate: () => void;
   onSetNewChecklistTitle: (title: string) => void;
   onCreateChecklist: () => void;
+  readOnly?: boolean;
 }
 
 export function CardModalQuickActions({
@@ -52,7 +53,10 @@ export function CardModalQuickActions({
   onRemoveStartDate,
   onSetNewChecklistTitle,
   onCreateChecklist,
+  readOnly = false,
 }: CardModalQuickActionsProps) {
+  if (readOnly) return null;
+
   return (
     <div className='flex items-center gap-2 flex-wrap relative'>
       {assignedMembers.length === 0 && (

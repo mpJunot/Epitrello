@@ -103,7 +103,7 @@ describe('CommentsService', () => {
 
     await expect(
       service.create({ cardId: 'card-1', content: 'Hello' }, mockUser.id),
-    ).rejects.toThrow('You do not have access to this board');
+    ).rejects.toThrow('You are not a member of this board');
   });
 
   it('should throw when board is not found', async () => {
@@ -118,7 +118,7 @@ describe('CommentsService', () => {
     ).rejects.toThrow('Board not found');
   });
 
-  it('should allow access for public boards', async () => {
+  it('should throw when creating comment on public board without membership', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
       list: { boardId: 'board-1' },
@@ -129,22 +129,13 @@ describe('CommentsService', () => {
       members: [],
       workspace: null,
     });
-    mockPrismaService.comment.create.mockResolvedValue({
-      id: 'comment-1',
-      cardId: 'card-1',
-      authorId: 'user-1',
-      content: 'Hello',
-    });
 
-    const result = await service.create(
-      { cardId: 'card-1', content: 'Hello' },
-      mockUser.id,
-    );
-
-    expect(result.id).toBe('comment-1');
+    await expect(
+      service.create({ cardId: 'card-1', content: 'Hello' }, mockUser.id),
+    ).rejects.toThrow('You are not a member of this board');
   });
 
-  it('should allow access for workspace members', async () => {
+  it('should throw when creating comment as workspace member but not board member', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
       list: { boardId: 'board-1' },
@@ -154,19 +145,10 @@ describe('CommentsService', () => {
       members: [],
       workspace: { memberships: [{ userId: mockUser.id }] },
     });
-    mockPrismaService.comment.create.mockResolvedValue({
-      id: 'comment-1',
-      cardId: 'card-1',
-      authorId: 'user-1',
-      content: 'Hello',
-    });
 
-    const result = await service.create(
-      { cardId: 'card-1', content: 'Hello' },
-      mockUser.id,
-    );
-
-    expect(result.id).toBe('comment-1');
+    await expect(
+      service.create({ cardId: 'card-1', content: 'Hello' }, mockUser.id),
+    ).rejects.toThrow('You are not a member of this board');
   });
 
   it('should get a comment by id', async () => {

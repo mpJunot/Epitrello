@@ -19,6 +19,7 @@ interface ChecklistsSectionProps {
   onCancelAddItem: () => void;
   onChangeNewItemText: (v: string) => void;
   getProgress: (checklist: Checklist) => number;
+  readOnly?: boolean;
 }
 
 export default function ChecklistsSection({
@@ -33,6 +34,7 @@ export default function ChecklistsSection({
   onCancelAddItem,
   onChangeNewItemText,
   getProgress,
+  readOnly = false,
 }: ChecklistsSectionProps) {
   return (
     <>
@@ -49,14 +51,16 @@ export default function ChecklistsSection({
                   {checklist.title}
                 </h3>
               </div>
-              <Button
-                onClick={() => onDeleteChecklist(checklist.id)}
-                variant='ghost'
-                className='text-trello-text-secondary hover:text-red-600'
-                title='Delete checklist'
-              >
-                Delete
-              </Button>
+              {!readOnly && (
+                <Button
+                  onClick={() => onDeleteChecklist(checklist.id)}
+                  variant='ghost'
+                  className='text-trello-text-secondary hover:text-red-600'
+                  title='Delete checklist'
+                >
+                  Delete
+                </Button>
+              )}
             </div>
             <div>
               <div className='mb-3'>
@@ -82,75 +86,81 @@ export default function ChecklistsSection({
                 {checklist.items?.map((item) => (
                   <div
                     key={item.id}
-                    className='flex items-start gap-2 py-1 rounded hover:bg-trello-hover group transition-colors'
+                    className={`flex items-start gap-2 py-1 rounded ${!readOnly ? 'hover:bg-trello-hover group transition-colors' : ''}`}
                   >
                     <Checkbox
                       checked={item.checked}
-                      onCheckedChange={() =>
-                        onToggleItem(checklist.id, item.id)
+                      onCheckedChange={
+                        readOnly
+                          ? undefined
+                          : () => onToggleItem(checklist.id, item.id)
                       }
+                      disabled={readOnly}
                       className='mt-0.5'
                     />
                     <LabelUI
-                      className={`text-sm flex-1 cursor-pointer ${item.checked ? 'text-trello-text-secondary line-through' : 'text-trello'}`}
+                      className={`text-sm flex-1 ${!readOnly ? 'cursor-pointer' : ''} ${item.checked ? 'text-trello-text-secondary line-through' : 'text-trello'}`}
                     >
                       {item.content}
                     </LabelUI>
-                    <Button
-                      onClick={() => onDeleteItem(checklist.id, item.id)}
-                      variant='ghost'
-                      size='icon'
-                      className='opacity-0 group-hover:opacity-100 h-6 w-6 text-trello-text-secondary hover:text-red-600 transition-opacity'
-                      title='Delete item'
-                    >
-                      <Trash2 className='w-3 h-3' />
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        onClick={() => onDeleteItem(checklist.id, item.id)}
+                        variant='ghost'
+                        size='icon'
+                        className='opacity-0 group-hover:opacity-100 h-6 w-6 text-trello-text-secondary hover:text-red-600 transition-opacity'
+                        title='Delete item'
+                      >
+                        <Trash2 className='w-3 h-3' />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
 
-              {addingItemToChecklist === checklist.id ? (
-                <div className='mt-3'>
-                  <Input
-                    type='text'
-                    value={newItemText}
-                    onChange={(e) => onChangeNewItemText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        onAddItem(checklist.id);
-                      } else if (e.key === 'Escape') {
-                        onCancelAddItem();
-                      }
-                    }}
-                    placeholder='Add an item...'
-                    className='mb-2'
-                    autoFocus
-                  />
-                  <div className='flex items-center gap-2'>
-                    <Button onClick={() => onAddItem(checklist.id)} size='sm'>
-                      Add
-                    </Button>
-                    <Button
-                      onClick={onCancelAddItem}
-                      variant='secondary'
-                      size='sm'
-                    >
-                      Cancel
-                    </Button>
+              {!readOnly &&
+                (addingItemToChecklist === checklist.id ? (
+                  <div className='mt-3'>
+                    <Input
+                      type='text'
+                      value={newItemText}
+                      onChange={(e) => onChangeNewItemText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          onAddItem(checklist.id);
+                        } else if (e.key === 'Escape') {
+                          onCancelAddItem();
+                        }
+                      }}
+                      placeholder='Add an item...'
+                      className='mb-2'
+                      autoFocus
+                    />
+                    <div className='flex items-center gap-2'>
+                      <Button onClick={() => onAddItem(checklist.id)} size='sm'>
+                        Add
+                      </Button>
+                      <Button
+                        onClick={onCancelAddItem}
+                        variant='secondary'
+                        size='sm'
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <Button
-                  onClick={() => onStartAddItem(checklist.id)}
-                  variant='ghost'
-                  size='sm'
-                  className='mt-2'
-                >
-                  <Plus className='w-4 h-4' />
-                  Add an item
-                </Button>
-              )}
+                ) : (
+                  <Button
+                    onClick={() => onStartAddItem(checklist.id)}
+                    variant='ghost'
+                    size='sm'
+                    className='mt-2'
+                  >
+                    <Plus className='w-4 h-4' />
+                    Add an item
+                  </Button>
+                ))}
             </div>
           </div>
         );

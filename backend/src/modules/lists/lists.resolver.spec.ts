@@ -13,6 +13,8 @@ describe('ListsResolver', () => {
     delete: jest.fn(),
     reorder: jest.fn(),
     archive: jest.fn(),
+    unarchive: jest.fn(),
+    findArchivedByBoardId: jest.fn(),
   };
 
   const mockUser = {
@@ -151,6 +153,36 @@ describe('ListsResolver', () => {
       expect(result).toEqual(archivedList);
       expect(result.isArchived).toBe(true);
       expect(service.archive).toHaveBeenCalledWith('list-1', mockUser.id);
+    });
+  });
+
+  describe('unarchiveList', () => {
+    it('should unarchive a list', async () => {
+      const unarchivedList = {
+        ...mockList,
+        isArchived: false,
+      };
+
+      mockListsService.unarchive.mockResolvedValue(unarchivedList);
+
+      const result = await resolver.unarchiveList('list-1', mockUser);
+
+      expect(result).toEqual(unarchivedList);
+      expect(result.isArchived).toBe(false);
+      expect(service.unarchive).toHaveBeenCalledWith('list-1', mockUser.id);
+    });
+  });
+
+  describe('archivedLists', () => {
+    it('should return archived lists for a board', async () => {
+      const archivedList = { ...mockList, isArchived: true };
+      mockListsService.findArchivedByBoardId.mockResolvedValue([archivedList]);
+
+      const result = await resolver.archivedLists('board-1', mockUser);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isArchived).toBe(true);
+      expect(service.findArchivedByBoardId).toHaveBeenCalledWith('board-1', mockUser.id);
     });
   });
 });

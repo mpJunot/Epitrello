@@ -109,6 +109,13 @@ describe('BoardsService', () => {
               role: Role.ADMIN,
             },
           },
+          lists: {
+            create: [
+              { title: 'To Do', position: 0 },
+              { title: 'Doing', position: 1 },
+              { title: 'Done', position: 2 },
+            ],
+          },
         },
       });
     });
@@ -357,6 +364,10 @@ describe('BoardsService', () => {
         where: {
           workspaceId: 'workspace-1',
           isArchived: false,
+          OR: [
+            { visibility: 'WORKSPACE' },
+            { members: { some: { userId: mockUser.id } } },
+          ],
         },
         include: {
           members: {

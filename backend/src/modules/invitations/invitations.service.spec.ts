@@ -318,6 +318,80 @@ describe('InvitationsService', () => {
     });
   });
 
+  describe('joinWorkspaceByInviteLink', () => {
+    const workspaceId = 'workspace-1';
+    const userId = 'user-1';
+
+    it('should add user as MEMBER when not already a member', async () => {
+      mockPrismaService.workspace.findUnique.mockResolvedValue({
+        id: workspaceId,
+        name: 'Test Workspace',
+      });
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue(null);
+      mockPrismaService.workspaceMember.create.mockResolvedValue({
+        id: 'm1',
+        workspaceId,
+        userId,
+        role: Role.MEMBER,
+        joinedAt: new Date(),
+      });
+
+      const result = await service.joinWorkspaceByInviteLink(workspaceId, userId);
+
+      expect(result).toBe(true);
+      expect(mockPrismaService.workspace.findUnique).toHaveBeenCalledWith({
+        where: { id: workspaceId },
+        select: { id: true, name: true },
+      });
+      expect(mockPrismaService.workspaceMember.findUnique).toHaveBeenCalledWith({
+        where: {
+          workspaceId_userId: { workspaceId, userId },
+        },
+      });
+      expect(mockPrismaService.workspaceMember.create).toHaveBeenCalledWith({
+        data: {
+          workspaceId,
+          userId,
+          role: Role.MEMBER,
+        },
+      });
+    });
+
+    it('should throw NotFoundException when workspace not found', async () => {
+      mockPrismaService.workspace.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.joinWorkspaceByInviteLink(workspaceId, userId),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.joinWorkspaceByInviteLink(workspaceId, userId),
+      ).rejects.toThrow('Workspace not found');
+      expect(mockPrismaService.workspaceMember.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when user is already a member', async () => {
+      mockPrismaService.workspace.findUnique.mockResolvedValue({
+        id: workspaceId,
+        name: 'Test Workspace',
+      });
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: 'm1',
+        workspaceId,
+        userId,
+        role: Role.MEMBER,
+        joinedAt: new Date(),
+      });
+
+      await expect(
+        service.joinWorkspaceByInviteLink(workspaceId, userId),
+      ).rejects.toThrow(ConflictException);
+      await expect(
+        service.joinWorkspaceByInviteLink(workspaceId, userId),
+      ).rejects.toThrow('You are already a member of this workspace');
+      expect(mockPrismaService.workspaceMember.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('updateMemberRole', () => {
     const input = {
       workspaceId: 'workspace-1',
