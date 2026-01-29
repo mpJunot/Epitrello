@@ -65,16 +65,16 @@ jobs:
         id: check-test
         working-directory: frontend
         run: |
-          if grep -q '"test"' package.json; then
+          if grep -q '"test:e2e"' package.json; then
             echo "has_test=true" >> $GITHUB_OUTPUT
           else
             echo "has_test=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Run unit tests
+      - name: Run E2E tests
         if: steps.check-test.outputs.has_test == 'true'
         working-directory: frontend
-        run: pnpm test
+        run: pnpm test:e2e
 
       - name: Upload coverage
         if: hashFiles('frontend/coverage/lcov.info') != ''
