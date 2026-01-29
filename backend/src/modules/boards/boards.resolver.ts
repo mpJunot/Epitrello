@@ -18,7 +18,7 @@ export class BoardsResolver {
   constructor(
     private readonly boardsService: BoardsService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   @ResolveField(() => [List])
   async lists(@Parent() board: Board): Promise<List[]> {
@@ -130,5 +130,15 @@ export class BoardsResolver {
     @CurrentUser() user: any,
   ): Promise<boolean> {
     return this.boardsService.updateMemberRole(input.boardId, input.userId, input.role, user.id);
+  }
+
+  @Mutation(() => Boolean, {
+    description: 'Leave a board. Cannot leave if you are the last admin.',
+  })
+  async leaveBoard(
+    @Args('boardId', { type: () => ID }) boardId: string,
+    @CurrentUser() user: any,
+  ): Promise<boolean> {
+    return this.boardsService.leaveBoard(boardId, user.id);
   }
 }

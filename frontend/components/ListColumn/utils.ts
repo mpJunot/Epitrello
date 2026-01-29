@@ -22,6 +22,8 @@ export const generateId = (): string => {
 /**
  * Creates a content signature for comparing card arrays
  */
-export const createCardsSignature = (cards: Array<{ id: string; title: string; description?: string | null | undefined }>): string => {
-  return cards.map((c) => `${c.id}:${c.title}:${c.description || ''}`).join('|');
+export const createCardsSignature = (
+  cards: Array<{ id: string; title: string; description?: string | null; completed?: boolean | null }>
+): string => {
+  return cards.map((c) => `${c.id}:${c.title}:${c.description || ''}:${c.completed ?? false}`).join('|');
 };

@@ -23,8 +23,11 @@ export function useEventListeners(
       'epitrello:card-title-updated': cardHandlers.handleCardTitleUpdate,
       'epitrello:card-description-updated': cardHandlers.handleCardDescriptionUpdate,
       'epitrello:card-duedate-updated': cardHandlers.handleCardDueDateUpdate,
+      'epitrello:card-startdate-updated': cardHandlers.handleCardStartDateUpdate,
+      'epitrello:card-background-updated': cardHandlers.handleCardBackgroundUpdate,
       'epitrello:card-completed-updated': cardHandlers.handleCardCompletedUpdate,
       'epitrello:card-deleted': cardHandlers.handleCardDelete,
+      'epitrello:card-checklists-updated': cardHandlers.handleCardChecklistsUpdate,
     };
 
     // Register all event listeners

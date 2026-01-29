@@ -19,6 +19,7 @@ describe('BoardsResolver', () => {
     addMember: jest.fn(),
     removeMember: jest.fn(),
     updateMemberRole: jest.fn(),
+    leaveBoard: jest.fn(),
   };
 
   const mockPrismaService = {
@@ -238,6 +239,17 @@ describe('BoardsResolver', () => {
         input.role,
         mockUser.id,
       );
+    });
+  });
+
+  describe('leaveBoard', () => {
+    it('should allow a user to leave a board', async () => {
+      mockBoardsService.leaveBoard.mockResolvedValue(true);
+
+      const result = await resolver.leaveBoard(mockBoard.id, mockUser);
+
+      expect(result).toBe(true);
+      expect(service.leaveBoard).toHaveBeenCalledWith(mockBoard.id, mockUser.id);
     });
   });
 });

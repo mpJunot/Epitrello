@@ -1,17 +1,24 @@
 import { graphqlRequest } from '../graphql-client';
 
+export interface CardLabel {
+  id: string;
+  name?: string | null;
+  color: string;
+}
+
 export interface Card {
   id: string;
   title: string;
   description?: string;
   listId?: string;
   position?: number;
-  coverUrl?: string;
+  background?: string;
   dueDate?: string;
   startDate?: string;
   completed?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  labels?: CardLabel[];
 }
 
 export interface CreateCardInput {
@@ -88,9 +95,9 @@ export interface UpdateCardInput {
   id: string;
   title?: string;
   description?: string;
-  coverUrl?: string;
-  dueDate?: string;
-  startDate?: string;
+  background?: string | null;
+  dueDate?: string | null;
+  startDate?: string | null;
   position?: number;
   completed?: boolean;
 }
@@ -104,7 +111,7 @@ export async function updateCard(input: UpdateCardInput): Promise<Card> {
         description
         listId
         position
-        coverUrl
+        background
         dueDate
         startDate
         completed
@@ -172,4 +179,40 @@ export async function unassignMemberFromCard(input: AssignMemberInput): Promise<
 
   const result = await graphqlRequest<{ unassignMemberFromCard: Card }>(mutation, { input });
   return result.unassignMemberFromCard;
+}
+
+export interface AddLabelToCardInput {
+  cardId: string;
+  labelId: string;
+}
+
+export async function addLabelToCard(input: AddLabelToCardInput): Promise<Card> {
+  const mutation = `
+    mutation AddLabelToCard($input: AddLabelToCardInput!) {
+      addLabelToCard(input: $input) {
+        id
+        labels { id name color }
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ addLabelToCard: Card }>(mutation, { input });
+  return result.addLabelToCard;
+}
+
+export interface RemoveLabelFromCardInput {
+  cardId: string;
+  labelId: string;
+}
+
+export async function removeLabelFromCard(input: RemoveLabelFromCardInput): Promise<Card> {
+  const mutation = `
+    mutation RemoveLabelFromCard($input: RemoveLabelFromCardInput!) {
+      removeLabelFromCard(input: $input) {
+        id
+        labels { id name color }
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ removeLabelFromCard: Card }>(mutation, { input });
+  return result.removeLabelFromCard;
 }
