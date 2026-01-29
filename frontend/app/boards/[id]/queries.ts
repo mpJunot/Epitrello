@@ -51,6 +51,7 @@ function mapBoardLists(data: Awaited<ReturnType<typeof getBoard>>): List[] {
           dueDate: c.dueDate ?? undefined,
           startDate: c.startDate ?? undefined,
           completed: card.completed ?? false,
+          createdAt: (card as { createdAt?: string }).createdAt,
           assignees:
             c.assignees && Array.isArray(c.assignees) ? (c.assignees as Card['assignees']) : undefined,
           labels: c.labels ?? undefined,
