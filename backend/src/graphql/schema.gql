@@ -72,9 +72,9 @@ type BoardMemberWithUser {
 
 type Card {
   assignees: [MemberUser!]
+  background: String
   checklists: [Checklist!]
   completed: Boolean!
-  coverUrl: String
   createdAt: DateTime!
   description: String
   dueDate: DateTime
@@ -138,8 +138,8 @@ input CreateBoardInput {
 }
 
 input CreateCardInput {
+  background: String
   completed: Boolean
-  coverUrl: String
 
   """Card description with markdown support"""
   description: String
@@ -370,6 +370,9 @@ type Mutation {
 
   """Invite a member to a workspace. Only ADMIN members can invite."""
   inviteMember(input: InviteMemberInput!): WorkspaceInvitation!
+
+  """Leave a board. Cannot leave if you are the last admin."""
+  leaveBoard(boardId: ID!): Boolean!
 
   """Leave a workspace. Cannot leave if you are the last admin."""
   leaveWorkspace(workspaceId: ID!): Boolean!
@@ -606,8 +609,8 @@ input UpdateBoardMemberRoleInput {
 }
 
 input UpdateCardInput {
+  background: String
   completed: Boolean
-  coverUrl: String
 
   """Card description with markdown support"""
   description: String

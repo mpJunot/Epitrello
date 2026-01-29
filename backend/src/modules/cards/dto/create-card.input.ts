@@ -1,5 +1,5 @@
 import { InputType, Field, ID, Float } from '@nestjs/graphql';
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsUrl, IsDate, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsDate, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 @InputType()
@@ -20,9 +20,8 @@ export class CreateCardInput {
   description?: string;
 
   @Field({ nullable: true })
-  @IsUrl()
   @IsOptional()
-  coverUrl?: string;
+  background?: string;
 
   @Field({ nullable: true })
   @IsDate()

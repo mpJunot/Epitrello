@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Separator } from "@/components/ui/separator";
 import { clearAuthToken } from "@/lib/graphql-client";
 import { getCurrentUser } from "@/lib/actions/users";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,18 +22,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getAvatarColor } from '@/lib/utils/avatar-colors';
+
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 export default function Topbar() {
   const pathname = usePathname();
-  const isAuthPage = pathname?.startsWith("/auth");
+  const isAuthPage = pathname?.startsWith('/auth');
 
-  const [query, setQuery] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{ id: string; message: string; read?: boolean }>>(() => {
+  const [notifications, setNotifications] = useState<
+    Array<{ id: string; message: string; read?: boolean }>
+  >(() => {
     try {
-      const raw = localStorage.getItem("epitrello_notifications");
+      const raw = localStorage.getItem('epitrello_notifications');
       const notes = raw ? JSON.parse(raw) : [];
       return Array.isArray(notes) ? notes : [];
     } catch {
@@ -40,7 +45,7 @@ export default function Topbar() {
     }
   });
 
-  const notificationsCount = notifications.filter(n => !n.read).length;
+  const notificationsCount = notifications.filter((n) => !n.read).length;
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
@@ -67,15 +72,21 @@ export default function Topbar() {
   useEffect(() => {
     const handleStorageChange = () => {
       try {
-        const raw = localStorage.getItem("epitrello_notifications");
+        const raw = localStorage.getItem('epitrello_notifications');
         const notes = raw ? JSON.parse(raw) : [];
         if (Array.isArray(notes)) {
           setNotifications((prevNotifications) => {
-            const previousUnread = prevNotifications.filter(n => !n.read).length;
-            const newUnread = notes.filter((n: { read?: boolean }) => !n.read).length;
+            const previousUnread = prevNotifications.filter(
+              (n) => !n.read,
+            ).length;
+            const newUnread = notes.filter(
+              (n: { read?: boolean }) => !n.read,
+            ).length;
             if (newUnread > previousUnread) {
-              const newNotifications = notes.filter((n: { read?: boolean; id: string; message: string }) =>
-                !n.read && !prevNotifications.find(existing => existing.id === n.id)
+              const newNotifications = notes.filter(
+                (n: { read?: boolean; id: string; message: string }) =>
+                  !n.read &&
+                  !prevNotifications.find((existing) => existing.id === n.id),
               );
               newNotifications.forEach((notification: { message: string }) => {
                 toast.info(notification.message, 'Notification');
@@ -91,12 +102,18 @@ export default function Topbar() {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('epitrello:notification-added', handleStorageChange);
+    window.addEventListener(
+      'epitrello:notification-added',
+      handleStorageChange,
+    );
     handleStorageChange();
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('epitrello:notification-added', handleStorageChange);
+      window.removeEventListener(
+        'epitrello:notification-added',
+        handleStorageChange,
+      );
     };
   }, []);
 
@@ -121,21 +138,20 @@ export default function Topbar() {
   const getInitials = (name: string) => {
     return name
       .split(' ')
-      .map(n => n[0])
+      .map((n) => n[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
   };
 
-  const onSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    console.log("Search for", query);
-    setSearchOpen(false);
-  };
-
   const [createOpen, setCreateOpen] = useState(false);
 
-  const createBoard = (payload?: { name?: string; workspaceId?: string; visibility?: string; background?: string }) => {
+  const createBoard = (payload?: {
+    name?: string;
+    workspaceId?: string;
+    visibility?: string;
+    background?: string;
+  }) => {
     if (!payload) {
       setCreateOpen(true);
       return;
@@ -154,12 +170,16 @@ export default function Topbar() {
         'bg-gradient-to-br from-cyan-400 to-teal-500',
       ];
 
-      const selectedBackground = background || backgrounds[Math.floor(Math.random() * backgrounds.length)];
+      const selectedBackground =
+        background ||
+        backgrounds[Math.floor(Math.random() * backgrounds.length)];
 
       const raw = localStorage.getItem('epitrello_boards');
       const boards = raw ? JSON.parse(raw) : [];
       const id =
-        typeof crypto !== 'undefined' && 'randomUUID' in crypto && typeof crypto.randomUUID === 'function'
+        typeof crypto !== 'undefined' &&
+        'randomUUID' in crypto &&
+        typeof crypto.randomUUID === 'function'
           ? crypto.randomUUID()
           : Date.now().toString();
       const board = {
@@ -209,34 +229,41 @@ export default function Topbar() {
               <Search className="h-5 w-5" />
             </Button>
           </div>
+          <SidebarTrigger className='shrink-0' />
+        </div>
 
+        <div className='flex items-center gap-2 shrink-0'>
           {/* Create board */}
           <Button
             onClick={() => createBoard()}
-            aria-label="Create a new board"
-            className="hidden sm:inline-flex shrink-0"
+            aria-label='Create a new board'
+            className='hidden sm:inline-flex shrink-0'
           >
             + Create
           </Button>
           <Button
             onClick={() => createBoard()}
-            aria-label="Create board"
-            size="icon"
-            className="sm:hidden shrink-0"
-            title="Create"
+            aria-label='Create board'
+            size='icon'
+            className='sm:hidden shrink-0'
+            title='Create'
           >
             +
           </Button>
-          <CreateBoardModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={(p) => createBoard(p)} />
+          <CreateBoardModal
+            open={createOpen}
+            onClose={() => setCreateOpen(false)}
+            onCreate={(p) => createBoard(p)}
+          />
 
           {/* Notifications */}
           <Button
             aria-label={`Notifications, ${notificationsCount} unread`}
-            variant="ghost"
-            size="icon"
-            title="Notifications"
+            variant='ghost'
+            size='icon'
+            title='Notifications'
             onClick={() => {
-              const unreadNotifications = notifications.filter(n => !n.read);
+              const unreadNotifications = notifications.filter((n) => !n.read);
               if (unreadNotifications.length === 0) {
                 toast.info('No new notifications');
                 return;
@@ -246,19 +273,27 @@ export default function Topbar() {
                 toast.info(notification.message);
               });
 
-              const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+              const updatedNotifications = notifications.map((n) => ({
+                ...n,
+                read: true,
+              }));
               setNotifications(updatedNotifications);
               try {
-                localStorage.setItem('epitrello_notifications', JSON.stringify(updatedNotifications));
+                localStorage.setItem(
+                  'epitrello_notifications',
+                  JSON.stringify(updatedNotifications),
+                );
               } catch (error) {
                 console.error('Failed to update notifications', error);
               }
             }}
-            className="relative"
+            className='relative'
           >
-            <Bell className="h-5 w-5" />
+            <Bell className='h-5 w-5' />
             {notificationsCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full">{notificationsCount}</span>
+              <span className='absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full'>
+                {notificationsCount}
+              </span>
             )}
           </Button>
 
@@ -269,81 +304,125 @@ export default function Topbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
-                className="shrink-0 h-auto p-1"
-                aria-label="Open profile menu"
+                variant='ghost'
+                className='shrink-0 h-auto p-1'
+                aria-label='Open profile menu'
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className='h-8 w-8'>
                   <AvatarImage src={userAvatar} alt={userName} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {userName ? getInitials(userName) : 'U'}
+                  <AvatarFallback
+                    className={`text-white ${getAvatarColor(userName || userEmail)}`}
+                  >
+                    {userName
+                      ? getInitials(userName)
+                      : userEmail
+                        ? userEmail.charAt(0).toUpperCase()
+                        : 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 border-accent">
+            <DropdownMenuContent align='end' className='w-64 border-accent'>
               <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{userName || 'User'}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{userEmail || ''}</p>
+                <div className='flex items-center gap-3'>
+                  <Avatar className='h-10 w-10'>
+                    <AvatarImage src={userAvatar} alt={userName} />
+                    <AvatarFallback
+                      className={`text-sm text-white ${getAvatarColor(userName || userEmail)}`}
+                    >
+                      {userName
+                        ? getInitials(userName)
+                        : userEmail
+                          ? userEmail.charAt(0).toUpperCase()
+                          : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className='flex flex-col'>
+                    <p className='text-sm font-medium leading-none'>
+                      {userName || 'User'}
+                    </p>
+                    <p className='text-xs leading-none text-muted-foreground'>
+                      {userEmail || ''}
+                    </p>
+                  </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <div className="text-xs text-muted-foreground font-medium mb-2">Account</div>
-                <div className="space-y-1">
-                  <DropdownMenuItem asChild>
-                    <a href="#" onClick={(e) => { e.preventDefault(); alert('Switch accounts (not implemented)'); }} className="cursor-pointer">
-                      Switch accounts
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="/settings" className="cursor-pointer">
-                      Manage account
-                    </a>
-                  </DropdownMenuItem>
-                </div>
-              </div>
+              <DropdownMenuItem asChild>
+                <a
+                  href='#'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Switch accounts (not implemented)');
+                  }}
+                  className='cursor-pointer'
+                >
+                  Switch accounts
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='/settings' className='cursor-pointer'>
+                  Manage account
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <div className="text-xs text-muted-foreground font-medium mb-2">Trello</div>
-                <div className="space-y-1">
-                  <DropdownMenuItem asChild>
-                    <a href="/profile" className="cursor-pointer">
-                      Profile and visibility
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="/activity" className="cursor-pointer">
-                      Activity
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="/cards" className="cursor-pointer">
-                      Cards
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="/settings" className="cursor-pointer">
-                      Settings
-                    </a>
-                  </DropdownMenuItem>
-                </div>
-              </div>
+              <DropdownMenuLabel className='text-xs text-muted-foreground font-medium px-2 py-1.5'>
+                Trello
+              </DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <a href='/auth/me' className='cursor-pointer'>
+                  Profile and visibility
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href='#'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Activity (not implemented)');
+                  }}
+                  className='cursor-pointer'
+                >
+                  Activity
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href='#'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Cards (not implemented)');
+                  }}
+                  className='cursor-pointer'
+                >
+                  Cards
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href='/settings' className='cursor-pointer'>
+                  Settings
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <DropdownMenuItem asChild>
-                  <a href="#" onClick={(e) => { e.preventDefault(); setShowHelpDialog(true); }} className="cursor-pointer">
-                    Help
-                  </a>
-                </DropdownMenuItem>
-              </div>
+              <DropdownMenuItem asChild>
+                <a
+                  href='#'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Help (not implemented)');
+                  }}
+                  className='cursor-pointer'
+                >
+                  Help
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <div className="px-2 py-1.5">
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
-                  Log out
-                </DropdownMenuItem>
-              </div>
+              <DropdownMenuItem
+                onClick={handleSignOut}
+                className='cursor-pointer text-red-600'
+              >
+                Log out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
