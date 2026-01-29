@@ -86,6 +86,7 @@ export async function getBoard(id: string): Promise<BoardDetail> {
             background
             dueDate
             startDate
+            createdAt
             assignees {
               id
               name

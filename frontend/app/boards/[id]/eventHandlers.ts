@@ -138,6 +138,8 @@ export function createListEventHandlers(
             dueDate: newCard.dueDate ?? undefined,
             startDate: newCard.startDate ?? undefined,
             completed: newCard.completed ?? sourceCard.completed ?? false,
+            background: (newCard as { background?: string }).background ?? sourceCard.background,
+            createdAt: (newCard as { createdAt?: string }).createdAt ?? new Date().toISOString(),
             labels: sourceCard.labels,
             assignees: sourceCard.assignees,
             checklists: sourceCard.checklists,
@@ -252,6 +254,7 @@ export function createCardEventHandlers(
       position: 0,
       listId,
       completed: false,
+      createdAt: new Date().toISOString(),
     };
 
     setLists((prevLists) =>
@@ -273,7 +276,6 @@ export function createCardEventHandlers(
               ...l,
               cards: (l.cards || []).map((c) =>
                 c.id === tempCard.id ? {
-
                   id: newCard.id,
                   title: newCard.title,
                   description: newCard.description ?? undefined,
@@ -282,7 +284,8 @@ export function createCardEventHandlers(
                   dueDate: newCard.dueDate ?? undefined,
                   startDate: newCard.startDate ?? undefined,
                   completed: newCard.completed ?? false,
-                  // Omit labels from API response as they may not match our Label type
+                  background: (newCard as { background?: string }).background,
+                  createdAt: (newCard as { createdAt?: string }).createdAt ?? new Date().toISOString(),
                   labels: undefined,
                   assignees: undefined,
                   checklists: undefined,
