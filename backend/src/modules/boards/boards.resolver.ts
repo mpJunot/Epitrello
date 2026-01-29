@@ -25,7 +25,12 @@ export class BoardsResolver {
     return this.prisma.list.findMany({
       where: { boardId: board.id, isArchived: false },
       orderBy: { position: 'asc' },
-      include: { cards: true },
+      include: {
+        cards: {
+          where: { isArchived: false },
+          orderBy: { position: 'asc' },
+        },
+      },
     });
   }
 

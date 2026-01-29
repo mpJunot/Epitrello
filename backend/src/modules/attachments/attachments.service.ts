@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Attachment } from './entities/attachment.entity';
 import { CreateAttachmentInput } from './dto/create-attachment.input';
@@ -43,6 +43,28 @@ export class AttachmentsService {
 
     if (!isBoardMember && !isPublic && !isWorkspaceMember) {
       throw new ForbiddenException('You do not have access to this board');
+    }
+  }
+
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
     }
   }
 
@@ -88,7 +110,7 @@ export class AttachmentsService {
 
   async create(input: CreateAttachmentInput, userId: string): Promise<Attachment> {
     const boardId = await this.getBoardIdFromCard(input.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const url = this.validateUrl(input.url);
     const filename = this.validateFilename(input.filename);
@@ -148,7 +170,7 @@ export class AttachmentsService {
     }
 
     const boardId = await this.getBoardIdFromCard(existing.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     if (existing.uploaderId !== userId) {
       throw new ForbiddenException('You can only edit your own attachments');
@@ -181,7 +203,7 @@ export class AttachmentsService {
     }
 
     const boardId = await this.getBoardIdFromCard(existing.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     if (existing.uploaderId !== userId) {
       throw new ForbiddenException('You can only delete your own attachments');

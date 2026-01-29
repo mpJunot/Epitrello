@@ -127,7 +127,10 @@ describe('ListsService', () => {
           position: 5,
         },
         include: {
-          cards: true,
+          cards: {
+            where: { isArchived: false },
+            orderBy: { position: 'asc' },
+          },
         },
       });
     });
@@ -148,7 +151,7 @@ describe('ListsService', () => {
       await expect(service.create(input, mockUser.id)).rejects.toThrow(ForbiddenException);
     });
 
-    it('should allow creating list on public board without membership', async () => {
+    it('should throw ForbiddenException when creating list without board membership (view-only)', async () => {
       const input = {
         boardId: 'board-1',
         title: 'Public List',
@@ -160,17 +163,13 @@ describe('ListsService', () => {
         visibility: Visibility.PUBLIC,
         workspace: null,
       });
-      mockPrismaService.list.findFirst.mockResolvedValue(null);
-      mockPrismaService.list.create.mockResolvedValue({
-        ...mockList,
-        title: 'Public List',
-        position: 0,
-      });
 
-      const result = await service.create(input, mockUser.id);
-
-      expect(result.title).toBe('Public List');
-      expect(prismaService.list.create).toHaveBeenCalled();
+      await expect(service.create(input, mockUser.id)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.create(input, mockUser.id)).rejects.toThrow(
+        'You are not a member of this board',
+      );
     });
   });
 
@@ -186,6 +185,7 @@ describe('ListsService', () => {
         where: { id: 'list-1' },
         include: {
           cards: {
+            where: { isArchived: false },
             orderBy: {
               position: 'asc',
             },
@@ -370,6 +370,7 @@ describe('ListsService', () => {
         data: { isArchived: true },
         include: {
           cards: {
+            where: { isArchived: false },
             orderBy: {
               position: 'asc',
             },
@@ -382,6 +383,61 @@ describe('ListsService', () => {
       mockPrismaService.list.findUnique.mockResolvedValue(null);
 
       await expect(service.archive('list-1', mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('unarchive', () => {
+    it('should unarchive a list', async () => {
+      mockPrismaService.list.findUnique.mockResolvedValue(mockList);
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.list.update.mockResolvedValue({
+        ...mockList,
+        isArchived: false,
+      });
+
+      const result = await service.unarchive('list-1', mockUser.id);
+
+      expect(result.isArchived).toBe(false);
+      expect(prismaService.list.update).toHaveBeenCalledWith({
+        where: { id: 'list-1' },
+        data: { isArchived: false },
+        include: {
+          cards: {
+            where: { isArchived: false },
+            orderBy: {
+              position: 'asc',
+            },
+          },
+        },
+      });
+    });
+
+    it('should throw NotFoundException if list does not exist', async () => {
+      mockPrismaService.list.findUnique.mockResolvedValue(null);
+
+      await expect(service.unarchive('list-1', mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findArchivedByBoardId', () => {
+    it('should return archived lists for a board', async () => {
+      const archivedList = { ...mockList, isArchived: true };
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.list.findMany.mockResolvedValue([archivedList]);
+
+      const result = await service.findArchivedByBoardId('board-1', mockUser.id);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isArchived).toBe(true);
+      expect(prismaService.list.findMany).toHaveBeenCalledWith({
+        where: { boardId: 'board-1', isArchived: true },
+        orderBy: { position: 'asc' },
+        include: {
+          cards: {
+            orderBy: { position: 'asc' },
+          },
+        },
+      });
     });
   });
 });

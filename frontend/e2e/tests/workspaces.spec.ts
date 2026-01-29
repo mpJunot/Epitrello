@@ -57,10 +57,10 @@ test.describe('Workspace Settings', () => {
 
     // Open visibility dropdown
     await page.getByLabel(/visibility/i).click();
-    
+
     // Select PUBLIC option
     await page.getByRole('option', { name: /public/i }).click();
-    
+
     await page.getByRole('button', { name: /save/i }).click();
 
     // Verify localStorage is updated
@@ -77,7 +77,7 @@ test.describe('Workspace Settings', () => {
     await page.goto(workspaceSettingsUrl);
 
     await page.getByLabel(/visibility/i).click();
-    
+
     await expect(page.getByRole('option', { name: /private/i })).toBeVisible();
     await expect(page.getByRole('option', { name: /workspace/i })).toBeVisible();
     await expect(page.getByRole('option', { name: /public/i })).toBeVisible();
@@ -168,15 +168,15 @@ test.describe('Workspace Members', () => {
     await page.goto(workspaceMembersUrl);
 
     await page.getByRole('button', { name: /invite/i }).click();
-    
+
     const emailInput = page.getByPlaceholder(/email@example\.com/i);
     await emailInput.fill('test@example.com');
-    
+
     await page.getByRole('button', { name: /cancel/i }).click();
 
     // Dialog should close
     await expect(page.getByRole('dialog')).not.toBeVisible();
-    
+
     // Member should not be added
     await expect(page.getByText(/test@example\.com/i)).not.toBeVisible();
   });
@@ -330,7 +330,7 @@ test.describe('Workspace Members - Multiple Operations', () => {
 test.describe('Workspace Navigation', () => {
   test('can navigate between workspace pages', async ({ page }) => {
     await page.goto('/dashboard');
-    
+
     // Setup workspace
     await page.evaluate((id) => {
       const workspace = {

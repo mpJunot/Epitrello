@@ -7,8 +7,15 @@ import {
   createBoard as createBoardAction,
   Visibility,
 } from '@/lib/actions/boards';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
+} from '@/components/ui/empty';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -410,9 +417,19 @@ export default function DashboardPage() {
                       {!wsBoardsLoading &&
                         !wsBoardsError &&
                         wsBoards.length === 0 && (
-                          <div className='text-trello-secondary text-sm'>
-                            No boards in this workspace
-                          </div>
+                          <Empty className='py-6 gap-4 rounded-lg border border-dashed'>
+                            <EmptyHeader>
+                              <EmptyMedia variant='icon'>
+                                <LayoutGrid className='size-5' />
+                              </EmptyMedia>
+                              <EmptyTitle className='text-sm font-medium'>
+                                No boards in this workspace
+                              </EmptyTitle>
+                              <EmptyDescription className='text-xs'>
+                                Create a board to get started
+                              </EmptyDescription>
+                            </EmptyHeader>
+                          </Empty>
                         )}
                       {!wsBoardsLoading &&
                         !wsBoardsError &&

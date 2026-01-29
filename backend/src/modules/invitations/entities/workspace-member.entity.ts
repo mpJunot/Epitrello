@@ -13,6 +13,9 @@ export class MemberUser {
 
   @Field({ nullable: true })
   avatar?: string;
+
+  @Field({ nullable: true })
+  description?: string;
 }
 
 @ObjectType()

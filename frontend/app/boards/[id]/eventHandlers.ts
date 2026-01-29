@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from 'react';
-import { createList, updateList, reorderLists, deleteList } from '@/lib/actions/lists';
-import { createCard, moveCard, updateCard, deleteCard } from '@/lib/actions/cards';
+import { createList, updateList, reorderLists, deleteList, archiveList } from '@/lib/actions/lists';
+import { createCard, moveCard, updateCard, deleteCard, archiveCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
 import { logAction, handleAsyncError } from './utils';
 
@@ -206,6 +206,20 @@ export function createListEventHandlers(
     }
   }
 
+  async function handleListArchive(e?: DetailEvent<{ listId: string }>) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { listId } = detail;
+
+    try {
+      await archiveList(listId);
+      logAction('✅', 'List archived');
+      setLists((prevLists) => prevLists.filter((l) => l.id !== listId));
+    } catch (err) {
+      handleAsyncError(err, 'archive list');
+    }
+  }
+
   return {
     handleListCreate,
     handleListUpdate,
@@ -213,6 +227,7 @@ export function createListEventHandlers(
     handleListCopy,
     handleMoveAllCards,
     handleListDelete,
+    handleListArchive,
   };
 }
 
@@ -543,6 +558,26 @@ export function createCardEventHandlers(
     }
   }
 
+  async function handleCardArchive(e?: DetailEvent<{ cardId: string }>) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { cardId } = detail;
+
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).filter((c) => c.id !== cardId),
+      }))
+    );
+
+    try {
+      await archiveCard(cardId);
+      logAction('✅', 'Card archived');
+    } catch (err) {
+      handleAsyncError(err, 'archive card');
+    }
+  }
+
   async function handleCardBackgroundUpdate(e?: DetailEvent<{ cardId: string; background?: string | null; skipBackendUpdate?: boolean }>) {
     const detail = e?.detail;
     if (!detail) return;
@@ -604,6 +639,7 @@ export function createCardEventHandlers(
       handleCardBackgroundUpdate,
       handleCardCompletedUpdate,
       handleCardDelete,
+      handleCardArchive,
       handleCardChecklistsUpdate,
     };
   }

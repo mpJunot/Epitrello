@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateChecklistInput } from './dto/create-checklist.input';
 import { UpdateChecklistInput } from './dto/update-checklist.input';
@@ -46,6 +47,28 @@ export class ChecklistsService {
 
     if (!isBoardMember && !isPublic && !isWorkspaceMember) {
       throw new ForbiddenException('You do not have access to this board');
+    }
+  }
+
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
     }
   }
 
@@ -104,7 +127,7 @@ export class ChecklistsService {
 
   async createChecklist(input: CreateChecklistInput, userId: string): Promise<Checklist> {
     const boardId = await this.getBoardIdFromCard(input.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     return this.prisma.checklist.create({
       data: {
@@ -129,7 +152,7 @@ export class ChecklistsService {
     }
 
     const boardId = await this.getBoardIdFromCard(checklist.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     return this.prisma.checklist.update({
       where: { id: input.id },
@@ -154,7 +177,7 @@ export class ChecklistsService {
     }
 
     const boardId = await this.getBoardIdFromCard(checklist.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     await this.prisma.checklist.delete({
       where: { id },
@@ -169,7 +192,7 @@ export class ChecklistsService {
   ): Promise<ChecklistItem> {
     const cardId = await this.getCardIdFromChecklist(input.checklistId);
     const boardId = await this.getBoardIdFromCard(cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const position =
       input.position !== undefined
@@ -191,7 +214,7 @@ export class ChecklistsService {
   ): Promise<ChecklistItem> {
     const cardId = await this.getCardIdFromItem(input.id);
     const boardId = await this.getBoardIdFromCard(cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const existing = await this.prisma.checklistItem.findUnique({
       where: { id: input.id },
@@ -214,7 +237,7 @@ export class ChecklistsService {
   async deleteChecklistItem(id: string, userId: string): Promise<boolean> {
     const cardId = await this.getCardIdFromItem(id);
     const boardId = await this.getBoardIdFromCard(cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     await this.prisma.checklistItem.delete({
       where: { id },
@@ -229,7 +252,7 @@ export class ChecklistsService {
   ): Promise<ChecklistItem[]> {
     const cardId = await this.getCardIdFromChecklist(input.checklistId);
     const boardId = await this.getBoardIdFromCard(cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const items = await this.prisma.checklistItem.findMany({
       where: {

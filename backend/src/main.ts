@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -24,6 +25,8 @@ async function bootstrap() {
     });
     logger.log('NestJS application created successfully');
 
+    // Parse Cookie header so JWT can be read from auth_token cookie (fallback to Bearer header)
+    app.use(cookieParser());
     // Enable global logging interceptor for all requests
     app.useGlobalInterceptors(new LoggingInterceptor());
 

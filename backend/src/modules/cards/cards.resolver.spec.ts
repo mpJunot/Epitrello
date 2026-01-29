@@ -18,6 +18,9 @@ describe('CardsResolver', () => {
     unassignMember: jest.fn(),
     addLabelToCard: jest.fn(),
     removeLabelFromCard: jest.fn(),
+    archive: jest.fn(),
+    unarchive: jest.fn(),
+    findArchivedByBoardId: jest.fn(),
   };
 
   const mockLabelsLoader = {
@@ -53,6 +56,7 @@ describe('CardsResolver', () => {
     startDate: null,
     dueDate: null,
     position: 0,
+    isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -250,6 +254,45 @@ describe('CardsResolver', () => {
 
       expect(result).toEqual(mockCard);
       expect(service.removeLabelFromCard).toHaveBeenCalledWith('card-1', 'label-1', mockUser.id);
+    });
+  });
+
+  describe('archiveCard', () => {
+    it('should archive a card', async () => {
+      const archivedCard = { ...mockCard, isArchived: true };
+      mockCardsService.archive.mockResolvedValue(archivedCard);
+
+      const result = await resolver.archiveCard('card-1', mockUser);
+
+      expect(result).toEqual(archivedCard);
+      expect(result.isArchived).toBe(true);
+      expect(service.archive).toHaveBeenCalledWith('card-1', mockUser.id);
+    });
+  });
+
+  describe('unarchiveCard', () => {
+    it('should unarchive a card', async () => {
+      const unarchivedCard = { ...mockCard, isArchived: false };
+      mockCardsService.unarchive.mockResolvedValue(unarchivedCard);
+
+      const result = await resolver.unarchiveCard('card-1', mockUser);
+
+      expect(result).toEqual(unarchivedCard);
+      expect(result.isArchived).toBe(false);
+      expect(service.unarchive).toHaveBeenCalledWith('card-1', mockUser.id);
+    });
+  });
+
+  describe('archivedCards', () => {
+    it('should return archived cards for a board', async () => {
+      const archivedCard = { ...mockCard, isArchived: true };
+      mockCardsService.findArchivedByBoardId.mockResolvedValue([archivedCard]);
+
+      const result = await resolver.archivedCards('board-1', mockUser);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isArchived).toBe(true);
+      expect(service.findArchivedByBoardId).toHaveBeenCalledWith('board-1', mockUser.id);
     });
   });
 

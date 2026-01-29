@@ -1,19 +1,44 @@
 import { useMemo } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { WorkspaceMemberWithUser } from '@/lib/actions/workspaces';
+import type {
+  WorkspaceMemberWithUser,
+  GqlBoard,
+} from '@/lib/actions/workspaces';
 import { MemberItem } from './MemberItem';
+import type { MemberBoardItem } from './MemberBoardsPopover';
 
 interface GuestsTabContentProps {
   members: WorkspaceMemberWithUser[];
   onRemove: (userId: string) => void;
   removing: string | null;
+  canRemove?: boolean;
+  workspaceBoards?: GqlBoard[];
+  /** Current user id to show "Leave" instead of "Remove" for own row. */
+  currentUserId?: string;
+}
+
+function getBoardsForMember(
+  boards: GqlBoard[] | undefined,
+  userId: string,
+): MemberBoardItem[] {
+  if (!boards?.length) return [];
+  return boards
+    .filter((b) => b.members?.some((m) => m.userId === userId))
+    .map((b) => ({
+      id: b.id,
+      title: b.title,
+      background: b.background,
+    }));
 }
 
 export function GuestsTabContent({
   members,
   onRemove,
   removing,
+  canRemove = true,
+  workspaceBoards,
+  currentUserId,
 }: GuestsTabContentProps) {
   // Filter members with GUEST role (if role is implemented as enum)
   // For now, we'll show empty since guests might not be implemented yet
@@ -50,6 +75,12 @@ export function GuestsTabContent({
                 member={guest}
                 onRemove={onRemove}
                 isRemoving={removing === guest.userId}
+                canRemove={canRemove}
+                memberBoards={getBoardsForMember(
+                  workspaceBoards,
+                  guest.userId,
+                )}
+                isCurrentUser={currentUserId === guest.userId}
               />
             ))
           )}

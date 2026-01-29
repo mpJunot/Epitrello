@@ -47,7 +47,14 @@ export class BoardsService {
       }
     }
 
-    // Create board with creator as ADMIN
+    // Default columns for new boards (To Do, Doing, Done)
+    const defaultLists = [
+      { title: 'To Do', position: 0 },
+      { title: 'Doing', position: 1 },
+      { title: 'Done', position: 2 },
+    ];
+
+    // Create board with creator as ADMIN and default lists
     const board = await this.prisma.board.create({
       data: {
         title: input.title,
@@ -61,6 +68,9 @@ export class BoardsService {
             userId,
             role: Role.ADMIN,
           },
+        },
+        lists: {
+          create: defaultLists,
         },
       },
     });
@@ -108,8 +118,9 @@ export class BoardsService {
   }
 
   /**
-   * Find all boards in a workspace
+   * Find all boards in a workspace that the user can access
    * - User must be a member of the workspace
+   * - Returns only: boards with visibility WORKSPACE, or boards where user is a member
    */
   async findByWorkspace(workspaceId: string, userId: string): Promise<Board[]> {
     // Verify user is member of workspace
@@ -130,6 +141,10 @@ export class BoardsService {
       where: {
         workspaceId,
         isArchived: false,
+        OR: [
+          { visibility: 'WORKSPACE' },
+          { members: { some: { userId } } },
+        ],
       },
       include: {
         members: {
@@ -270,8 +285,12 @@ export class BoardsService {
       return;
     }
 
-    // Check if user is a workspace member (for WORKSPACE visibility)
-    if (board.workspaceId && board.workspace) {
+    // Check if user is a workspace member (only when board visibility is WORKSPACE)
+    if (
+      board.visibility === 'WORKSPACE' &&
+      board.workspaceId &&
+      board.workspace
+    ) {
       const isWorkspaceMember = board.workspace.memberships.some(
         (m: any) => m.userId === userId,
       );
@@ -311,6 +330,7 @@ export class BoardsService {
         email: true,
         name: true,
         avatar: true,
+        description: true,
       },
     });
 
@@ -338,6 +358,7 @@ export class BoardsService {
             email: true,
             name: true,
             avatar: true,
+            description: true,
           },
         },
       },
@@ -354,6 +375,7 @@ export class BoardsService {
         email: user.email,
         name: user.name,
         avatar: user.avatar,
+        description: user.description ?? undefined,
       },
     };
   }

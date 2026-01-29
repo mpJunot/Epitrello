@@ -6,7 +6,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Link as LinkIcon } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { MemberItem } from './MemberItem';
-import type { WorkspaceMemberWithUser } from '@/lib/actions/workspaces';
+import type {
+  WorkspaceMemberWithUser,
+  GqlBoard,
+} from '@/lib/actions/workspaces';
+import type { MemberBoardItem } from './MemberBoardsPopover';
 
 interface MembersTabContentProps {
   members: WorkspaceMemberWithUser[];
@@ -15,6 +19,27 @@ interface MembersTabContentProps {
   workspaceId: string;
   onRemove: (userId: string) => void;
   removing: string | null;
+  /** If false, invite section and remove buttons are hidden (non-admin). */
+  canInvite?: boolean;
+  canRemove?: boolean;
+  /** Workspace boards (with members) to show "View boards" per member. */
+  workspaceBoards?: GqlBoard[];
+  /** Current user id to show "Leave" instead of "Remove" for own row. */
+  currentUserId?: string;
+}
+
+function getBoardsForMember(
+  boards: GqlBoard[] | undefined,
+  userId: string,
+): MemberBoardItem[] {
+  if (!boards?.length) return [];
+  return boards
+    .filter((b) => b.members?.some((m) => m.userId === userId))
+    .map((b) => ({
+      id: b.id,
+      title: b.title,
+      background: b.background,
+    }));
 }
 
 export function MembersTabContent({
@@ -24,6 +49,10 @@ export function MembersTabContent({
   workspaceId,
   onRemove,
   removing,
+  canInvite = true,
+  canRemove = true,
+  workspaceBoards,
+  currentUserId,
 }: MembersTabContentProps) {
   const [filterQuery, setFilterQuery] = useState('');
 
@@ -62,29 +91,32 @@ export function MembersTabContent({
 
       <Separator className='shrink-0 my-4 h-px bg-accent' />
 
-      {/* Invite Section - Fixed */}
-      <div className='space-y-3 shrink-0'>
-        <h3 className='text-lg font-semibold text-foreground'>
-          Invite members to join you
-        </h3>
-        <p className='text-sm text-muted-foreground'>
-          Share an invite link with your team members. You can disable or create
-          a new link at any time. Pending invitations count towards your{' '}
-          {memberLimit} collaborator limit.
-        </p>
-        <div className='flex justify-end'>
-          <Button
-            variant='outline'
-            className='border-border'
-            onClick={handleCopyInviteLink}
-          >
-            <LinkIcon className='h-4 w-4 mr-2' />
-            Invite with link
-          </Button>
-        </div>
-      </div>
-
-      <Separator className='shrink-0 my-4 h-px bg-accent' />
+      {/* Invite Section - Fixed (admins only) */}
+      {canInvite && (
+        <>
+          <div className='space-y-3 shrink-0'>
+            <h3 className='text-lg font-semibold text-foreground'>
+              Invite members to join you
+            </h3>
+            <p className='text-sm text-muted-foreground'>
+              Share an invite link with your team members. You can disable or
+              create a new link at any time. Pending invitations count towards
+              your {memberLimit} collaborator limit.
+            </p>
+            <div className='flex justify-end'>
+              <Button
+                variant='outline'
+                className='border-border'
+                onClick={handleCopyInviteLink}
+              >
+                <LinkIcon className='h-4 w-4 mr-2' />
+                Invite with link
+              </Button>
+            </div>
+          </div>
+          <Separator className='shrink-0 my-4 h-px bg-accent' />
+        </>
+      )}
 
       {/* Filter Input - Fixed */}
       <div className='shrink-0 mb-4'>
@@ -110,6 +142,12 @@ export function MembersTabContent({
                 member={member}
                 onRemove={onRemove}
                 isRemoving={removing === member.userId}
+                canRemove={canRemove}
+                memberBoards={getBoardsForMember(
+                  workspaceBoards,
+                  member.userId,
+                )}
+                isCurrentUser={currentUserId === member.userId}
               />
             ))
           )}
