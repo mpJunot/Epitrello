@@ -120,14 +120,26 @@ export function mapBoardToSearchResult(
   };
 }
 
+/** Partial workspace shape from cache or API */
+type WorkspaceLike = {
+  id: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  logoUrl?: string;
+  visibility?: string;
+  createdAt?: string;
+};
+
 /**
  * Map a Workspace entity to SearchResult
  */
-export function mapWorkspaceToSearchResult(workspace: Workspace | any): SearchResult {
+export function mapWorkspaceToSearchResult(workspace: Workspace | WorkspaceLike): SearchResult {
   // Support both full Workspace type and partial workspace objects from cache
-  const workspaceName = workspace.name || workspace.title || 'Untitled Workspace';
-  const workspaceDescription = workspace.description || undefined;
-  
+  const w = workspace as Workspace & WorkspaceLike;
+  const workspaceName = w.name || w.title || 'Untitled Workspace';
+  const workspaceDescription = w.description || undefined;
+
   return {
     id: workspace.id,
     type: 'workspace',
@@ -135,13 +147,13 @@ export function mapWorkspaceToSearchResult(workspace: Workspace | any): SearchRe
     subtitle: workspaceDescription,
     route: `/workspaces/${workspace.id}/boards`,
     icon: 'Folders',
-    avatar: workspace.logoUrl || undefined,
+    avatar: w.logoUrl || undefined,
     metadata: {
-      visibility: workspace.visibility,
+      visibility: w.visibility,
       hasDescription: !!workspaceDescription,
     },
     priority: 'high',
-    createdAt: workspace.createdAt,
+    createdAt: w.createdAt,
   };
 }
 
@@ -160,10 +172,10 @@ export function mapMemberToSearchResult(
     type: 'member',
     title: member.name,
     subtitle: member.email,
-    route: context?.workspaceId 
-      ? `/workspaces/${context.workspaceId}/members` 
-      : context?.boardId 
-      ? `/boards/${context.boardId}` 
+    route: context?.workspaceId
+      ? `/workspaces/${context.workspaceId}/members`
+      : context?.boardId
+      ? `/boards/${context.boardId}`
       : '/dashboard',
     icon: 'User',
     avatar: member.avatar || undefined,
@@ -250,12 +262,12 @@ export function groupSearchResults(results: SearchResult[]): GroupedSearchResult
   const sorted = [...results].sort((a, b) => {
     const orderA = getEntityTypeOrder(a.type);
     const orderB = getEntityTypeOrder(b.type);
-    
+
     // Different types: sort by predefined hierarchy
     if (orderA !== orderB) {
       return orderA - orderB;
     }
-    
+
     // Same type: maintain original order (preserves relevance ranking)
     return 0;
   });

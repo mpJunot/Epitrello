@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ThemeProvider } from "../components/theme-provider";
-import { ConditionalLayout } from "../components/ConditionalLayout";
-import { PageTransition } from "../components/PageTransition";
-import { NavigationProvider } from "../components/NavigationProvider";
-import { SidebarProvider } from "../components/ui/sidebar";
-import TokenSync from "../components/TokenSync";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { ThemeProvider } from '../components/theme-provider';
+import { ConditionalLayout } from '../components/ConditionalLayout';
+import { PageTransition } from '../components/PageTransition';
+import { NavigationProvider } from '../components/NavigationProvider';
+import { SidebarProvider } from '../components/ui/sidebar';
+import TokenSync from '../components/TokenSync';
 import { QueryProvider } from '../components/providers/QueryProvider';
+import { Toaster } from '../components/ui/sonner';
 
 const inter = Inter({
   variable: '--font-sans',
