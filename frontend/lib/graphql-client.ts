@@ -30,16 +30,13 @@ export async function graphqlRequest<T>(
   let token: string | null = null;
 
   if (typeof window !== 'undefined') {
-    // Client side: get from localStorage
     token = localStorage.getItem('auth_token');
   } else {
-    // Server side: get from cookies
     try {
       const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
-      token = cookieStore.get('auth_token')?.value || null;
-    } catch (error) {
-      // Cookies not available in this context
+      token = cookieStore.get('auth_token')?.value ?? cookieStore.get('token')?.value ?? null;
+    } catch {
       token = null;
     }
   }
@@ -103,7 +100,7 @@ export async function graphqlRequest<T>(
           message = body.message;
         }
       } catch {
-        // not JSON, keep default
+        message = text;
       }
       throw new Error(message);
     }
@@ -146,7 +143,6 @@ export async function graphqlRequest<T>(
           localStorage.removeItem('auth_token');
         }
         if (options?.suppressAuthError) {
-          // Return a benign error message that callers can treat as empty/unauthenticated.
           throw new Error('UNAUTHORIZED_QUIET');
         }
         throw new Error('Session expired. Please log in again.');
@@ -178,14 +174,12 @@ export function getAuthToken() {
 export function clearAuthToken() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('auth_token');
-    // Clear cookie on client side
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
   }
 }
 
 export function setAuthTokenCookie(token: string) {
   if (typeof window !== 'undefined') {
-    // Set cookie with secure flags (though not httpOnly since we set from client)
-    document.cookie = `auth_token=${token}; path=/; SameSite=Lax; max-age=2592000`; // 30 days
+    document.cookie = `auth_token=${token}; path=/; SameSite=Lax; max-age=2592000`;
   }
 }
