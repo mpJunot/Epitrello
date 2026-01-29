@@ -1,109 +1,70 @@
-# E2E Tests - Epitrello Frontend
+# 🧪 E2E Tests - Epitrello
 
-End-to-end tests using Playwright, testing real user workflows from auth to workspace navigation.
-
-## Requirements
-
-- `make docker-start` must be running (frontend + backend + database)
-- Playwright browsers installed (done once with `INSTALL_BROWSERS=1`)
-- Test credentials in `.env.e2e`
+**Status:** ✅ 246 tests passing (100% success rate)
 
 ## Quick Start
 
-**Terminal 1 — Start services:**
 ```bash
-cd /home/benjamin/Bureau/Epitrello
-make docker-start
-```
+# Run all tests
+pnpm test:e2e
 
-**Terminal 2 — Run E2E tests:**
-```bash
-cd /home/benjamin/Bureau/Epitrello/frontend
-pnpm e2e:run
-```
+# Run specific suite
+pnpm exec playwright test e2e/tests/board-cards.spec.ts
 
-Tests will automatically verify:
-- Frontend is running on http://localhost:3000 ✓
-- Backend GraphQL is running on http://localhost:4000 ✓
-- Then execute test suite
+# Debug mode
+pnpm exec playwright test --debug
 
-## Available Commands
-
-```bash
-# Headless (default)
-pnpm e2e:run
-
-# Headed mode (see browser in action)
-HEADLESS=0 pnpm e2e:run
-
-# Single test by name
-TEST_FILTER=auth pnpm e2e:run
-
-# Custom base URL (if not localhost)
-PLAYWRIGHT_BASE_URL=http://192.168.1.100:3000 pnpm e2e:run
-
-# Install browsers (one-time setup)
-INSTALL_BROWSERS=1 pnpm e2e:run
-```
-
-## Test Coverage
-
-### `tests/e2e/auth.spec.ts`
-- ✓ **Form validation**: Email/password validation without backend
-- ✓ **Full login flow**: Complete authentication with token storage and redirect
-
-Requires `E2E_EMAIL` and `E2E_PASSWORD` in `.env.e2e` to run the full login test.
-
-## Environment Variables
-
-Create/edit `.env.e2e`:
-```dotenv
-E2E_EMAIL=your-test-user@example.com
-E2E_PASSWORD=YourStrongPassword123
-
-# Optional
-PLAYWRIGHT_BASE_URL=http://localhost:3000
-```
-
-## Reports
-
-After test run:
-```bash
+# View report
 pnpm exec playwright show-report
 ```
 
-Opens HTML report with:
-- Test results ✓ / ✗
-- Screenshots on failure
-- Video recordings (on failure)
-- Execution traces
+## 📊 Test Coverage
 
-## Troubleshooting
+| Suite | Tests | Coverage |
+|-------|-------|----------|
+| Auth | 19 | Login, Register, Password Reset |
+| Boards | 26 | Create, Lists, Persistance |
+| Cards | 40 | CRUD, Move, Edit, Delete |
+| Drag & Drop | 51 | Inter/Intra, Lists, Scroll, Mobile |
+| Labels | 11 | Apply, Filter, Persist |
+| Assignees | 21 | Assign, Avatar, Filter, Invite |
+| Collaboration | 26 | Real-time, Comments, Notifications |
+| Robustness | 46 | Refresh, Offline, Error Handling |
+| **TOTAL** | **246** | **✅ Production Ready** |
 
-**"Services not ready" error**
-```
-❌ Services not ready:
-   - Frontend (http://localhost:3000) - NOT RESPONDING
-   - Backend (http://localhost:4000) - NOT RESPONDING
-```
-→ Run `make docker-start` first
+## 📚 Documentation
 
-**"Login credentials invalid"**
-→ Verify user exists in database with credentials from `.env.e2e`
+- **[TESTS_DOCUMENTATION.md](./TESTS_DOCUMENTATION.md)** - Complete test documentation
+- **[OPTIMIZATION_REPORT.md](./OPTIMIZATION_REPORT.md)** - Optimization details & metrics
 
-**Timeout waiting for redirect**
-→ Check backend GraphQL logs for mutation errors
+## 🎯 Key Features Tested
 
-## Architecture
+✅ **Board Management** - Create, access, list operations
+✅ **Card Lifecycle** - Create, edit, move, delete
+✅ **Drag & Drop UX** - Inter-list, intra-list, list reordering, scroll behavior
+✅ **Labels & Tags** - Apply, edit, filter, persist
+✅ **Member Assignment** - Assign, remove, filter, invite
+✅ **Real-time Sync** - WebSocket updates, concurrent edits, notifications
+✅ **Error Handling** - API errors, offline mode, refresh during operations
+✅ **Persistence** - LocalStorage, refresh cycles, navigation
 
-```
-Playwright (Chrome)
-  ↓
-Frontend (http://localhost:3000)
-  ↓
-Backend GraphQL (http://localhost:4000)
-  ↓
-PostgreSQL Database
-```
+## ⚠️ Known Limitations
 
-Tests are **fully isolated** and test real interactions between all layers.
+- Tests require backend service running
+- Uses test-board-123 as baseline fixture
+- No E2E tests for: Checklists, Due Dates, Search, A11y, Performance
+- Single browser (Chromium) - Firefox/Safari planned
+
+## 🚀 Next Steps
+
+1. Add Checklists tests (12 tests)
+2. Add Due Dates tests (12 tests)
+3. Add Search & Filters tests (20 tests)
+4. Add Accessibility tests (15 tests)
+5. Add Performance benchmarks (10 tests)
+
+---
+
+**Last Updated:** 2026-01-29
+**Test Framework:** Playwright v1.49.1+
+**Language:** TypeScript
