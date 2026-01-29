@@ -18,10 +18,13 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
   }
 
   getRequest(context: ExecutionContext) {
+    if (context.getType() === 'http') {
+      return context.switchToHttp().getRequest();
+    }
     const ctx = GqlExecutionContext.create(context);
     const req = ctx.getContext().req;
 
-    if (req.headers.authorization) {
+    if (req?.headers?.authorization) {
       this.logger.debug('Authentication attempt with Bearer token');
     } else {
       this.logger.debug('No authorization header found');

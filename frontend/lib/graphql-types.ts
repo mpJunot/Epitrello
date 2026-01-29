@@ -264,6 +264,7 @@ export type LoginInput = {
 export type MemberUser = {
   __typename?: 'MemberUser';
   avatar?: Maybe<Scalars['String']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
@@ -343,6 +344,8 @@ export type Mutation = {
   forgotPassword: MessageResponse;
   /** Invite a member to a workspace. Only ADMIN members can invite. */
   inviteMember: WorkspaceInvitation;
+  /** Join a workspace via invite link. Adds current user as MEMBER if not already a member. */
+  joinWorkspaceByInviteLink: Scalars['Boolean']['output'];
   /** Leave a board. Cannot leave if you are the last admin. */
   leaveBoard: Scalars['Boolean']['output'];
   /** Leave a workspace. Cannot leave if you are the last admin. */
@@ -547,6 +550,11 @@ export type MutationInviteMemberArgs = {
 };
 
 
+export type MutationJoinWorkspaceByInviteLinkArgs = {
+  workspaceId: Scalars['ID']['input'];
+};
+
+
 export type MutationLeaveBoardArgs = {
   boardId: Scalars['ID']['input'];
 };
@@ -719,6 +727,8 @@ export type Query = {
   myWorkspaces: Array<Workspace>;
   /** Get a user by ID (requires authentication) */
   user?: Maybe<User>;
+  /** Get a user by email (for invite flows; requires authentication) */
+  userByEmail?: Maybe<User>;
   /** Get all users (requires authentication) */
   users: Array<User>;
   /** Get a workspace by ID. User must be a member to access. */
@@ -727,6 +737,8 @@ export type Query = {
   workspaceBoards: Array<Board>;
   /** Get pending invitations for a workspace. Only ADMIN can view. */
   workspaceInvitations: Array<WorkspaceInvitation>;
+  /** Get workspace name/logo for the invite link page. Public. */
+  workspaceInviteInfo: WorkspaceInviteInfo;
   /** Get all members of a workspace. User must be a member to view. */
   workspaceMembers: Array<WorkspaceMemberWithUser>;
 };
@@ -787,6 +799,11 @@ export type QueryUserArgs = {
 };
 
 
+export type QueryUserByEmailArgs = {
+  email: Scalars['String']['input'];
+};
+
+
 export type QueryWorkspaceArgs = {
   id: Scalars['ID']['input'];
 };
@@ -798,6 +815,11 @@ export type QueryWorkspaceBoardsArgs = {
 
 
 export type QueryWorkspaceInvitationsArgs = {
+  workspaceId: Scalars['ID']['input'];
+};
+
+
+export type QueryWorkspaceInviteInfoArgs = {
   workspaceId: Scalars['ID']['input'];
 };
 
@@ -946,6 +968,7 @@ export type User = {
   __typename?: 'User';
   avatar?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
   email: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
@@ -985,6 +1008,13 @@ export type WorkspaceInvitation = {
   updatedAt: Scalars['DateTime']['output'];
   workspaceId: Scalars['ID']['output'];
   workspaceName?: Maybe<Scalars['String']['output']>;
+};
+
+export type WorkspaceInviteInfo = {
+  __typename?: 'WorkspaceInviteInfo';
+  id: Scalars['ID']['output'];
+  logoUrl?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
 };
 
 export type WorkspaceMember = {

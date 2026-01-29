@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentInput } from './dto/create-comment.input';
@@ -45,6 +46,28 @@ export class CommentsService {
     }
   }
 
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
+    }
+  }
+
   private async getBoardIdFromCard(cardId: string): Promise<string> {
     const card = await this.prisma.card.findUnique({
       where: { id: cardId },
@@ -72,7 +95,7 @@ export class CommentsService {
 
   async create(input: CreateCommentInput, userId: string): Promise<Comment> {
     const boardId = await this.getBoardIdFromCard(input.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const content = this.validateContent(input.content);
 
@@ -103,7 +126,7 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
-    await this.checkBoardAccess(comment.card.list.boardId, userId);
+    await this.checkBoardEditPermission(comment.card.list.boardId, userId);
 
     return comment as Comment;
   }
@@ -128,7 +151,7 @@ export class CommentsService {
     }
 
     const boardId = await this.getBoardIdFromCard(existing.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     if (existing.authorId !== userId) {
       throw new ForbiddenException('You can only edit your own comments');
@@ -152,7 +175,7 @@ export class CommentsService {
     }
 
     const boardId = await this.getBoardIdFromCard(existing.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     if (existing.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');

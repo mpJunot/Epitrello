@@ -5,6 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCardInput } from './dto/create-card.input';
 import { UpdateCardInput } from './dto/update-card.input';
@@ -19,8 +20,7 @@ export class CardsService {
   constructor(private prisma: PrismaService) { }
 
   /**
-   * Check if user has access to the board
-   * User must be a member of the board, workspace member, or board is public
+   * Check if user has access to view the board
    */
   private async checkBoardAccess(boardId: string, userId: string): Promise<void> {
     const board = await this.prisma.board.findUnique({
@@ -47,6 +47,28 @@ export class CardsService {
 
     if (!isBoardMember && !isPublic && !isWorkspaceMember) {
       throw new ForbiddenException('You do not have access to this board');
+    }
+  }
+
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
     }
   }
 
@@ -110,6 +132,7 @@ export class CardsService {
     const lastCard = await this.prisma.card.findFirst({
       where: {
         listId,
+        isArchived: false,
       },
       orderBy: {
         position: 'desc',
@@ -129,7 +152,7 @@ export class CardsService {
    */
   async create(input: CreateCardInput, userId: string): Promise<Card> {
     const boardId = await this.getBoardIdFromList(input.listId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const position =
       input.position !== undefined
@@ -146,6 +169,7 @@ export class CardsService {
         dueDate: input.dueDate,
         position,
         completed: input.completed ?? false,
+        isArchived: false,
       },
     });
 
@@ -183,7 +207,7 @@ export class CardsService {
    */
   async update(input: UpdateCardInput, userId: string): Promise<Card> {
     const boardId = await this.getBoardIdFromCard(input.id);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const updateData: any = {};
     if (input.title !== undefined) updateData.title = input.title;
@@ -210,7 +234,7 @@ export class CardsService {
    */
   async delete(id: string, userId: string): Promise<boolean> {
     const boardId = await this.getBoardIdFromCard(id);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     await this.prisma.card.delete({
       where: { id },
@@ -228,8 +252,8 @@ export class CardsService {
     const sourceBoardId = await this.getBoardIdFromCard(input.cardId);
     const targetBoardId = await this.getBoardIdFromList(input.targetListId);
 
-    await this.checkBoardAccess(sourceBoardId, userId);
-    await this.checkBoardAccess(targetBoardId, userId);
+    await this.checkBoardEditPermission(sourceBoardId, userId);
+    await this.checkBoardEditPermission(targetBoardId, userId);
 
     if (sourceBoardId !== targetBoardId) {
       throw new BadRequestException('Cannot move card between different boards');
@@ -298,7 +322,7 @@ export class CardsService {
    */
   async assignMember(input: AssignMemberToCardInput, userId: string): Promise<Card> {
     const boardId = await this.getBoardIdFromCard(input.cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     // Check if user exists
     const user = await this.prisma.user.findUnique({
@@ -383,7 +407,7 @@ export class CardsService {
     const cardBoardId = await this.getBoardIdFromCard(cardId);
     const labelBoardId = await this.getBoardIdFromLabel(labelId);
 
-    await this.checkBoardAccess(cardBoardId, userId);
+    await this.checkBoardEditPermission(cardBoardId, userId);
 
     if (cardBoardId !== labelBoardId) {
       throw new BadRequestException('Label does not belong to the same board');
@@ -422,7 +446,7 @@ export class CardsService {
    */
   async removeLabelFromCard(cardId: string, labelId: string, userId: string): Promise<Card> {
     const boardId = await this.getBoardIdFromCard(cardId);
-    await this.checkBoardAccess(boardId, userId);
+    await this.checkBoardEditPermission(boardId, userId);
 
     const existing = await this.prisma.cardLabel.findUnique({
       where: {
@@ -502,5 +526,74 @@ export class CardsService {
     );
 
     return assigneesByCard;
+  }
+
+  /**
+   * Archive a card
+   * - User must have edit permission on the board
+   */
+  async archive(id: string, userId: string): Promise<Card> {
+    const boardId = await this.getBoardIdFromCard(id);
+    await this.checkBoardEditPermission(boardId, userId);
+
+    const card = await this.prisma.card.findUnique({
+      where: { id },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+
+    const archivedCard = await this.prisma.card.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+
+    return archivedCard;
+  }
+
+  /**
+   * Unarchive a card
+   * - User must have edit permission on the board
+   */
+  async unarchive(id: string, userId: string): Promise<Card> {
+    const boardId = await this.getBoardIdFromCard(id);
+    await this.checkBoardEditPermission(boardId, userId);
+
+    const card = await this.prisma.card.findUnique({
+      where: { id },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+
+    const unarchivedCard = await this.prisma.card.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+
+    return unarchivedCard;
+  }
+
+  /**
+   * Get archived cards for a board
+   */
+  async findArchivedByBoardId(boardId: string, userId: string): Promise<Card[]> {
+    await this.checkBoardAccess(boardId, userId);
+
+    const lists = await this.prisma.list.findMany({
+      where: { boardId },
+      select: { id: true },
+    });
+    const listIds = lists.map((l) => l.id);
+
+    return this.prisma.card.findMany({
+      where: {
+        listId: { in: listIds },
+        isArchived: true,
+      },
+      orderBy: [{ listId: 'asc' }, { position: 'asc' }],
+    });
   }
 }

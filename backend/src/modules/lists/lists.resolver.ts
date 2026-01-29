@@ -73,4 +73,25 @@ export class ListsResolver {
   ): Promise<List> {
     return this.listsService.archive(id, user.id);
   }
+
+  @Mutation(() => List, {
+    description: 'Unarchive a list. User must have access to the board.',
+  })
+  async unarchiveList(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: any,
+  ): Promise<List> {
+    return this.listsService.unarchive(id, user.id);
+  }
+
+  @Query(() => [List], {
+    name: 'archivedLists',
+    description: 'Get archived lists for a board. User must have access to the board.',
+  })
+  async archivedLists(
+    @Args('boardId', { type: () => ID }) boardId: string,
+    @CurrentUser() user: any,
+  ): Promise<List[]> {
+    return this.listsService.findArchivedByBoardId(boardId, user.id);
+  }
 }

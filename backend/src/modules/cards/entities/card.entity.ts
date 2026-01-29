@@ -32,6 +32,9 @@ export class Card {
   @Field(() => Boolean, { defaultValue: false })
   completed: boolean;
 
+  @Field(() => Boolean, { defaultValue: false })
+  isArchived: boolean;
+
   @Field()
   createdAt: Date;
 

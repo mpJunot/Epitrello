@@ -36,7 +36,15 @@ import {
   MoreHorizontal,
   Plus,
 } from 'lucide-react';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+  AvatarImage,
+} from '@/components/ui/avatar';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
+import { getInitials } from '@/lib/utils';
 import { getLabelDisplayColor } from '@/lib/constants/label-colors';
 import { LabelsPopover } from './CardModal/LabelsPopover';
 import {
@@ -88,6 +96,7 @@ import {
 } from '@/lib/actions/checklists';
 import { boardQueryKey, useBoardQuery } from '@/app/boards/[id]/queries';
 import { useWorkspaceQuery } from '@/lib/queries/workspaces';
+import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
 import {
   emitEvent,
@@ -306,6 +315,8 @@ interface CardModalProps {
     workspaceId: string;
     workspaceName: string;
   }>;
+  /** When true, user can only view (e.g. observer or non-member). No edit/delete/move. */
+  readOnly?: boolean;
 }
 
 export default function CardModal({
@@ -315,6 +326,7 @@ export default function CardModal({
   currentBoardId,
   availableLists = [],
   availableBoards = [],
+  readOnly = false,
 }: CardModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -425,12 +437,19 @@ export default function CardModal({
     }
   }, [background]);
 
-  const currentUser: UserRef = {
-    id: 'current-user',
-    name: 'Current User',
-    email: 'user@example.com',
-    avatar: '',
-  };
+  const { data: currentUserData } = useCurrentUserQuery();
+  const currentUser: UserRef = useMemo(
+    () =>
+      currentUserData
+        ? {
+            id: currentUserData.id,
+            name: currentUserData.name ?? '',
+            email: currentUserData.email ?? '',
+            avatar: currentUserData.avatar ?? undefined,
+          }
+        : { id: '', name: '', email: '', avatar: undefined },
+    [currentUserData],
+  );
 
   const { data: boardData } = useBoardQuery(
     currentBoardId && isOpen ? currentBoardId : '',
@@ -1004,6 +1023,7 @@ export default function CardModal({
   const addComment = () => {
     const text = newComment.trim();
     if (!text) return;
+    if (!currentUser.id) return;
 
     const comment: Comment = {
       id: `comment-${Date.now()}`,
@@ -1150,189 +1170,200 @@ export default function CardModal({
               View and edit card details, including description, checklists,
               comments, and attachments.
             </DialogDescription>
+
             <div className='flex items-center justify-between gap-2 min-w-0'>
               <div className='flex items-center gap-2 min-w-0 overflow-visible'>
-                <Popover
-                  open={isHeaderMoveOpen}
-                  onOpenChange={setIsHeaderMoveOpen}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      size='sm'
-                      className='flex items-center gap-1 min-w-0 bg-trello-hover text-trello px-3 py-1.5 rounded-full cursor-pointer hover:bg-trello-border border-none shadow-none'
-                    >
-                      <span className='text-sm font-medium truncate max-w-40'>
-                        {currentListName}
-                      </span>
-                      <ChevronDown className='w-4 h-4 shrink-0' />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align='start'
-                    className='w-80 p-4 border-accent bg-trello-card-bg'
+                {readOnly ? (
+                  <span className='text-sm font-medium text-trello px-2 py-1.5 rounded-full bg-trello-hover truncate max-w-40'>
+                    {currentListName}
+                  </span>
+                ) : (
+                  <Popover
+                    open={isHeaderMoveOpen}
+                    onOpenChange={setIsHeaderMoveOpen}
                   >
-                    <MoveCardContent
-                      selectedBoardId={selectedBoardId}
-                      setSelectedBoardId={setSelectedBoardId}
-                      selectedListId={selectedListId}
-                      setSelectedListId={setSelectedListId}
-                      selectedPosition={selectedPosition}
-                      setSelectedPosition={setSelectedPosition}
-                      availableLists={availableLists}
-                      availableBoards={availableBoards}
-                      currentBoardId={currentBoardId}
-                      handleMoveCard={handleMoveCard}
-                      setIsMovePopoverOpen={setIsHeaderMoveOpen}
-                    />
-                  </PopoverContent>
-                </Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        size='sm'
+                        className='flex items-center gap-1 min-w-0 bg-trello-hover text-trello px-3 py-1.5 rounded-full cursor-pointer hover:bg-trello-border border-none shadow-none'
+                      >
+                        <span className='text-sm font-medium truncate max-w-40'>
+                          {currentListName}
+                        </span>
+                        <ChevronDown className='w-4 h-4 shrink-0' />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align='start'
+                      className='w-80 p-4 border-accent bg-trello-card-bg'
+                    >
+                      <MoveCardContent
+                        selectedBoardId={selectedBoardId}
+                        setSelectedBoardId={setSelectedBoardId}
+                        selectedListId={selectedListId}
+                        setSelectedListId={setSelectedListId}
+                        selectedPosition={selectedPosition}
+                        setSelectedPosition={setSelectedPosition}
+                        availableLists={availableLists}
+                        availableBoards={availableBoards}
+                        currentBoardId={currentBoardId}
+                        handleMoveCard={handleMoveCard}
+                        setIsMovePopoverOpen={setIsHeaderMoveOpen}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
 
               <div className='flex items-center gap-2 shrink-0'>
-                <Popover
-                  open={showBackgroundPicker}
-                  onOpenChange={setShowBackgroundPicker}
-                >
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
-                    >
-                      <ImageIcon className='w-4 h-4' />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align='end'
-                    className='w-80 p-4 border-accent bg-trello-card-bg'
+                {!readOnly && (
+                  <Popover
+                    open={showBackgroundPicker}
+                    onOpenChange={setShowBackgroundPicker}
                   >
-                    <div className='space-y-4'>
-                      <div className='flex items-center justify-between'>
-                        <h3 className='text-lg font-semibold'>
-                          Change background
-                        </h3>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-6 w-6'
-                          onClick={() => setShowBackgroundPicker(false)}
-                        >
-                          <X className='w-4 h-4' />
-                        </Button>
-                      </div>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                      >
+                        <ImageIcon className='w-4 h-4' />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align='end'
+                      className='w-80 p-4 border-accent bg-trello-card-bg'
+                    >
                       <div className='space-y-4'>
-                        <div className='space-y-2'>
-                          <div className='text-sm font-medium'>
-                            Upload Image
-                          </div>
-                          <div className='flex items-center gap-2'>
-                            <Input
-                              type='file'
-                              accept='image/*'
-                              onChange={handleImageUpload}
-                              className='flex-1'
-                              id='background-image-upload-header'
-                            />
-                            <LabelComponent
-                              htmlFor='background-image-upload-header'
-                              className='cursor-pointer'
-                            >
-                              <Button variant='outline' size='sm' asChild>
-                                <span>Choose File</span>
-                              </Button>
-                            </LabelComponent>
-                          </div>
+                        <div className='flex items-center justify-between'>
+                          <h3 className='text-lg font-semibold'>
+                            Change background
+                          </h3>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className='h-6 w-6'
+                            onClick={() => setShowBackgroundPicker(false)}
+                          >
+                            <X className='w-4 h-4' />
+                          </Button>
                         </div>
-                        <div className='space-y-2'>
-                          <div className='text-sm font-medium'>Colors</div>
-                          <div className='grid grid-cols-4 gap-2'>
-                            {BACKGROUND_COLORS.map((color) => (
-                              <button
-                                key={color.value}
-                                onClick={async () => {
-                                  setHeaderBackground(color.value);
-                                  await saveBackground(color.value);
+                        <div className='space-y-4'>
+                          <div className='space-y-2'>
+                            <div className='text-sm font-medium'>
+                              Upload Image
+                            </div>
+                            <div className='flex items-center gap-2'>
+                              <Input
+                                type='file'
+                                accept='image/*'
+                                onChange={handleImageUpload}
+                                className='flex-1'
+                                id='background-image-upload-header'
+                              />
+                              <LabelComponent
+                                htmlFor='background-image-upload-header'
+                                className='cursor-pointer'
+                              >
+                                <Button variant='outline' size='sm' asChild>
+                                  <span>Choose File</span>
+                                </Button>
+                              </LabelComponent>
+                            </div>
+                          </div>
+                          <div className='space-y-2'>
+                            <div className='text-sm font-medium'>Colors</div>
+                            <div className='grid grid-cols-4 gap-2'>
+                              {BACKGROUND_COLORS.map((color) => (
+                                <button
+                                  key={color.value}
+                                  onClick={async () => {
+                                    setHeaderBackground(color.value);
+                                    await saveBackground(color.value);
+                                    setShowBackgroundPicker(false);
+                                  }}
+                                  className={`h-12 rounded-lg ${color.value} border-2 transition-all ${
+                                    (headerBackground === color.value ||
+                                      background === color.value) &&
+                                    !background?.startsWith('data:image')
+                                      ? 'border-primary ring-2 ring-primary ring-offset-2'
+                                      : 'border-transparent hover:border-accent'
+                                  }`}
+                                  title={color.label}
+                                />
+                              ))}
+                            </div>
+                            {(background || headerBackground) && (
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='w-full'
+                                onClick={() => {
+                                  if (background) {
+                                    removeBackground();
+                                  } else {
+                                    setHeaderBackground(null);
+                                  }
                                   setShowBackgroundPicker(false);
                                 }}
-                                className={`h-12 rounded-lg ${color.value} border-2 transition-all ${
-                                  (headerBackground === color.value ||
-                                    background === color.value) &&
-                                  !background?.startsWith('data:image')
-                                    ? 'border-primary ring-2 ring-primary ring-offset-2'
-                                    : 'border-transparent hover:border-accent'
-                                }`}
-                                title={color.label}
-                              />
-                            ))}
+                              >
+                                Remove background
+                              </Button>
+                            )}
                           </div>
-                          {(background || headerBackground) && (
-                            <Button
-                              variant='outline'
-                              size='sm'
-                              className='w-full'
-                              onClick={() => {
-                                if (background) {
-                                  removeBackground();
-                                } else {
-                                  setHeaderBackground(null);
-                                }
-                                setShowBackgroundPicker(false);
-                              }}
-                            >
-                              Remove background
-                            </Button>
-                          )}
                         </div>
                       </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                    </PopoverContent>
+                  </Popover>
+                )}
+                {!readOnly && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='h-8 w-8 text-trello-secondary hover:bg-trello-hover'
+                      >
+                        <MoreHorizontal className='w-4 h-4' />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align='end'
+                      className='border-accent bg-trello-card-bg'
                     >
-                      <MoreHorizontal className='w-4 h-4' />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align='end'
-                    className='border-accent bg-trello-card-bg'
-                  >
-                    <DropdownMenuItem>
-                      <User className='w-4 h-4 mr-2' />
-                      Leave
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setIsMovePopoverOpen(true)}
-                    >
-                      <Move className='w-4 h-4 mr-2' />
-                      Move
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyCard}>
-                      <Copy className='w-4 h-4 mr-2' />
-                      Copy
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Eye className='w-4 h-4 mr-2' />
-                      Watch
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Share2 className='w-4 h-4 mr-2' />
-                      Share
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setShowArchiveConfirm(true)}
-                    >
-                      <Archive className='w-4 h-4 mr-2' />
-                      Archive
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <DropdownMenuItem>
+                        <User className='w-4 h-4 mr-2' />
+                        Leave
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setIsMovePopoverOpen(true)}
+                      >
+                        <Move className='w-4 h-4 mr-2' />
+                        Move
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copyCard}>
+                        <Copy className='w-4 h-4 mr-2' />
+                        Copy
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Eye className='w-4 h-4 mr-2' />
+                        Watch
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Share2 className='w-4 h-4 mr-2' />
+                        Share
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setShowArchiveConfirm(true)}
+                      >
+                        <Archive className='w-4 h-4 mr-2' />
+                        Archive
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 <DialogClose asChild>
                   <Button
                     ref={closeButtonRef}
@@ -1352,20 +1383,32 @@ export default function CardModal({
               <div className='flex items-start gap-3 mb-6'>
                 <Checkbox
                   checked={card.completed ?? false}
-                  onCheckedChange={(checked) => {
-                    window.dispatchEvent(
-                      new CustomEvent('epitrello:card-completed-updated', {
-                        detail: {
-                          cardId: card.id,
-                          completed: checked as boolean,
-                        },
-                      }),
-                    );
-                  }}
+                  onCheckedChange={
+                    readOnly
+                      ? undefined
+                      : (checked) => {
+                          window.dispatchEvent(
+                            new CustomEvent(
+                              'epitrello:card-completed-updated',
+                              {
+                                detail: {
+                                  cardId: card.id,
+                                  completed: checked as boolean,
+                                },
+                              },
+                            ),
+                          );
+                        }
+                  }
+                  disabled={readOnly}
                   className='mt-1.5 w-5 h-5'
                 />
                 <div className='flex-1 min-w-0'>
-                  {!isEditingTitle ? (
+                  {readOnly ? (
+                    <h2 className='text-2xl font-bold text-foreground px-2 py-1 -mx-2 -my-1'>
+                      {title || card.title}
+                    </h2>
+                  ) : !isEditingTitle ? (
                     <h2
                       className='text-2xl font-bold text-foreground cursor-pointer hover:bg-accent/50 px-2 py-1 -mx-2 -my-1 rounded transition-colors'
                       onClick={() => setIsEditingTitle(true)}
@@ -1418,6 +1461,7 @@ export default function CardModal({
                   onRemoveStartDate={removeStartDate}
                   onSetNewChecklistTitle={setNewChecklistTitle}
                   onCreateChecklist={createChecklist}
+                  readOnly={readOnly}
                 />
               </div>
 
@@ -1434,50 +1478,44 @@ export default function CardModal({
                           <h3 className='text-sm font-semibold text-trello mb-2'>
                             Members
                           </h3>
-                          <div className='flex flex-wrap items-center gap-2'>
+                          <AvatarGroup className='flex-row flex-wrap'>
                             {assignedMembers.map((member) => {
-                              const initials = member.name
-                                ? member.name
-                                    .split(' ')
-                                    .map((s) => s[0])
-                                    .slice(0, 2)
-                                    .join('')
-                                    .toUpperCase()
-                                : (member.email || 'U')[0].toUpperCase();
+                              const displayName =
+                                member.name || member.email || 'U';
+                              const avatarColor = getAvatarColor(displayName);
                               return (
-                                <div
+                                <Avatar
                                   key={member.id}
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white shrink-0 ${getAvatarColor(member.name || member.email)}`}
+                                  size='default'
                                   title={member.name || member.email}
+                                  className={`shrink-0 ${avatarColor}`}
                                 >
-                                  {member.avatar ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={member.avatar}
-                                      alt={member.name}
-                                      className='w-full h-full object-cover rounded-full'
-                                    />
-                                  ) : (
-                                    initials
-                                  )}
-                                </div>
+                                  <AvatarImage
+                                    src={member.avatar ?? undefined}
+                                    alt={displayName}
+                                    className='object-cover'
+                                  />
+                                  <AvatarFallback
+                                    className={`text-xs font-medium text-white ${avatarColor}`}
+                                  >
+                                    {getInitials(member.name, member.email)}
+                                  </AvatarFallback>
+                                </Avatar>
                               );
                             })}
-                            <CardModalMembersPopover
-                              availableMembers={availableMembers}
-                              assignedMembers={assignedMembers}
-                              onToggleMember={toggleMember}
-                              trigger={
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='w-8 h-8 shrink-0 rounded-full bg-trello-hover hover:bg-trello-border text-trello-secondary'
-                                >
-                                  <Plus className='w-4 h-4' />
-                                </Button>
-                              }
-                            />
-                          </div>
+                            {!readOnly && (
+                              <CardModalMembersPopover
+                                availableMembers={availableMembers}
+                                assignedMembers={assignedMembers}
+                                onToggleMember={toggleMember}
+                                trigger={
+                                  <AvatarGroupCount className='cursor-pointer hover:bg-trello-blue bg-trello-blue-light text-white'>
+                                    <Plus className='w-4 h-4' />
+                                  </AvatarGroupCount>
+                                }
+                              />
+                            )}
+                          </AvatarGroup>
                         </div>
                       )}
 
@@ -1488,11 +1526,15 @@ export default function CardModal({
                           </h3>
                           <div className='flex flex-wrap items-center gap-2'>
                             {assignedLabels.map((label) => (
-                              <button
+                              <span
                                 key={label.id}
-                                type='button'
-                                onClick={() => toggleLabel(label)}
-                                className='inline-block text-xs px-2 py-0.5 rounded shrink-0 text-white cursor-pointer hover:opacity-90 transition-opacity'
+                                role={readOnly ? undefined : 'button'}
+                                onClick={
+                                  readOnly
+                                    ? undefined
+                                    : () => toggleLabel(label)
+                                }
+                                className={`inline-block text-xs px-2 py-0.5 rounded shrink-0 text-white ${!readOnly ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
                                 style={{
                                   backgroundColor: getLabelDisplayColor(
                                     label.color,
@@ -1501,22 +1543,24 @@ export default function CardModal({
                                 title={label.name || 'Untitled'}
                               >
                                 {label.name || 'Untitled'}
-                              </button>
+                              </span>
                             ))}
-                            <LabelsPopover
-                              boardId={currentBoardId ?? ''}
-                              assignedLabels={assignedLabels}
-                              onToggleLabel={toggleLabel}
-                              trigger={
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='w-8 h-8 shrink-0 rounded-full bg-trello-hover hover:bg-trello-border text-trello-secondary'
-                                >
-                                  <Plus className='w-4 h-4' />
-                                </Button>
-                              }
-                            />
+                            {!readOnly && (
+                              <LabelsPopover
+                                boardId={currentBoardId ?? ''}
+                                assignedLabels={assignedLabels}
+                                onToggleLabel={toggleLabel}
+                                trigger={
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    className='w-8 h-8 shrink-0 rounded-full bg-trello-hover hover:bg-trello-border text-trello-secondary'
+                                  >
+                                    <Plus className='w-4 h-4' />
+                                  </Button>
+                                }
+                              />
+                            )}
                           </div>
                         </div>
                       )}
@@ -1537,6 +1581,7 @@ export default function CardModal({
                       onRemoveDueDate={removeDueDate}
                       isMovePopoverOpen={isMovePopoverOpen}
                       onMovePopoverOpenChange={setIsMovePopoverOpen}
+                      readOnly={readOnly}
                       moveCardContent={
                         <MoveCardContent
                           selectedBoardId={selectedBoardId}
@@ -1567,6 +1612,7 @@ export default function CardModal({
                   onSave={saveDescription}
                   onCancel={cancelEditDescription}
                   textareaRef={descriptionTextareaRef}
+                  readOnly={readOnly}
                 />
 
                 <ChecklistsSection
@@ -1584,6 +1630,7 @@ export default function CardModal({
                   }}
                   onChangeNewItemText={setNewItemText}
                   getProgress={getChecklistProgress}
+                  readOnly={readOnly}
                 />
               </div>
             </div>
@@ -1603,6 +1650,7 @@ export default function CardModal({
                 onCancelEditComment={cancelEditComment}
                 onDeleteComment={deleteComment}
                 formatCommentDate={formatCommentDate}
+                readOnly={readOnly}
               />
             </div>
           </div>

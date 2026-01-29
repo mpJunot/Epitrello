@@ -1,19 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { toast } from '@/lib/toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setMessage(null);
     setLoading(true);
     try {
       const graphqlEndpoint =
@@ -38,13 +36,14 @@ export default function ForgotPasswordPage() {
         throw new Error(json.errors[0].message || 'GraphQL error');
       }
 
-      const messageText = json.data?.forgotPassword?.message ||
+      const messageText =
+        json.data?.forgotPassword?.message ||
         'If an account exists for this email, you will receive a reset link.';
-      setMessage(messageText);
+      toast.success(messageText, 'Email sent');
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Error while sending reset email';
-      setError(errorMessage);
+      toast.error(errorMessage, 'Forgot password');
     } finally {
       setLoading(false);
     }
@@ -63,7 +62,7 @@ export default function ForgotPasswordPage() {
           </p>
 
           <form onSubmit={handleSubmit} className='space-y-4'>
-            <div className="space-y-2">
+            <div className='space-y-2'>
               <Label>Email address</Label>
               <Input
                 type='email'
@@ -74,15 +73,8 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            {error && <div className='text-red-600 text-sm'>{error}</div>}
-            {message && <div className='text-green-600 text-sm'>{message}</div>}
-
             <div>
-              <Button
-                type='submit'
-                disabled={loading}
-                className='w-full'
-              >
+              <Button type='submit' disabled={loading} className='w-full'>
                 {loading ? 'Sending...' : 'Send link'}
               </Button>
             </div>
