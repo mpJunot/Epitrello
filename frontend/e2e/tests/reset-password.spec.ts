@@ -43,7 +43,7 @@ test('rejects password mismatch', async ({ page }) => {
 test('shows error when token is missing', async ({ page }) => {
   // Mock toast.error to verify it was called
   await page.addInitScript(() => {
-    (window as any).__toastCalled = null;
+    (window as Record<string, unknown>).__toastCalled = null;
   });
 
   await page.goto(resetUrl);
@@ -69,7 +69,7 @@ test('resets password with valid token (mocked)', async ({ page }) => {
   });
 
   await page.route('**/graphql', async (route) => {
-    const body = route.request().postDataJSON() as any;
+    const body = route.request().postDataJSON() as Record<string, unknown>;
     capturedPassword = body?.variables?.input?.newPassword;
     capturedToken = body?.variables?.input?.token;
 
