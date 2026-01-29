@@ -19,7 +19,7 @@ export function createListEventHandlers(
       const newList = await createList({ boardId, title });
       if (!newList) throw new Error('Failed to create list');
       logAction('✅', 'List created');
-      setLists((prev) => [...prev, { ...newList, position: newList.position ?? prev.length, cards: [] }]);
+      setLists((prev) => [...prev, { ...newList, position: newList.position ?? prev.length, isArchived: newList.isArchived ?? false, cards: [] }]);
 
       window.dispatchEvent(new CustomEvent('epitrello:list-create-success'));
     } catch (err) {
@@ -99,6 +99,7 @@ export function createListEventHandlers(
         id: tempListId,
         title: newListTitle,
         position: prevLists.length,
+        isArchived: false,
         cards: cardsToCreate.map((c, idx) => ({
           ...c,
           id: `temp-card-${Date.now()}-${idx}`,
@@ -128,26 +129,32 @@ export function createListEventHandlers(
             description: sourceCard.description ?? undefined,
             position: i,
           });
-          // Map the returned card to match our Card type
           createdCards.push({
-            ...newCard,
-            listId: newCard.listId ?? newList.id,
+            id: newCard.id,
+            title: newCard.title,
+            description: newCard.description ?? undefined,
             position: newCard.position ?? i,
+            listId: newCard.listId ?? newList.id,
+            dueDate: newCard.dueDate ?? undefined,
+            startDate: newCard.startDate ?? undefined,
             completed: newCard.completed ?? sourceCard.completed ?? false,
+            background: (newCard as { background?: string }).background ?? sourceCard.background,
+            createdAt: (newCard as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+            labels: sourceCard.labels,
+            assignees: sourceCard.assignees,
+            checklists: sourceCard.checklists,
           });
         }
 
-        // 3. Replace temp list with real list and cards
         setLists((prev) =>
           prev.map((l) =>
-            l.id === tempListId ? { ...newList, position: newList.position ?? prev.length, cards: createdCards } : l
+            l.id === tempListId ? { ...newList, position: newList.position ?? prev.length, isArchived: newList.isArchived ?? false, cards: createdCards } : l
           )
         );
 
         logAction('✅', `List copied with ${createdCards.length} card(s)`);
       } catch (err) {
         handleAsyncError(err, 'copy list');
-        // Rollback: remove temporary list
         setLists((prev) => prev.filter((l) => l.id !== tempListId));
       }
     })();
@@ -247,6 +254,7 @@ export function createCardEventHandlers(
       position: 0,
       listId,
       completed: false,
+      createdAt: new Date().toISOString(),
     };
 
     setLists((prevLists) =>
@@ -268,10 +276,19 @@ export function createCardEventHandlers(
               ...l,
               cards: (l.cards || []).map((c) =>
                 c.id === tempCard.id ? {
-                  ...newCard,
-                  listId: newCard.listId ?? listId,
+                  id: newCard.id,
+                  title: newCard.title,
+                  description: newCard.description ?? undefined,
                   position: newCard.position ?? 0,
+                  listId: newCard.listId ?? listId,
+                  dueDate: newCard.dueDate ?? undefined,
+                  startDate: newCard.startDate ?? undefined,
                   completed: newCard.completed ?? false,
+                  background: (newCard as { background?: string }).background,
+                  createdAt: (newCard as { createdAt?: string }).createdAt ?? new Date().toISOString(),
+                  labels: undefined,
+                  assignees: undefined,
+                  checklists: undefined,
                 } : c
               ),
             }
@@ -438,11 +455,48 @@ export function createCardEventHandlers(
     if (!detail) return;
     const { cardId, dueDate } = detail;
 
+    const dueDateValue = dueDate === undefined ? null : (dueDate?.date ?? null);
+
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).map((c) =>
+          c.id === cardId ? { ...c, dueDate: dueDateValue ?? undefined } : c
+        ),
+      }))
+    );
+
     try {
-      await updateCard({ id: cardId, dueDate: dueDate?.date });
+      await updateCard({ id: cardId, dueDate: dueDateValue });
       logAction('✅', 'Card due date updated');
     } catch (err) {
       handleAsyncError(err, 'update card due date');
+    }
+  }
+
+  async function handleCardStartDateUpdate(e?: DetailEvent<{ cardId: string; startDate?: string }>) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { cardId, startDate } = detail;
+
+    // If startDate is undefined, we want to remove it (pass null to backend)
+    const startDateValue = startDate === undefined ? null : startDate;
+
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).map((c) =>
+          c.id === cardId ? { ...c, startDate: startDateValue ?? undefined } : c
+        ),
+      }))
+    );
+
+    try {
+      // Pass null explicitly to remove the date, or the date value if set
+      await updateCard({ id: cardId, startDate: startDateValue });
+      logAction('✅', 'Card start date updated');
+    } catch (err) {
+      handleAsyncError(err, 'update card start date');
     }
   }
 
@@ -489,14 +543,67 @@ export function createCardEventHandlers(
     }
   }
 
-  return {
-    handleDragStart,
-    handleCardCreate,
-    handleCardMove,
-    handleCardTitleUpdate,
-    handleCardDescriptionUpdate,
-    handleCardDueDateUpdate,
-    handleCardCompletedUpdate,
-    handleCardDelete,
-  };
-}
+  async function handleCardBackgroundUpdate(e?: DetailEvent<{ cardId: string; background?: string | null; skipBackendUpdate?: boolean }>) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { cardId, background, skipBackendUpdate } = detail;
+
+    // If background is undefined, we want to remove it (pass null to backend)
+    const backgroundValue = background === undefined ? null : (background || null);
+
+    // Update local state optimistically
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).map((c) =>
+          c.id === cardId ? { ...c, background: backgroundValue ?? undefined } : c
+        ),
+      }))
+    );
+
+    // Update backend only if not already done (skipBackendUpdate flag)
+    if (!skipBackendUpdate) {
+      try {
+        await updateCard({ id: cardId, background: backgroundValue });
+        logAction('✅', 'Card background updated');
+      } catch (err) {
+        handleAsyncError(err, 'update card background');
+      }
+    } else {
+      logAction('✅', 'Card background updated in local state (backend update skipped)');
+    }
+  }
+
+  async function handleCardChecklistsUpdate(
+    e?: DetailEvent<{ cardId: string; checklists: unknown[] }>,
+  ) {
+    const detail = e?.detail;
+    if (!detail) return;
+    const { cardId, checklists } = detail;
+
+    setLists((prevLists) =>
+      prevLists.map((lst) => ({
+        ...lst,
+        cards: (lst.cards || []).map((c) =>
+          c.id === cardId ? { ...c, checklists: checklists as typeof c.checklists } : c
+        ),
+      }))
+    );
+
+    logAction('✅', 'Card checklists updated');
+  }
+
+    return {
+      handleDragStart,
+      handleCardCreate,
+      handleCardMove,
+      handleCardTitleUpdate,
+      handleCardDescriptionUpdate,
+      handleCardDueDateUpdate,
+      handleCardStartDateUpdate,
+      handleCardBackgroundUpdate,
+      handleCardCompletedUpdate,
+      handleCardDelete,
+      handleCardChecklistsUpdate,
+    };
+  }

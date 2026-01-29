@@ -96,7 +96,16 @@ export async function graphqlRequest<T>(
         statusText: response.statusText,
         body: text.substring(0, 500),
       });
-      throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
+      let message = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const body = JSON.parse(text) as { message?: string };
+        if (body && typeof body.message === 'string') {
+          message = body.message;
+        }
+      } catch {
+        // not JSON, keep default
+      }
+      throw new Error(message);
     }
 
     const result: GraphQLResponse<T> = await response.json();
