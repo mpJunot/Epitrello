@@ -48,7 +48,7 @@ test('rejects short password', async ({ page }) => {
 });
 
 test('creates account and redirects on success (mocked)', async ({ page }) => {
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
 
   await page.route('**/graphql', async (route) => {
     payload = route.request().postDataJSON();

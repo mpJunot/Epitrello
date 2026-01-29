@@ -18,7 +18,7 @@ test('shows no token error when callback has no token', async ({ page }) => {
 });
 
 test('exchanges token for session on success (mocked)', async ({ page }) => {
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
 
   await page.route('**/api/auth/exchange', async (route) => {
     payload = route.request().postDataJSON();

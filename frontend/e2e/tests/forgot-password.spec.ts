@@ -39,7 +39,7 @@ test('shows backend error message', async ({ page }) => {
 });
 
 test('shows success message when email sent (mocked)', async ({ page }) => {
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
 
   await page.route('**/graphql', async (route) => {
     payload = route.request().postDataJSON();
