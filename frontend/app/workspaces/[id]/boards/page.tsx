@@ -6,12 +6,22 @@ import CreateBoardModal from '@/components/CreateBoardModal';
 import { createBoard, Visibility } from '@/lib/actions/boards';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+  EmptyMedia,
+} from '@/components/ui/empty';
+import { LayoutGrid } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useWorkspaceQuery,
   useWorkspaceBoardsQuery,
   workspaceBoardsQueryKey,
 } from '@/lib/queries/workspaces';
+import { useWorkspaceRole } from '@/lib/hooks/use-workspace-role';
 
 type Board = {
   id: string;
@@ -30,6 +40,7 @@ export default function WorkspaceBoardsPage() {
   const [showCreate, setShowCreate] = useState(false);
 
   const { data: workspace } = useWorkspaceQuery(workspaceId);
+  const { permissions } = useWorkspaceRole(workspaceId);
   const {
     data: gqlBoards,
     isLoading: loading,
@@ -69,12 +80,14 @@ export default function WorkspaceBoardsPage() {
             >
               Members
             </Button>
-            <Button
-              onClick={() => router.push(`/workspaces/${workspaceId}/settings`)}
-              variant='default'
-            >
-              Settings
-            </Button>
+            {permissions.canManageWorkspace && (
+              <Button
+                onClick={() => router.push(`/workspaces/${workspaceId}/settings`)}
+                variant='default'
+              >
+                Settings
+              </Button>
+            )}
           </div>
         </div>
 
@@ -105,11 +118,23 @@ export default function WorkspaceBoardsPage() {
               </div>
             )}
             {!loading && !error && boards.length === 0 && (
-              <div className='col-span-full flex flex-col items-center justify-center bg-card border border-accent rounded-lg p-8 text-center'>
-                <p className='text-muted-foreground mb-4'>
-                  No boards in this workspace.
-                </p>
-                <Button onClick={() => setShowCreate(true)}>Add a board</Button>
+              <div className='col-span-full'>
+                <Empty className='bg-card border border-accent rounded-lg'>
+                  <EmptyHeader>
+                    <EmptyMedia variant='icon'>
+                      <LayoutGrid className='size-6' />
+                    </EmptyMedia>
+                    <EmptyTitle>No boards in this workspace</EmptyTitle>
+                    <EmptyDescription>
+                      Create a board to get started
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button onClick={() => setShowCreate(true)}>
+                      Add a board
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               </div>
             )}
             {!loading &&

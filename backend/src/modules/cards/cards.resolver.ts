@@ -135,6 +135,37 @@ export class CardsResolver {
     return this.cardsService.removeLabelFromCard(input.cardId, input.labelId, user.id);
   }
 
+  @Mutation(() => Card, {
+    description: 'Archive a card. User must have access to the board.',
+  })
+  async archiveCard(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: any,
+  ): Promise<Card> {
+    return this.cardsService.archive(id, user.id);
+  }
+
+  @Mutation(() => Card, {
+    description: 'Unarchive a card. User must have access to the board.',
+  })
+  async unarchiveCard(
+    @Args('id', { type: () => ID }) id: string,
+    @CurrentUser() user: any,
+  ): Promise<Card> {
+    return this.cardsService.unarchive(id, user.id);
+  }
+
+  @Query(() => [Card], {
+    name: 'archivedCards',
+    description: 'Get archived cards for a board. User must have access to the board.',
+  })
+  async archivedCards(
+    @Args('boardId', { type: () => ID }) boardId: string,
+    @CurrentUser() user: any,
+  ): Promise<Card[]> {
+    return this.cardsService.findArchivedByBoardId(boardId, user.id);
+  }
+
   @ResolveField(() => [Label], { nullable: true })
   async labels(@Parent() card: Card): Promise<Label[]> {
     return this.labelsLoader.load(card.id);

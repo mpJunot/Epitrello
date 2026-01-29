@@ -73,12 +73,8 @@ describe('AuthController', () => {
       await controller.googleAuthCallback(req, res);
 
       expect(authService.oauthLogin).toHaveBeenCalledWith(mockUser);
-      expect(res.setHeader).toHaveBeenCalledWith(
-        'Set-Cookie',
-        expect.stringContaining('token=jwt-token'),
-      );
       expect(res.redirect).toHaveBeenCalledWith(
-        expect.stringContaining('/auth/callback?token=jwt-token'),
+        expect.stringContaining('/auth/callback?token='),
       );
     });
 

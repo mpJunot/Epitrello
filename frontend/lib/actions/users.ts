@@ -46,6 +46,30 @@ export async function getCurrentUser(options?: GraphQLRequestOptions): Promise<U
 }
 
 /**
+ * Get a user by email (for board invite flow). Returns null if not found.
+ */
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const query = `
+    query UserByEmail($email: String!) {
+      userByEmail(email: $email) {
+        id
+        email
+        name
+        avatar
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  try {
+    const result = await graphqlRequest<{ userByEmail: User | null }>(query, { email: email.trim() });
+    return result.userByEmail ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Update user information
  */
 export async function updateUser(id: string, input: UpdateUserInput): Promise<User> {

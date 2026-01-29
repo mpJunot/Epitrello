@@ -16,12 +16,12 @@ export function getVisibilityLabel(visibility?: string): string {
 export function getVisibilityIcon(visibility?: string) {
   switch (visibility) {
     case 'PRIVATE':
-      return <Eye className="w-4 h-4" />;
+      return <Eye className='w-4 h-4' />;
     case 'PUBLIC':
-      return <EyeIcon className="w-4 h-4" />;
+      return <EyeIcon className='w-4 h-4' />;
     case 'WORKSPACE':
-      return <Users className="w-4 h-4" />;
+      return <Users className='w-4 h-4' />;
     default:
-      return <Eye className="w-4 h-4" />;
+      return <Eye className='w-4 h-4' />;
   }
 }

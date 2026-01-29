@@ -316,11 +316,11 @@ export class AuthService {
   }
 
   async oauthLogin(oauthProfile: OAuthProfile): Promise<AuthPayload> {
-    const { provider, providerId, email, name, avatar, accessToken, refreshToken, idToken } = oauthProfile;
+    const { provider, providerId, email: rawEmail, name, avatar, accessToken, refreshToken, idToken } = oauthProfile;
+    const email = (rawEmail && rawEmail.trim()) ? rawEmail.trim() : `oauth-${provider}-${providerId}@epitrello.oauth`;
 
     this.logger.log(`OAuth login attempt via ${provider} for email: ${email}`);
 
-    // Find existing OAuth account
     let oauthAccount = await this.prisma.oAuthAccount.findUnique({
       where: {
         provider_providerId: {
@@ -334,7 +334,6 @@ export class AuthService {
     let user;
 
     if (oauthAccount) {
-      // Update existing OAuth account tokens
       this.logger.debug(`Updating existing OAuth account for ${email}`);
       oauthAccount = await this.prisma.oAuthAccount.update({
         where: { id: oauthAccount.id },
@@ -358,9 +357,9 @@ export class AuthService {
         user = await this.prisma.user.create({
           data: {
             email,
-            name,
+            name: name || email,
             password: crypto.randomBytes(32).toString('hex'),
-            avatar,
+            avatar: avatar || undefined,
           },
           select: {
             id: true,
@@ -373,7 +372,6 @@ export class AuthService {
         });
       }
 
-      // Create OAuth account
       this.logger.debug(`Linking OAuth account (${provider}) to user ${email}`);
       await this.prisma.oAuthAccount.create({
         data: {

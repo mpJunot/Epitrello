@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateLabelInput } from './dto/create-label.input';
 import { UpdateLabelInput } from './dto/update-label.input';
@@ -58,8 +59,30 @@ export class LabelsService {
     }
   }
 
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
+    }
+  }
+
   async create(input: CreateLabelInput, userId: string): Promise<Label> {
-    await this.checkBoardAccess(input.boardId, userId);
+    await this.checkBoardEditPermission(input.boardId, userId);
 
     if (!input.color) {
       throw new BadRequestException('Label color is required');
@@ -87,7 +110,7 @@ export class LabelsService {
       throw new NotFoundException('Label not found');
     }
 
-    await this.checkBoardAccess(existing.boardId, userId);
+    await this.checkBoardEditPermission(existing.boardId, userId);
 
     const updateData: any = {};
     if (input.name !== undefined) updateData.name = input.name;
@@ -113,7 +136,7 @@ export class LabelsService {
       throw new NotFoundException('Label not found');
     }
 
-    await this.checkBoardAccess(existing.boardId, userId);
+    await this.checkBoardEditPermission(existing.boardId, userId);
 
     await this.prisma.label.delete({
       where: { id },

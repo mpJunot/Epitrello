@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { createWorkspace } from '@/lib/actions/workspaces';
+import { toast } from '@/lib/toast';
 import {
   useWorkspacesQuery,
   workspacesQueryKey,
@@ -17,6 +18,7 @@ import {
   Settings,
   ChevronDown,
   Mail,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +40,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -47,6 +50,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
+} from '@/components/ui/empty';
 
 type Workspace = { id: string; name: string };
 
@@ -92,6 +102,12 @@ export default function AppSidebar() {
     name: w.name,
   }));
   const workspacesError = workspacesQueryError?.message ?? null;
+
+  useEffect(() => {
+    if (workspacesError && !loadingWorkspaces) {
+      toast.error(workspacesError, 'Error');
+    }
+  }, [workspacesError, loadingWorkspaces]);
 
   const { data: myInvitations } = useMyInvitationsQuery();
   const pendingInvitationsCount = myInvitations?.length ?? 0;
@@ -205,17 +221,27 @@ export default function AppSidebar() {
                   <SidebarMenuButton
                     onClick={() => router.push('/invitations')}
                     isActive={pathname === '/invitations'}
-                    tooltip='Invitations'
-                    className='relative'
+                    tooltip={
+                      pendingInvitationsCount > 0
+                        ? `${pendingInvitationsCount} pending invitation${pendingInvitationsCount !== 1 ? 's' : ''}`
+                        : 'Invitations'
+                    }
                   >
                     <Mail />
                     <span>Invitations</span>
-                    {pendingInvitationsCount > 0 && (
-                      <span className='absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full min-w-5 h-5'>
-                        {pendingInvitationsCount}
-                      </span>
-                    )}
                   </SidebarMenuButton>
+                  {pendingInvitationsCount > 0 && (
+                    <SidebarMenuBadge
+                      className='bg-red-500 text-white hover:bg-red-500 min-w-5 h-5 rounded-full px-1.5 text-[11px] font-semibold shadow-sm ring-2 ring-sidebar'
+                      aria-label={`${pendingInvitationsCount} pending invitation${pendingInvitationsCount !== 1 ? 's' : ''}`}
+                    >
+                      {pendingInvitationsCount > 99
+                        ? '99+'
+                        : pendingInvitationsCount > 9
+                          ? '9+'
+                          : pendingInvitationsCount}
+                    </SidebarMenuBadge>
+                  )}
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
@@ -246,16 +272,13 @@ export default function AppSidebar() {
 
                 {workspacesError && !loadingWorkspaces && (
                   <SidebarMenuItem>
-                    <div className='px-2 py-1.5 text-sm text-red-600 bg-red-50 rounded space-y-2'>
-                      <div>
-                        <p className='font-medium'>Failed to load workspaces</p>
-                        <p className='text-xs mt-1'>{workspacesError}</p>
-                      </div>
+                    <div className='flex items-center gap-2 px-2 py-1.5 text-sm text-sidebar-foreground/70'>
+                      <span>Couldn&apos;t load workspaces</span>
                       <Button
                         onClick={retryLoadWorkspaces}
-                        variant='destructive'
+                        variant='ghost'
                         size='sm'
-                        className='w-full'
+                        className='shrink-0 h-7'
                       >
                         Retry
                       </Button>
@@ -267,9 +290,19 @@ export default function AppSidebar() {
                   !workspacesError &&
                   workspaces.length === 0 && (
                     <SidebarMenuItem>
-                      <div className='px-2 py-1.5 text-sm text-sidebar-foreground/70 text-center'>
-                        No workspace
-                      </div>
+                      <Empty className='p-3 gap-3 rounded-lg border-dashed'>
+                        <EmptyHeader>
+                          <EmptyMedia variant='icon'>
+                            <Building2 className='size-5' />
+                          </EmptyMedia>
+                          <EmptyTitle className='text-sm font-medium'>
+                            No workspace
+                          </EmptyTitle>
+                          <EmptyDescription className='text-xs text-sidebar-foreground/70'>
+                            Create one to organize your boards
+                          </EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
                     </SidebarMenuItem>
                   )}
               </SidebarMenu>

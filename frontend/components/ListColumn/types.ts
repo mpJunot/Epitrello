@@ -23,6 +23,8 @@ export type ListColumnProps = {
   allLists?: List[];
   dragHandleProps?: React.HTMLAttributes<HTMLElement>;
   boardId?: string;
+  /** When true, hide add card, list menu and disable editing (view only). */
+  readOnly?: boolean;
 };
 
 export type SortOption = 'date-newest' | 'date-oldest' | 'due-date' | 'alpha-asc' | 'alpha-desc';

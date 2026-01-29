@@ -46,6 +46,16 @@ export class InvitationsResolver {
   }
 
   @Mutation(() => Boolean, {
+    description: 'Join a workspace via invite link. Adds current user as MEMBER if not already a member.',
+  })
+  async joinWorkspaceByInviteLink(
+    @Args('workspaceId', { type: () => ID }) workspaceId: string,
+    @CurrentUser() user: any,
+  ): Promise<boolean> {
+    return this.invitationsService.joinWorkspaceByInviteLink(workspaceId, user.id);
+  }
+
+  @Mutation(() => Boolean, {
     description: 'Cancel a pending invitation. Only the inviter or workspace admin can cancel.',
   })
   async cancelInvitation(

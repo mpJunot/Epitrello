@@ -3,7 +3,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Clock, CheckSquare } from 'lucide-react';
 import CardModal from './CardModal';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  AvatarGroup,
+  AvatarGroupCount,
+} from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { getLabelDisplayColor } from '@/lib/constants/label-colors';
@@ -19,13 +25,7 @@ function formatDate(iso: string): string {
   });
 }
 
-function MemberAvatarInline({
-  user,
-  size = 6,
-}: {
-  user: UserRef;
-  size?: number;
-}) {
+function MemberAvatar({ user }: { user: UserRef }) {
   const displayName = user.name || user.email || 'U';
   const initials = user.name
     ? user.name
@@ -35,13 +35,12 @@ function MemberAvatarInline({
         .join('')
         .toUpperCase()
     : (user.email || 'U')[0].toUpperCase();
-  const dim = `${size}rem`;
   const avatarColor = getAvatarColor(displayName);
   return (
     <Avatar
+      size='sm'
       title={user.name || user.email}
       className={`shrink-0 overflow-hidden rounded-full ${avatarColor}`}
-      style={{ width: dim, height: dim }}
     >
       <AvatarImage
         src={user.avatar ?? undefined}
@@ -62,6 +61,7 @@ export default function CardItem({
   onDragOver,
   availableLists = [],
   currentBoardId,
+  readOnly = false,
 }: {
   card: Card;
   index?: number;
@@ -73,6 +73,7 @@ export default function CardItem({
   onDragOver?: (e: React.DragEvent, overIndex?: number) => void;
   availableLists?: Array<{ id: string; name: string }>;
   currentBoardId?: string;
+  readOnly?: boolean;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -154,7 +155,7 @@ export default function CardItem({
     <>
       <div
         ref={cardRef}
-        draggable={!isModalOpen && !card.id.startsWith('temp-')}
+        draggable={!readOnly && !isModalOpen && !card.id.startsWith('temp-')}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
@@ -279,12 +280,17 @@ export default function CardItem({
 
             {/* Members */}
             {(card.assignees || []).length > 0 && (
-              <div className='flex flex-col items-end gap-1'>
-                {(card.assignees || []).slice(0, 3).map((u: UserRef) => (
-                  <div key={u.id} className='flex items-center'>
-                    <MemberAvatarInline user={u} size={1.5} />
-                  </div>
-                ))}
+              <div className='flex justify-end'>
+                <AvatarGroup className='flex-row'>
+                  {(card.assignees || []).slice(0, 4).map((u: UserRef) => (
+                    <MemberAvatar key={u.id} user={u} />
+                  ))}
+                  {(card.assignees || []).length > 4 && (
+                    <AvatarGroupCount>
+                      +{(card.assignees || []).length - 4}
+                    </AvatarGroupCount>
+                  )}
+                </AvatarGroup>
               </div>
             )}
           </div>
@@ -301,6 +307,7 @@ export default function CardItem({
         availableLists={availableLists}
         currentBoardId={currentBoardId}
         availableBoards={allBoards}
+        readOnly={readOnly}
       />
     </>
   );

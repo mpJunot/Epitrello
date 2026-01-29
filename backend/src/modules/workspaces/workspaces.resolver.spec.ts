@@ -22,6 +22,7 @@ describe('WorkspacesResolver', () => {
     create: jest.fn(),
     findMyWorkspaces: jest.fn(),
     findOne: jest.fn(),
+    findInviteInfo: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
   };
@@ -81,6 +82,18 @@ describe('WorkspacesResolver', () => {
 
       expect(result).toEqual(mockWorkspace);
       expect(workspacesService.findOne).toHaveBeenCalledWith('1', 'user-1');
+    });
+  });
+
+  describe('workspaceInviteInfo', () => {
+    it('should return workspace invite info (public, no user)', async () => {
+      const inviteInfo = { id: '1', name: 'Test Workspace', logoUrl: null };
+      mockWorkspacesService.findInviteInfo.mockResolvedValue(inviteInfo);
+
+      const result = await resolver.workspaceInviteInfo('1');
+
+      expect(result).toEqual(inviteInfo);
+      expect(workspacesService.findInviteInfo).toHaveBeenCalledWith('1');
     });
   });
 

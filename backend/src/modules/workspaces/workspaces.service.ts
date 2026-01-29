@@ -75,6 +75,21 @@ export class WorkspacesService {
   }
 
   /**
+   * Get workspace invite info (id, name, logoUrl) for the invite link page.
+   * No auth / membership check so the invite page can show workspace name.
+   */
+  async findInviteInfo(id: string): Promise<{ id: string; name: string; logoUrl?: string }> {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id },
+      select: { id: true, name: true, logoUrl: true },
+    });
+    if (!workspace) {
+      throw new NotFoundException(`Workspace with ID ${id} not found`);
+    }
+    return workspace;
+  }
+
+  /**
    * Find all workspaces where the user is a member
    */
   async findMyWorkspaces(userId: string): Promise<Workspace[]> {
