@@ -207,6 +207,19 @@ export async function updateWorkspace(id: string, input: UpdateWorkspaceInput): 
 }
 
 /**
+ * Delete a workspace by ID (only ADMIN can delete)
+ */
+export async function deleteWorkspace(id: string): Promise<boolean> {
+  const mutation = `
+    mutation DeleteWorkspace($id: ID!) {
+      deleteWorkspace(id: $id)
+    }
+  `;
+  const result = await graphqlRequest<{ deleteWorkspace: boolean }>(mutation, { id });
+  return result.deleteWorkspace;
+}
+
+/**
  * Invite a member to a workspace
  */
 export async function inviteMember(workspaceId: string, inviteeEmail: string, role: string = 'MEMBER'): Promise<WorkspaceInvitation> {
