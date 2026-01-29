@@ -1,4 +1,4 @@
-import { graphqlRequest } from '../graphql-client';
+import { graphqlRequest, type GraphQLRequestOptions } from '../graphql-client';
 
 export interface User {
   id: string;
@@ -19,7 +19,7 @@ export interface UpdateUserInput {
 /**
  * Get the currently authenticated user information
  */
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(options?: GraphQLRequestOptions): Promise<User | null> {
   const query = `
     query Me {
       me {
@@ -34,9 +34,12 @@ export async function getCurrentUser(): Promise<User | null> {
   `;
 
   try {
-    const result = await graphqlRequest<{ me: User | null }>(query);
+    const result = await graphqlRequest<{ me: User | null }>(query, undefined, options);
     return result.me;
   } catch (error) {
+    if (options?.suppressAuthError && error instanceof Error && error.message === 'UNAUTHORIZED_QUIET') {
+      return null;
+    }
     console.error('Failed to fetch current user', error);
     return null;
   }

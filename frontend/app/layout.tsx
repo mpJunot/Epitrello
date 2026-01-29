@@ -1,13 +1,13 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
-import { Toaster } from '../components/ui/sonner';
-import { ThemeProvider } from '../components/theme-provider';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "../components/theme-provider";
+import { ConditionalLayout } from "../components/ConditionalLayout";
+import { PageTransition } from "../components/PageTransition";
+import { NavigationProvider } from "../components/NavigationProvider";
+import { SidebarProvider } from "../components/ui/sidebar";
+import TokenSync from "../components/TokenSync";
 import { QueryProvider } from '../components/providers/QueryProvider';
-import { ConditionalLayout } from '../components/ConditionalLayout';
-import { PageTransition } from '../components/PageTransition';
-import { NavigationProvider } from '../components/NavigationProvider';
-import { SidebarProvider } from '../components/ui/sidebar';
 
 const inter = Inter({
   variable: '--font-sans',
@@ -40,6 +40,7 @@ export default function RootLayout({
           <QueryProvider>
             <SidebarProvider className='w-full h-full'>
               <NavigationProvider>
+                <TokenSync />
                 <PageTransition />
                 <ConditionalLayout>{children}</ConditionalLayout>
                 <Toaster />

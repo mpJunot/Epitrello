@@ -10,7 +10,12 @@ import { Label } from "@/components/ui/label";
 
 const RegisterSchema = z
   .object({
-    name: z.string().min(1, "Name required"),
+    name: z
+      .string()
+      .min(1, "Name required")
+      .refine((s) => s.length === 0 || s.length >= 3, {
+        message: "name must be longer than or equal to 3 characters",
+      }),
     company: z.string().optional(),
     email: z.string().min(1, "Email required").email("Invalid email"),
     password: z.string().min(8, "Password must contain at least 8 characters"),
@@ -198,7 +203,7 @@ export default function RegisterPage() {
                 className={errors.confirm ? "border-destructive focus-visible:ring-destructive" : ""}
                 placeholder="••••••••"
               />
-              {errors.confirm && <p className="text-destructive text-sm mt-1.5">{errors.confirm.message}</p>}
+              {errors.confirm && <p className="text-destructive text-sm text-red-600 mt-1.5">{errors.confirm.message}</p>}
             </div>
 
             <div className="pt-2">
