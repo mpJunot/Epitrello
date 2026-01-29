@@ -137,68 +137,18 @@ jobs:
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
 
-      - name: Migrate database
-        working-directory: backend
-        run: pnpm prisma migrate deploy
-
-      - name: Start backend
-        working-directory: backend
+      - name: Run E2E tests
         run: |
-          pnpm start:dev > /tmp/backend.log 2>&1 &
-          echo $! > /tmp/backend.pid
+          chmod +x ./frontend/e2e/scripts/run-e2e.sh
+          ./frontend/e2e/scripts/run-e2e.sh
 
-      - name: Wait for backend
-        run: |
-          for i in {1..60}; do
-            if curl -s -o /dev/null http://localhost:4000/graphql; then
-              echo "Backend is up"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Backend failed to start"
-          cat /tmp/backend.log || true
-          exit 1
-
-      - name: Build frontend
-        working-directory: frontend
-        run: pnpm build
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
-
-      - name: Start frontend
-        working-directory: frontend
-        run: |
-          pnpm start -p 3000 > /tmp/frontend.log 2>&1 &
-          echo $! > /tmp/frontend.pid
-
-      - name: Wait for frontend
-        run: |
-          for i in {1..60}; do
-            if curl -s -o /dev/null http://localhost:3000; then
-              echo "Frontend is up"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Frontend failed to start"
-          cat /tmp/frontend.log || true
-          exit 1
-
-      - name: Check for test script
-        id: check-test
-        working-directory: frontend
-        run: |
-          if grep -q '"test:e2e"' package.json; then
-            echo "has_test=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_test=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Run frontend E2E tests
-        if: steps.check-test.outputs.has_test == 'true'
-        working-directory: frontend
-        run: pnpm test:e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/e2e/playwright-report/
+          retention-days: 7
 
   security-scan:
     name: Security Scan
