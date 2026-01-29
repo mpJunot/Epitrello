@@ -41,7 +41,7 @@ export default function WorkspaceMembersPage() {
 
   const members: WorkspaceMemberWithUser[] = useMemo(
     () => wsMembers ?? [],
-    [wsMembers]
+    [wsMembers],
   );
 
   const isAdmin = useMemo(() => {
@@ -132,7 +132,6 @@ export default function WorkspaceMembersPage() {
           className='flex-1 flex'
         >
           <MembersSidebar
-            activeTab={activeTab}
             memberCount={memberCount}
             guestsCount={guestsCount}
             requestsCount={requestsCount}
