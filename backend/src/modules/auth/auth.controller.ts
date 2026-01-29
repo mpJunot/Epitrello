@@ -18,14 +18,9 @@ export class AuthController {
       const result = await this.authService.oauthLogin(user);
       const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-      // Set a httpOnly cookie for backend calls
-      const maxAge = 60 * 60 * 24 * 7; // 7 days
-      res.setHeader(
-        'Set-Cookie',
-        `token=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`,
-      );
-
-      return res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
+      // Encode token so URL-safe (JWT can contain +, /, =)
+      const tokenParam = encodeURIComponent(result.token);
+      return res.redirect(`${frontendUrl}/auth/callback?token=${tokenParam}`);
     } catch (error) {
       const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
       const message =
