@@ -7,14 +7,22 @@
     "build": "next build --webpack",
     "start": "next start -p ${PORT:-8080}",
     "lint": "eslint",
-    "test": "vitest run --environment jsdom",
-    "test:watch": "vitest --environment jsdom",
-    "test:coverage": "vitest run --environment jsdom --coverage",
+    "test": "vitest run --environment jsdom --exclude e2e/**",
+    "test:watch": "vitest --environment jsdom --exclude e2e/**",
+    "test:coverage": "vitest run --environment jsdom --coverage --exclude e2e/**",
     "test:e2e": "pnpm exec playwright test --config e2e/playwright.config.ts",
     "test:e2e:headed": "pnpm exec playwright test --config e2e/playwright.config.ts --headed",
     "e2e:run": "bash e2e/scripts/run-e2e.sh",
     "codegen": "graphql-codegen --config codegen.ts",
     "codegen:watch": "graphql-codegen --config codegen.ts --watch"
+  },
+  "vitest": {
+    "test": {
+      "exclude": [
+        "e2e/**",
+        "**/e2e/**"
+      ]
+    }
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
