@@ -54,12 +54,88 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
+      JWT_SECRET: test-secret-key-for-ci
+      NODE_ENV: test
+      NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
+      FRONTEND_URL: http://localhost:3000
+      PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
+      EMAIL_FROM: test@epitrello.com
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: epitrello_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
+
+      - name: Migrate database
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          pnpm start:dev > /tmp/backend.log 2>&1 &
+          echo $! > /tmp/backend.pid
+
+      - name: Wait for backend
+        run: |
+          for i in {1..60}; do
+            if curl -s -o /dev/null http://localhost:4000/graphql; then
+              echo "Backend is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start"
+          cat /tmp/backend.log || true
+          exit 1
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
+
+      - name: Start frontend
+        working-directory: frontend
+        run: |
+          pnpm start -p 3000 > /tmp/frontend.log 2>&1 &
+          echo $! > /tmp/frontend.pid
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..60}; do
+            if curl -s -o /dev/null http://localhost:3000; then
+              echo "Frontend is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend failed to start"
+          cat /tmp/frontend.log || true
+          exit 1
 
       - name: Check for test script
         id: check-test
