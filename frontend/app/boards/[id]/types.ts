@@ -10,7 +10,7 @@ import type {
 
 export type Card = Pick<
   GqlCard,
-  'id' | 'title' | 'description' | 'position' | 'listId' | 'dueDate' | 'startDate' | 'completed' | 'background'
+  'id' | 'title' | 'description' | 'position' | 'listId' | 'dueDate' | 'startDate' | 'completed' | 'background' | 'createdAt'
 > & {
   assignees?: Array<MemberUser>;
   labels?: Array<GqlLabel>;
