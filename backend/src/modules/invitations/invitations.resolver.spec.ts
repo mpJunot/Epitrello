@@ -46,6 +46,7 @@ describe('InvitationsResolver', () => {
     inviteMember: jest.fn(),
     acceptInvitation: jest.fn(),
     rejectInvitation: jest.fn(),
+    joinWorkspaceByInviteLink: jest.fn(),
     cancelInvitation: jest.fn(),
     getWorkspaceInvitations: jest.fn(),
     getMyInvitations: jest.fn(),
@@ -133,6 +134,22 @@ describe('InvitationsResolver', () => {
 
       expect(result).toBe(true);
       expect(service.cancelInvitation).toHaveBeenCalledWith(invitationId, mockUser.id);
+    });
+  });
+
+  describe('joinWorkspaceByInviteLink', () => {
+    it('should join workspace via invite link', async () => {
+      const workspaceId = 'workspace-123';
+
+      mockInvitationsService.joinWorkspaceByInviteLink.mockResolvedValue(true);
+
+      const result = await resolver.joinWorkspaceByInviteLink(workspaceId, mockUser);
+
+      expect(result).toBe(true);
+      expect(service.joinWorkspaceByInviteLink).toHaveBeenCalledWith(
+        workspaceId,
+        mockUser.id,
+      );
     });
   });
 
@@ -233,6 +250,7 @@ describe('InvitationsResolver', () => {
       expect(resolver.inviteMember).toBeDefined();
       expect(resolver.acceptInvitation).toBeDefined();
       expect(resolver.rejectInvitation).toBeDefined();
+      expect(resolver.joinWorkspaceByInviteLink).toBeDefined();
       expect(resolver.cancelInvitation).toBeDefined();
       expect(resolver.updateMemberRole).toBeDefined();
       expect(resolver.removeMember).toBeDefined();

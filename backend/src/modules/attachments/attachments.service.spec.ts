@@ -161,7 +161,7 @@ describe('AttachmentsService', () => {
     ).rejects.toThrow('Card not found');
   });
 
-  it('should allow access when board is public', async () => {
+  it('should throw when creating attachment on public board without membership', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
       list: { boardId: 'board-1' },
@@ -172,29 +172,21 @@ describe('AttachmentsService', () => {
       members: [],
       workspace: null,
     });
-    mockPrismaService.attachment.create.mockResolvedValue({
-      id: 'attachment-1',
-      cardId: 'card-1',
-      uploaderId: 'user-1',
-      url: 'https://example.com/file.png',
-      filename: 'file.png',
-      size: 42,
-    });
 
-    const result = await service.create(
-      {
-        cardId: 'card-1',
-        url: 'https://example.com/file.png',
-        filename: 'file.png',
-        size: 42,
-      },
-      mockUser.id,
-    );
-
-    expect(result.id).toBe('attachment-1');
+    await expect(
+      service.create(
+        {
+          cardId: 'card-1',
+          url: 'https://example.com/file.png',
+          filename: 'file.png',
+          size: 42,
+        },
+        mockUser.id,
+      ),
+    ).rejects.toThrow('You are not a member of this board');
   });
 
-  it('should forbid creating attachment without access', async () => {
+  it('should forbid creating attachment without board membership', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
       list: { boardId: 'board-1' },
@@ -215,7 +207,7 @@ describe('AttachmentsService', () => {
         },
         mockUser.id,
       ),
-    ).rejects.toThrow('You do not have access to this board');
+    ).rejects.toThrow('You are not a member of this board');
   });
 
   it('should get attachment by id', async () => {

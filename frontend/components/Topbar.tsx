@@ -17,8 +17,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { clearAuthToken } from '@/lib/graphql-client';
+import {
+  clearAuthToken,
+  clearEpitrelloLocalStorage,
+} from '@/lib/graphql-client';
 import { getCurrentUser } from '@/lib/actions/users';
+import { useQueryClient } from '@tanstack/react-query';
 
 import {
   DropdownMenu,
@@ -54,6 +58,7 @@ export default function Topbar() {
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showSearchDialog, setShowSearchDialog] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -133,15 +138,13 @@ export default function Topbar() {
 
   const handleSignOut = async () => {
     try {
-      localStorage.removeItem('epitrello_user');
-      localStorage.removeItem('epitrello_notifications');
-      localStorage.removeItem('epitrello_boards');
-      localStorage.removeItem('epitrello_active_board');
-      localStorage.removeItem('epitrello_workspaces');
-      localStorage.removeItem('epitrello_expanded_workspaces');
-      clearAuthToken(); // ← Nettoie localStorage et le cookie
-
-      await fetch('/api/auth/logout', { method: 'POST' });
+      clearAuthToken();
+      clearEpitrelloLocalStorage();
+      queryClient.clear();
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
       router.push('/auth/login');
     } catch (error) {
       console.error('Failed to sign out', error);

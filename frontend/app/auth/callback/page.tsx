@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { setAuthToken } from '@/lib/graphql-client';
+import React, { useEffect } from 'react';
+import { setAuthToken, setAuthTokenCookie } from '@/lib/graphql-client';
+import { toast } from '@/lib/toast';
 
 function getTokenFromUrl(): { token: string | null; error: string | null } {
   if (typeof window === 'undefined') return { token: null, error: null };
@@ -43,20 +44,18 @@ function getTokenFromUrl(): { token: string | null; error: string | null } {
 }
 
 export default function OAuthCallbackPage() {
-  const [message, setMessage] = useState<string | null>(null);
-
   useEffect(() => {
     const { token, error } = getTokenFromUrl();
 
     if (error) {
-      setMessage(error);
+      toast.error(error, 'Authentication error');
       window.history.replaceState({}, document.title, window.location.pathname);
       return;
     }
 
     if (token) {
       setAuthToken(token);
-      // Remove token from URL immediately (security + avoid refresh re-use)
+      setAuthTokenCookie(token);
       window.history.replaceState({}, document.title, window.location.pathname);
 
       (async () => {
@@ -65,6 +64,7 @@ export default function OAuthCallbackPage() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
+            credentials: 'include',
           });
 
           if (!res.ok) {
@@ -72,25 +72,28 @@ export default function OAuthCallbackPage() {
             throw new Error(json?.error || 'Exchange failed');
           }
 
+          if (
+            typeof window !== 'undefined' &&
+            localStorage.getItem('auth_token') !== token
+          ) {
+            toast.error('Session could not be saved. Please try again.');
+            return;
+          }
           window.location.href = '/dashboard';
         } catch (err) {
-          setMessage(err instanceof Error ? err.message : 'Unknown error');
+          toast.error(err instanceof Error ? err.message : 'Unknown error');
         }
       })();
     } else {
-      setMessage('No token found in callback');
+      toast.error('No token found in callback');
     }
   }, []);
 
   return (
     <div className='min-h-screen flex items-center justify-center'>
       <div className='max-w-md w-full p-6 bg-white rounded-lg shadow'>
-        <h1 className='text-lg font-semibold mb-2'>Authentification Slack</h1>
-        {message ? (
-          <p className='text-red-600'>{message}</p>
-        ) : (
-          <p>Finalisation de l authentification, redirection...</p>
-        )}
+        <h1 className='text-lg font-semibold mb-2'>OAuth authentication</h1>
+        <p>Completing authentication, redirecting...</p>
       </div>
     </div>
   );

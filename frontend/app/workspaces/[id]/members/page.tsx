@@ -1,16 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { inviteMember, removeMember } from '@/lib/actions/workspaces';
+import {
+  inviteMember,
+  removeMember,
+  leaveWorkspace,
+} from '@/lib/actions/workspaces';
 import {
   useWorkspaceMembersQuery,
+  useWorkspaceBoardsQuery,
   useWorkspaceInvitationsQuery,
   workspaceMembersQueryKey,
   workspaceInvitationsQueryKey,
 } from '@/lib/queries/workspaces';
+import { useWorkspaceRole } from '@/lib/hooks/use-workspace-role';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
 import { MembersHeader } from './components/MembersHeader';
@@ -24,12 +30,14 @@ import type { WorkspaceMemberWithUser } from '@/lib/actions/workspaces';
 
 export default function WorkspaceMembersPage() {
   const params = useParams();
+  const router = useRouter();
   const workspaceId = params.id as string;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>('members');
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
 
+  const { permissions, isAdmin } = useWorkspaceRole(workspaceId);
   const { data: currentUser } = useCurrentUserQuery();
 
   const {
@@ -44,19 +52,17 @@ export default function WorkspaceMembersPage() {
     [wsMembers],
   );
 
-  const isAdmin = useMemo(() => {
-    if (!currentUser || !members.length) return false;
-    const currentMember = members.find((m) => m.user.id === currentUser.id);
-    return currentMember?.role === 'ADMIN';
-  }, [currentUser, members]);
+  const { data: workspaceBoards } = useWorkspaceBoardsQuery(workspaceId);
 
   const { data: invitations } = useWorkspaceInvitationsQuery(workspaceId, {
-    enabled: isAdmin,
+    enabled: permissions.canViewPendingInvitations,
   });
 
   const memberCount = members.length;
   const memberLimit = 10; // TODO: Get from workspace settings
-  const requestsCount = isAdmin ? (invitations?.length ?? 0) : 0;
+  const requestsCount = permissions.canViewPendingInvitations
+    ? (invitations?.length ?? 0)
+    : 0;
   const guestsCount = members.filter((m) => m.role === 'GUEST').length;
 
   useEffect(() => {
@@ -76,16 +82,30 @@ export default function WorkspaceMembersPage() {
     }
   }, [isAdmin, activeTab]);
 
-  const handleRemove = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
+  const handleRemoveOrLeave = async (userId: string) => {
+    const isCurrentUser = currentUser?.id === userId;
+    const message = isCurrentUser
+      ? 'Leave this workspace?'
+      : 'Are you sure you want to remove this member?';
+    if (!confirm(message)) return;
 
     setRemoving(userId);
     try {
-      await removeMember(workspaceId, userId);
-      await queryClient.invalidateQueries({
-        queryKey: workspaceMembersQueryKey(workspaceId),
-      });
-      toast.success('Member removed');
+      if (isCurrentUser) {
+        await leaveWorkspace(workspaceId);
+        await queryClient.invalidateQueries({
+          queryKey: workspaceMembersQueryKey(workspaceId),
+        });
+        await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+        toast.success('You left the workspace');
+        router.push('/dashboard');
+      } else {
+        await removeMember(workspaceId, userId);
+        await queryClient.invalidateQueries({
+          queryKey: workspaceMembersQueryKey(workspaceId),
+        });
+        toast.success('Member removed');
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to remove member';
@@ -121,6 +141,7 @@ export default function WorkspaceMembersPage() {
         memberCount={memberCount}
         memberLimit={memberLimit}
         onInviteClick={() => setShowInviteDialog(true)}
+        canInvite={permissions.canInviteMembers}
       />
 
       {/* Tabs Container */}
@@ -147,16 +168,23 @@ export default function WorkspaceMembersPage() {
                   memberCount={memberCount}
                   memberLimit={memberLimit}
                   workspaceId={workspaceId}
-                  onRemove={handleRemove}
+                  onRemove={handleRemoveOrLeave}
                   removing={removing}
+                  canInvite={permissions.canInviteMembers}
+                  canRemove={permissions.canRemoveMembers}
+                  workspaceBoards={workspaceBoards}
+                  currentUserId={currentUser?.id}
                 />
               </TabsContent>
 
               <TabsContent value='guests'>
                 <GuestsTabContent
                   members={members}
-                  onRemove={handleRemove}
+                  onRemove={handleRemoveOrLeave}
                   removing={removing}
+                  canRemove={permissions.canRemoveMembers}
+                  workspaceBoards={workspaceBoards}
+                  currentUserId={currentUser?.id}
                 />
               </TabsContent>
 
@@ -170,11 +198,13 @@ export default function WorkspaceMembersPage() {
         </Tabs>
       </div>
 
-      <InviteMemberDialog
-        open={showInviteDialog}
-        onOpenChange={setShowInviteDialog}
-        onInvite={handleInvite}
-      />
+      {permissions.canInviteMembers && (
+        <InviteMemberDialog
+          open={showInviteDialog}
+          onOpenChange={setShowInviteDialog}
+          onInvite={handleInvite}
+        />
+      )}
     </div>
   );
 }

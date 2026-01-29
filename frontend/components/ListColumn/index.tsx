@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowUpDown,
   Trash2,
+  Archive,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,7 @@ export default function ListColumn({
   allLists = [],
   dragHandleProps,
   boardId,
+  readOnly = false,
 }: ListColumnProps) {
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
@@ -314,6 +316,10 @@ export default function ListColumn({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
+    if (readOnly) {
+      setDragOverIndex(null);
+      return;
+    }
 
     const raw = e.dataTransfer.getData('application/json');
     if (!raw) {
@@ -410,10 +416,10 @@ export default function ListColumn({
         <div className='flex items-center justify-between gap-2'>
           {!editing ? (
             <h3
-              className='font-medium text-foreground text-sm cursor-text flex-1'
-              onClick={() => setEditing(true)}
-              title='Click to edit'
-              {...dragHandleProps}
+              className={`font-medium text-foreground text-sm flex-1 ${!readOnly ? 'cursor-text' : ''}`}
+              onClick={() => !readOnly && setEditing(true)}
+              title={readOnly ? undefined : 'Click to edit'}
+              {...(readOnly ? {} : dragHandleProps)}
             >
               {title}
             </h3>
@@ -435,105 +441,120 @@ export default function ListColumn({
             />
           )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                className={`transition-all duration-200 ${
-                  isHoveringColumn ? 'opacity-100' : 'opacity-30'
-                }`}
-                title='Column actions'
-                aria-label='Column actions menu'
-              >
-                <MoreVertical
-                  className='w-4 h-4 text-muted-foreground'
-                  aria-hidden='true'
-                />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end' className='w-56 border-accent'>
-              <DropdownMenuLabel>List actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
+          {!readOnly && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className={`transition-all duration-200 ${
+                    isHoveringColumn ? 'opacity-100' : 'opacity-30'
+                  }`}
+                  title='Column actions'
+                  aria-label='Column actions menu'
+                >
+                  <MoreVertical
+                    className='w-4 h-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='w-56 border-accent'>
+                <DropdownMenuLabel>List actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={() => setAddingCard(true)}>
-                <Plus className='w-4 h-4' />
-                <span>Add card</span>
-              </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setAddingCard(true)}>
+                  <Plus className='w-4 h-4' />
+                  <span>Add card</span>
+                </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => setShowCopyDialog(true)}>
-                <Copy className='w-4 h-4' />
-                <span>Copy list</span>
-              </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowCopyDialog(true)}>
+                  <Copy className='w-4 h-4' />
+                  <span>Copy list</span>
+                </DropdownMenuItem>
 
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger disabled={totalListsCount <= 1}>
-                  <Move className='w-4 h-4' />
-                  <span>Move</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='border-accent'>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (totalListsCount > 1) setShowMoveDialog(true);
-                    }}
-                    disabled={totalListsCount <= 1}
-                  >
-                    <ArrowRight className='w-4 h-4' />
-                    <span>Move list</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (totalListsCount > 1 && cards.length > 0)
-                        setShowMoveAllCardsDialog(true);
-                    }}
-                    disabled={totalListsCount <= 1 || cards.length === 0}
-                  >
-                    <ArrowRight className='w-4 h-4' />
-                    <span>Move all cards</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={totalListsCount <= 1}>
+                    <Move className='w-4 h-4' />
+                    <span>Move</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className='border-accent'>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (totalListsCount > 1) setShowMoveDialog(true);
+                      }}
+                      disabled={totalListsCount <= 1}
+                    >
+                      <ArrowRight className='w-4 h-4' />
+                      <span>Move list</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (totalListsCount > 1 && cards.length > 0)
+                          setShowMoveAllCardsDialog(true);
+                      }}
+                      disabled={totalListsCount <= 1 || cards.length === 0}
+                    >
+                      <ArrowRight className='w-4 h-4' />
+                      <span>Move all cards</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
 
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger disabled={cards.length === 0}>
-                  <ArrowUpDown className='w-4 h-4' />
-                  <span>Sort by</span>
-                  {activeSortOption && cards.length > 0 && (
-                    <span className='ml-auto text-xs text-primary'>●</span>
-                  )}
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className='border-accent'>
-                  <DropdownMenuRadioGroup
-                    value={activeSortOption || undefined}
-                    onValueChange={(value) => {
-                      if (value) handleSort(value as SortOption);
-                    }}
-                  >
-                    {sortOptions.map((option) => (
-                      <DropdownMenuRadioItem
-                        key={option.value}
-                        value={option.value}
-                        disabled={cards.length === 0}
-                      >
-                        {option.label}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={cards.length === 0}>
+                    <ArrowUpDown className='w-4 h-4' />
+                    <span>Sort by</span>
+                    {activeSortOption && cards.length > 0 && (
+                      <span className='ml-auto text-xs text-primary'>●</span>
+                    )}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className='border-accent'>
+                    <DropdownMenuRadioGroup
+                      value={activeSortOption || undefined}
+                      onValueChange={(value) => {
+                        if (value) handleSort(value as SortOption);
+                      }}
+                    >
+                      {sortOptions.map((option) => (
+                        <DropdownMenuRadioItem
+                          key={option.value}
+                          value={option.value}
+                          disabled={cards.length === 0}
+                        >
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
 
-              <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                variant='destructive'
-                className='text-red-600'
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className='w-4 h-4' />
-                <span>Delete list</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent('epitrello:list-archived', {
+                        detail: { listId: list.id },
+                      }),
+                    );
+                  }}
+                >
+                  <Archive className='w-4 h-4' />
+                  <span>Archive list</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  variant='destructive'
+                  className='text-red-600'
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className='w-4 h-4' />
+                  <span>Delete list</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Dialogs for complex actions */}
           <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
@@ -649,13 +670,14 @@ export default function ListColumn({
             <CardItem
               card={c}
               index={i}
-              onDragStart={handleCardDragStart}
-              onDragOver={handleCardDragOver}
+              onDragStart={readOnly ? undefined : handleCardDragStart}
+              onDragOver={readOnly ? undefined : handleCardDragOver}
               availableLists={allLists.map((l) => ({
                 id: l.id,
                 name: l.title,
               }))}
               currentBoardId={boardId}
+              readOnly={readOnly}
             />
           </div>
         ))}
@@ -664,25 +686,27 @@ export default function ListColumn({
         )}
       </div>
 
-      {/* Footer */}
-      <div className='p-2 border-accent shrink-0'>
-        {!addingCard ? (
-          <Button
-            ref={addButtonRef}
-            onClick={() => setAddingCard(true)}
-            variant='secondary'
-            className='w-full justify-start cursor-pointer hover:bg-primary'
-            aria-label='Add a card'
-          >
-            + Add a card
-          </Button>
-        ) : (
-          <CardComposer
-            onSubmit={handleSubmitCard}
-            onCancel={handleCancelAdd}
-          />
-        )}
-      </div>
+      {/* Footer - hide when read only */}
+      {!readOnly && (
+        <div className='p-2 border-accent shrink-0'>
+          {!addingCard ? (
+            <Button
+              ref={addButtonRef}
+              onClick={() => setAddingCard(true)}
+              variant='secondary'
+              className='w-full justify-start cursor-pointer hover:bg-primary'
+              aria-label='Add a card'
+            >
+              + Add a card
+            </Button>
+          ) : (
+            <CardComposer
+              onSubmit={handleSubmitCard}
+              onCancel={handleCancelAdd}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -99,6 +99,7 @@ model User {
   name                     String
   password                 String
   avatar                   String?
+  description              String?
   emailVerified            Boolean   @default(false)
   emailVerificationToken   String?   @unique
   emailVerificationExpires DateTime?
@@ -213,6 +214,7 @@ model Card {
   dueDate     DateTime?
   position    Float     @default(0)
   completed   Boolean   @default(false)
+  isArchived  Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

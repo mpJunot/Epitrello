@@ -71,6 +71,7 @@ export async function getBoard(id: string): Promise<BoardDetail> {
             name
             email
             avatar
+            description
           }
         }
         lists {
@@ -139,6 +140,36 @@ export async function updateBoard(input: UpdateBoardInput): Promise<Board> {
 
   const result = await graphqlRequest<{ updateBoard: Board }>(mutation, { input });
   return result.updateBoard;
+}
+
+/**
+ * Add a member to a board (admin only)
+ */
+export async function addBoardMember(
+  boardId: string,
+  userId: string,
+  role: 'ADMIN' | 'MEMBER' | 'OBSERVER' = 'MEMBER',
+): Promise<BoardMemberWithUser> {
+  const mutation = `
+    mutation AddBoardMember($input: AddBoardMemberInput!) {
+      addBoardMember(input: $input) {
+        id
+        userId
+        role
+        joinedAt
+        user {
+          id
+          name
+          email
+          avatar
+        }
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ addBoardMember: BoardMemberWithUser }>(mutation, {
+    input: { boardId, userId, role },
+  });
+  return result.addBoardMember;
 }
 
 /**

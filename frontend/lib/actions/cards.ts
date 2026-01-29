@@ -16,6 +16,7 @@ export interface Card {
   dueDate?: string;
   startDate?: string;
   completed?: boolean;
+  isArchived?: boolean;
   createdAt?: string;
   updatedAt?: string;
   labels?: CardLabel[];
@@ -215,4 +216,62 @@ export async function removeLabelFromCard(input: RemoveLabelFromCardInput): Prom
   `;
   const result = await graphqlRequest<{ removeLabelFromCard: Card }>(mutation, { input });
   return result.removeLabelFromCard;
+}
+
+export async function archiveCard(id: string): Promise<Card> {
+  const mutation = `
+    mutation ArchiveCard($id: ID!) {
+      archiveCard(id: $id) {
+        id
+        title
+        listId
+        position
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ archiveCard: Card }>(mutation, { id });
+  return result.archiveCard;
+}
+
+export async function unarchiveCard(id: string): Promise<Card> {
+  const mutation = `
+    mutation UnarchiveCard($id: ID!) {
+      unarchiveCard(id: $id) {
+        id
+        title
+        listId
+        position
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ unarchiveCard: Card }>(mutation, { id });
+  return result.unarchiveCard;
+}
+
+/**
+ * Get archived cards for a board
+ */
+export async function getArchivedCards(boardId: string): Promise<Card[]> {
+  const query = `
+    query ArchivedCards($boardId: ID!) {
+      archivedCards(boardId: $boardId) {
+        id
+        title
+        description
+        listId
+        position
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ archivedCards: Card[] }>(query, { boardId });
+  return result.archivedCards ?? [];
 }

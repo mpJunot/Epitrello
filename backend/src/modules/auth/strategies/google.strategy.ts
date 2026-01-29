@@ -17,16 +17,18 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   async validate(
     accessToken: string,
     refreshToken: string,
-    profile: any,
+    profile: { id?: string; name?: { givenName?: string; familyName?: string }; emails?: Array<{ value?: string }>; photos?: Array<{ value?: string }> },
     done: VerifyCallback,
-  ): Promise<any> {
-    const { id, name, emails, photos } = profile;
+  ): Promise<void> {
+    const email = profile.emails?.[0]?.value ?? '';
+    const givenName = profile.name?.givenName ?? '';
+    const familyName = profile.name?.familyName ?? '';
     const user = {
       provider: 'GOOGLE',
-      providerId: id,
-      email: emails[0].value,
-      name: name.givenName + ' ' + name.familyName,
-      avatar: photos[0].value,
+      providerId: profile.id ?? '',
+      email,
+      name: [givenName, familyName].filter(Boolean).join(' ') || email || 'Google User',
+      avatar: profile.photos?.[0]?.value,
       accessToken,
       refreshToken,
     };

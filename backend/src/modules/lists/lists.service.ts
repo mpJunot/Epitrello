@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateListInput } from './dto/create-list.input';
 import { UpdateListInput } from './dto/update-list.input';
@@ -15,8 +16,7 @@ export class ListsService {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Check if user has access to the board
-   * User must be a member of the board
+   * Check if user has access to view the board
    */
   private async checkBoardAccess(boardId: string, userId: string): Promise<void> {
     const board = await this.prisma.board.findUnique({
@@ -35,19 +35,36 @@ export class ListsService {
       throw new NotFoundException('Board not found');
     }
 
-    // Check if user is a board member
     const isBoardMember = board.members.some((member) => member.userId === userId);
-
-    // Check if board is public
     const isPublic = board.visibility === 'PUBLIC';
-
-    // Check if user is workspace member (if board belongs to workspace)
     const isWorkspaceMember =
       board.workspace &&
       board.workspace.memberships.some((member) => member.userId === userId);
 
     if (!isBoardMember && !isPublic && !isWorkspaceMember) {
       throw new ForbiddenException('You do not have access to this board');
+    }
+  }
+
+  /**
+   * Check if user can edit the board (must be board member, not OBSERVER)
+   */
+  private async checkBoardEditPermission(boardId: string, userId: string): Promise<void> {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: { members: true },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    const membership = board.members.find((m) => m.userId === userId);
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this board');
+    }
+    if (membership.role === Role.OBSERVER) {
+      throw new ForbiddenException('Observers do not have edit permission');
     }
   }
 
@@ -78,7 +95,7 @@ export class ListsService {
    * - Position is calculated automatically if not provided
    */
   async create(input: CreateListInput, userId: string): Promise<List> {
-    await this.checkBoardAccess(input.boardId, userId);
+    await this.checkBoardEditPermission(input.boardId, userId);
 
     const position =
       input.position !== undefined
@@ -92,7 +109,10 @@ export class ListsService {
         position,
       },
       include: {
-        cards: true,
+        cards: {
+          where: { isArchived: false },
+          orderBy: { position: 'asc' },
+        },
       },
     });
 
@@ -108,6 +128,7 @@ export class ListsService {
       where: { id },
       include: {
         cards: {
+          where: { isArchived: false },
           orderBy: {
             position: 'asc',
           },
@@ -137,7 +158,7 @@ export class ListsService {
       throw new NotFoundException('List not found');
     }
 
-    await this.checkBoardAccess(existingList.boardId, userId);
+    await this.checkBoardEditPermission(existingList.boardId, userId);
 
     const updateData: any = {};
     if (input.title !== undefined) {
@@ -152,6 +173,7 @@ export class ListsService {
       data: updateData,
       include: {
         cards: {
+          where: { isArchived: false },
           orderBy: {
             position: 'asc',
           },
@@ -176,7 +198,7 @@ export class ListsService {
       throw new NotFoundException('List not found');
     }
 
-    await this.checkBoardAccess(list.boardId, userId);
+    await this.checkBoardEditPermission(list.boardId, userId);
 
     await this.prisma.list.delete({
       where: { id },
@@ -191,7 +213,7 @@ export class ListsService {
    * - Updates positions for multiple lists at once
    */
   async reorder(input: ReorderListsInput, userId: string): Promise<List[]> {
-    await this.checkBoardAccess(input.boardId, userId);
+    await this.checkBoardEditPermission(input.boardId, userId);
 
     // Verify all lists belong to the board
     const lists = await this.prisma.list.findMany({
@@ -238,13 +260,14 @@ export class ListsService {
       throw new NotFoundException('List not found');
     }
 
-    await this.checkBoardAccess(list.boardId, userId);
+    await this.checkBoardEditPermission(list.boardId, userId);
 
     const archivedList = await this.prisma.list.update({
       where: { id },
       data: { isArchived: true },
       include: {
         cards: {
+          where: { isArchived: false },
           orderBy: {
             position: 'asc',
           },
@@ -253,5 +276,52 @@ export class ListsService {
     });
 
     return archivedList;
+  }
+
+  /**
+   * Unarchive a list
+   * - User must have access to the board
+   */
+  async unarchive(id: string, userId: string): Promise<List> {
+    const list = await this.prisma.list.findUnique({
+      where: { id },
+    });
+
+    if (!list) {
+      throw new NotFoundException('List not found');
+    }
+
+    await this.checkBoardEditPermission(list.boardId, userId);
+
+    const unarchivedList = await this.prisma.list.update({
+      where: { id },
+      data: { isArchived: false },
+      include: {
+        cards: {
+          where: { isArchived: false },
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+
+    return unarchivedList;
+  }
+
+  /**
+   * Get archived lists for a board
+   */
+  async findArchivedByBoardId(boardId: string, userId: string): Promise<List[]> {
+    await this.checkBoardAccess(boardId, userId);
+    return this.prisma.list.findMany({
+      where: { boardId, isArchived: true },
+      orderBy: { position: 'asc' },
+      include: {
+        cards: {
+          orderBy: { position: 'asc' },
+        },
+      },
+    });
   }
 }
