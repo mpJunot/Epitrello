@@ -19,11 +19,19 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { toast } from '@/lib/toast';
-import { updateWorkspace } from '@/lib/actions/workspaces';
+import { updateWorkspace, deleteWorkspace } from '@/lib/actions/workspaces';
 import { useWorkspaceQuery, workspaceQueryKey } from '@/lib/queries/workspaces';
 import { Lock, Pencil } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 const workspaceSchema = z.object({
   name: z
@@ -44,6 +52,8 @@ export default function WorkspaceSettingsPage() {
   const workspaceId = params.id as string;
   const queryClient = useQueryClient();
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
   const { data: workspace, isLoading: loading } =
@@ -218,7 +228,25 @@ export default function WorkspaceSettingsPage() {
     );
   }
 
+  const handleDelete = async () => {
+    if (!workspaceId) return;
+    setDeleting(true);
+    try {
+      await deleteWorkspace(workspaceId);
+      queryClient.removeQueries({ queryKey: workspaceQueryKey(workspaceId) });
+      setShowDeleteDialog(false);
+      router.push('/dashboard');
+      toast.success('Workspace deleted');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete workspace');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
+    <>
     <div className='h-full w-full'>
       <div className='px-6 py-4 w-full max-w-4xl space-y-6'>
         <div className='space-y-1'>
@@ -456,25 +484,25 @@ export default function WorkspaceSettingsPage() {
     </div>
     <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
       <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure you want to delete this workspace?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. All data for this workspace will be removed permanently.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
-            You will be redirected to your workspace list after deletion.
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="secondary" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <DialogHeader>
+          <DialogTitle>Are you sure you want to delete this workspace?</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone. All data for this workspace will be removed permanently.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
+          You will be redirected to your workspace list after deletion.
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="secondary" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }

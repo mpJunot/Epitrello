@@ -1,19 +1,24 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import CreateBoardModal from "./CreateBoardModal";
-import { toast } from "@/lib/toast";
-import { Search, Bell, HelpCircle, Keyboard, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "./ThemeToggle";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { SearchWithAdvancedInput } from "./SearchWithAdvancedInput";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { clearAuthToken } from "@/lib/graphql-client";
-import { getCurrentUser } from "@/lib/actions/users";
+import React, { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import CreateBoardModal from './CreateBoardModal';
+import { toast } from '@/lib/toast';
+import { Search, Bell, HelpCircle, Keyboard, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './ThemeToggle';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SearchWithAdvancedInput } from './SearchWithAdvancedInput';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { clearAuthToken } from '@/lib/graphql-client';
+import { getCurrentUser } from '@/lib/actions/users';
 
 import {
   DropdownMenu,
@@ -25,9 +30,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
-
-import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -50,6 +52,7 @@ export default function Topbar() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [showSearchDialog, setShowSearchDialog] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -67,6 +70,17 @@ export default function Topbar() {
     };
 
     loadUser();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearchDialog((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -125,7 +139,7 @@ export default function Topbar() {
       localStorage.removeItem('epitrello_active_board');
       localStorage.removeItem('epitrello_workspaces');
       localStorage.removeItem('epitrello_expanded_workspaces');
-      clearAuthToken();  // ← Nettoie localStorage et le cookie
+      clearAuthToken(); // ← Nettoie localStorage et le cookie
 
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/auth/login');
@@ -208,28 +222,22 @@ export default function Topbar() {
   }
 
   return (
-    <header className="w-full bg-card border-b border-sidebar-border shrink-0">
-      <div className="w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <SidebarTrigger className="shrink-0" />
-          {/* Desktop search with keyboard navigation */}
-          <SearchWithAdvancedInput />
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Mobile search toggle */}
-          <div className="md:hidden">
-            <Button
-              aria-expanded={searchOpen}
-              aria-label="Search"
-              onClick={() => setSearchOpen((s) => !s)}
-              variant="ghost"
-              size="icon"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-          </div>
+    <header className='w-full bg-card border-b border-sidebar-border shrink-0'>
+      <div className='w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0'>
+        <div className='flex items-center gap-3 min-w-0 flex-1'>
           <SidebarTrigger className='shrink-0' />
+          {/* Search: opens dialog with Command on all breakpoints */}
+          <Button
+            variant='outline'
+            className='flex-1 max-w-md justify-start text-muted-foreground font-normal gap-2'
+            onClick={() => setShowSearchDialog(true)}
+            aria-label='Search boards and workspaces'
+          >
+            <Search className='h-4 w-4 shrink-0' />
+            <span className='hidden sm:inline'>
+              Search boards, workspaces...
+            </span>
+          </Button>
         </div>
 
         <div className='flex items-center gap-2 shrink-0'>
@@ -428,68 +436,86 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Mobile search overlay */}
-      {searchOpen && (
-        <div className="md:hidden px-4 pb-2">
-          <form onSubmit={onSearch} className="flex items-center gap-2">
-            <label htmlFor="mobile-search" className="sr-only">Search</label>
-            <Input
-              id="mobile-search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search..."
-              className="w-full"
-            />
-            <Button aria-label="Search" type="submit" variant="secondary">OK</Button>
-          </form>
-        </div>
-      )}
+      {/* Search Dialog with Command */}
+      <Dialog open={showSearchDialog} onOpenChange={setShowSearchDialog}>
+        <DialogContent
+          className='h-[320px] w-[420px]  p-0 gap-0 overflow-hidden flex flex-col'
+          showCloseButton={false}
+        >
+          <DialogTitle className='sr-only'>
+            Search boards and workspaces
+          </DialogTitle>
+          <SearchWithAdvancedInput onClose={() => setShowSearchDialog(false)} />
+        </DialogContent>
+      </Dialog>
 
       {/* Help Dialog */}
       <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className='max-w-2xl max-h-[80vh] overflow-y-auto'>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5" />
-              Centre d'aide Epitrello
+            <DialogTitle className='flex items-center gap-2'>
+              <HelpCircle className='h-5 w-5' />
+              Epitrello Help Center
             </DialogTitle>
             <DialogDescription>
-              Découvrez comment utiliser Epitrello pour organiser vos projets efficacement.
+              Learn how to use Epitrello to organize your projects effectively.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-6 mt-4">
+
+          <div className='space-y-6 mt-4'>
             {/* Getting Started */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Démarrage rapide
+            <div className='space-y-3'>
+              <h3 className='text-base font-semibold flex items-center gap-2'>
+                <Zap className='h-4 w-4' />
+                Getting started
               </h3>
-              <ul className="space-y-2 text-sm text-muted-foreground ml-6">
-                <li className="list-disc">Créez un <strong>workspace</strong> pour organiser vos projets par équipe ou domaine</li>
-                <li className="list-disc">Ajoutez des <strong>boards</strong> pour chaque projet dans votre workspace</li>
-                <li className="list-disc">Utilisez les <strong>listes</strong> pour représenter les étapes de votre workflow (À faire, En cours, Terminé)</li>
-                <li className="list-disc">Créez des <strong>cartes</strong> pour chaque tâche et faites-les glisser entre les listes</li>
+              <ul className='space-y-2 text-sm text-muted-foreground ml-6'>
+                <li className='list-disc'>
+                  Create a <strong>workspace</strong> to organize your projects
+                  by team or domain
+                </li>
+                <li className='list-disc'>
+                  Add <strong>boards</strong> for each project in your workspace
+                </li>
+                <li className='list-disc'>
+                  Use <strong>lists</strong> to represent your workflow stages
+                  (To Do, In Progress, Done)
+                </li>
+                <li className='list-disc'>
+                  Create <strong>cards</strong> for each task and drag them
+                  between lists
+                </li>
               </ul>
             </div>
 
             <Separator />
 
             {/* Key Features */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold">Fonctionnalités clés</h3>
-              <div className="space-y-3 text-sm">
+            <div className='space-y-3'>
+              <h3 className='text-base font-semibold'>Key features</h3>
+              <div className='space-y-3 text-sm'>
                 <div>
-                  <strong className="text-foreground">Cartes interactives</strong>
-                  <p className="text-muted-foreground">Ajoutez des descriptions, des checklists, des labels et des dates d'échéance à vos cartes.</p>
+                  <strong className='text-foreground'>Interactive cards</strong>
+                  <p className='text-muted-foreground'>
+                    Add descriptions, checklists, labels and due dates to your
+                    cards.
+                  </p>
                 </div>
                 <div>
-                  <strong className="text-foreground">Collaboration en équipe</strong>
-                  <p className="text-muted-foreground">Invitez des membres, assignez des tâches et commentez les cartes pour collaborer.</p>
+                  <strong className='text-foreground'>
+                    Team collaboration
+                  </strong>
+                  <p className='text-muted-foreground'>
+                    Invite members, assign tasks and comment on cards to
+                    collaborate.
+                  </p>
                 </div>
                 <div>
-                  <strong className="text-foreground">Personnalisation</strong>
-                  <p className="text-muted-foreground">Choisissez des arrière-plans pour vos boards et organisez-les selon vos préférences.</p>
+                  <strong className='text-foreground'>Customization</strong>
+                  <p className='text-muted-foreground'>
+                    Choose backgrounds for your boards and organize them to your
+                    preferences.
+                  </p>
                 </div>
               </div>
             </div>
@@ -497,27 +523,35 @@ export default function Topbar() {
             <Separator />
 
             {/* Keyboard Shortcuts */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <Keyboard className="h-4 w-4" />
-                Raccourcis clavier
+            <div className='space-y-3'>
+              <h3 className='text-base font-semibold flex items-center gap-2'>
+                <Keyboard className='h-4 w-4' />
+                Keyboard shortcuts
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                <div className="flex justify-between p-2 rounded bg-muted/50">
-                  <span className="text-muted-foreground">Nouvelle carte</span>
-                  <kbd className="px-2 py-1 text-xs bg-background border rounded">N</kbd>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm'>
+                <div className='flex justify-between p-2 rounded bg-muted/50'>
+                  <span className='text-muted-foreground'>New card</span>
+                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
+                    N
+                  </kbd>
                 </div>
-                <div className="flex justify-between p-2 rounded bg-muted/50">
-                  <span className="text-muted-foreground">Recherche</span>
-                  <kbd className="px-2 py-1 text-xs bg-background border rounded">Ctrl+F</kbd>
+                <div className='flex justify-between p-2 rounded bg-muted/50'>
+                  <span className='text-muted-foreground'>Search</span>
+                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
+                    Ctrl+F
+                  </kbd>
                 </div>
-                <div className="flex justify-between p-2 rounded bg-muted/50">
-                  <span className="text-muted-foreground">Nouveau board</span>
-                  <kbd className="px-2 py-1 text-xs bg-background border rounded">B</kbd>
+                <div className='flex justify-between p-2 rounded bg-muted/50'>
+                  <span className='text-muted-foreground'>New board</span>
+                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
+                    B
+                  </kbd>
                 </div>
-                <div className="flex justify-between p-2 rounded bg-muted/50">
-                  <span className="text-muted-foreground">Aide</span>
-                  <kbd className="px-2 py-1 text-xs bg-background border rounded">?</kbd>
+                <div className='flex justify-between p-2 rounded bg-muted/50'>
+                  <span className='text-muted-foreground'>Help</span>
+                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
+                    ?
+                  </kbd>
                 </div>
               </div>
             </div>
@@ -525,17 +559,26 @@ export default function Topbar() {
             <Separator />
 
             {/* Support */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold">Besoin d'aide supplémentaire ?</h3>
-              <p className="text-sm text-muted-foreground">
-                Consultez la documentation complète ou contactez le support pour plus d'informations.
+            <div className='space-y-3'>
+              <h3 className='text-base font-semibold'>Need more help?</h3>
+              <p className='text-sm text-muted-foreground'>
+                Check the full documentation or contact support for more
+                information.
               </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => toast.info('Documentation à venir')}>
+              <div className='flex gap-2'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => toast.info('Documentation coming soon')}
+                >
                   Documentation
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => toast.info('Support à venir')}>
-                  Contacter le support
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => toast.info('Support coming soon')}
+                >
+                  Contact support
                 </Button>
               </div>
             </div>

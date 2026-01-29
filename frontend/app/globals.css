@@ -271,6 +271,17 @@ textarea:focus {
   box-shadow: 0 0 0 2px #818cf8;
 }
 
+[data-slot='command-input']:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-slot='command-input-wrapper']:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
 /* Custom scroll style for columns */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
