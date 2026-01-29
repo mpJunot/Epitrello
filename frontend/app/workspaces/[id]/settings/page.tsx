@@ -40,6 +40,7 @@ type WorkspaceFormData = z.infer<typeof workspaceSchema>;
 
 export default function WorkspaceSettingsPage() {
   const params = useParams();
+  const router = useRouter();
   const workspaceId = params.id as string;
   const queryClient = useQueryClient();
   const [showVisibilityDialog, setShowVisibilityDialog] = useState(false);
@@ -453,5 +454,27 @@ export default function WorkspaceSettingsPage() {
         )}
       </div>
     </div>
+    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure you want to delete this workspace?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. All data for this workspace will be removed permanently.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground">
+            You will be redirected to your workspace list after deletion.
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="secondary" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

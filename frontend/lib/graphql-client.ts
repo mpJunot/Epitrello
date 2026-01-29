@@ -15,11 +15,34 @@ export interface GraphQLResponse<T> {
   errors?: GraphQLError[];
 }
 
+export interface GraphQLRequestOptions {
+  /** When true, suppresses console logging for this request. */
+  suppressLogs?: boolean;
+  /** When true, suppresses auth-error logging and just clears token. */
+  suppressAuthError?: boolean;
+}
+
 export async function graphqlRequest<T>(
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  options?: GraphQLRequestOptions
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  let token: string | null = null;
+
+  if (typeof window !== 'undefined') {
+    // Client side: get from localStorage
+    token = localStorage.getItem('auth_token');
+  } else {
+    // Server side: get from cookies
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      token = cookieStore.get('auth_token')?.value || null;
+    } catch (error) {
+      // Cookies not available in this context
+      token = null;
+    }
+  }
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -29,7 +52,11 @@ export async function graphqlRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  console.log('[GraphQL Client] Request', {
+  const log = options?.suppressLogs ? () => undefined : console.log;
+  const warn = options?.suppressLogs ? () => undefined : console.warn;
+  const errorLog = options?.suppressLogs ? () => undefined : console.error;
+
+  log('[GraphQL Client] Request', {
     url: API_URL,
     envVar: process.env.NEXT_PUBLIC_API_URL,
     hasToken: !!token,
@@ -43,7 +70,7 @@ export async function graphqlRequest<T>(
       variables,
     };
 
-    console.log('[GraphQL Client] Sending request', {
+    log('[GraphQL Client] Sending request', {
       url: API_URL,
       method: 'POST',
       hasToken: !!token,
@@ -56,7 +83,7 @@ export async function graphqlRequest<T>(
       body: JSON.stringify(requestBody),
     });
 
-    console.log('[GraphQL Client] Response received', {
+    log('[GraphQL Client] Response received', {
       status: response.status,
       statusText: response.statusText,
       ok: response.ok,
@@ -64,7 +91,7 @@ export async function graphqlRequest<T>(
 
     if (!response.ok) {
       const text = await response.text();
-      console.error('[GraphQL Client] HTTP Error', {
+      errorLog('[GraphQL Client] HTTP Error', {
         status: response.status,
         statusText: response.statusText,
         body: text.substring(0, 500),
@@ -83,19 +110,21 @@ export async function graphqlRequest<T>(
 
     const result: GraphQLResponse<T> = await response.json();
 
-    console.log('[GraphQL Client] Response data', {
+    log('[GraphQL Client] Response data', {
       hasData: !!result.data,
       hasErrors: !!result.errors,
       errors: result.errors,
     });
 
     if (result.errors) {
-      console.error('[GraphQL Client] GraphQL Errors', {
-        errors: result.errors.map(e => ({
-          message: e.message,
-          extensions: e.extensions,
-        })),
-      });
+      if (!options?.suppressAuthError || !result.errors.some(e => e.message?.toLowerCase().includes('unauthorized'))) {
+        errorLog('[GraphQL Client] GraphQL Errors', {
+          errors: result.errors.map(e => ({
+            message: e.message,
+            extensions: e.extensions,
+          })),
+        });
+      }
       const errorMsg = result.errors.map(e => e.message).join(', ');
       throw new Error(errorMsg || 'GraphQL request failed');
     }
@@ -105,24 +134,30 @@ export async function graphqlRequest<T>(
       throw new Error('No data returned from GraphQL request');
     }
 
-    console.log('[GraphQL Client] Request successful');
+    log('[GraphQL Client] Request successful');
     return result.data;
   } catch (error) {
     if (error instanceof Error) {
       if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        console.warn('[GraphQL Client] Authentication error, clearing token');
+        if (!options?.suppressAuthError) {
+          warn('[GraphQL Client] Authentication error, clearing token');
+        }
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
         }
+        if (options?.suppressAuthError) {
+          // Return a benign error message that callers can treat as empty/unauthenticated.
+          throw new Error('UNAUTHORIZED_QUIET');
+        }
         throw new Error('Session expired. Please log in again.');
       }
-      console.error('[GraphQL Client] Error occurred', {
+      errorLog('[GraphQL Client] Error occurred', {
         error: error.message,
         stack: error.stack,
       });
       throw error;
     }
-    console.error('[GraphQL Client] Unknown error occurred', { error });
+    errorLog('[GraphQL Client] Unknown error occurred', { error });
     throw new Error('An unknown error occurred');
   }
 }
@@ -143,5 +178,14 @@ export function getAuthToken() {
 export function clearAuthToken() {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('auth_token');
+    // Clear cookie on client side
+    document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+  }
+}
+
+export function setAuthTokenCookie(token: string) {
+  if (typeof window !== 'undefined') {
+    // Set cookie with secure flags (though not httpOnly since we set from client)
+    document.cookie = `auth_token=${token}; path=/; SameSite=Lax; max-age=2592000`; // 30 days
   }
 }

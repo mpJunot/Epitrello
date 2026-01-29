@@ -73,6 +73,21 @@ export default function AppSidebar() {
   const { data: myInvitations } = useMyInvitationsQuery();
   const pendingInvitationsCount = myInvitations?.length ?? 0;
 
+  const loadWorkspaces = async () => {
+    setLoadingWorkspaces(true);
+    setWorkspacesError(null);
+    try {
+      const ws = await getMyWorkspaces();
+      setWorkspaces(ws);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load workspaces';
+      setWorkspacesError(errorMessage);
+      setWorkspaces([]);
+    } finally {
+      setLoadingWorkspaces(false);
+    }
+  };
+
   useEffect(() => {
     try {
       if (pathname && pathname.startsWith('/boards/')) {
