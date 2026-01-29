@@ -17,6 +17,7 @@ export function useEventListeners(
       'epitrello:list-copied': listHandlers.handleListCopy,
       'epitrello:move-all-cards': listHandlers.handleMoveAllCards,
       'epitrello:list-deleted': listHandlers.handleListDelete,
+      'epitrello:list-archived': listHandlers.handleListArchive,
       'epitrello:drag-start': cardHandlers.handleDragStart,
       'epitrello:card-created': cardHandlers.handleCardCreate,
       'epitrello:card-move': cardHandlers.handleCardMove,
@@ -27,6 +28,7 @@ export function useEventListeners(
       'epitrello:card-background-updated': cardHandlers.handleCardBackgroundUpdate,
       'epitrello:card-completed-updated': cardHandlers.handleCardCompletedUpdate,
       'epitrello:card-deleted': cardHandlers.handleCardDelete,
+      'epitrello:card-archived': cardHandlers.handleCardArchive,
       'epitrello:card-checklists-updated': cardHandlers.handleCardChecklistsUpdate,
     };
 

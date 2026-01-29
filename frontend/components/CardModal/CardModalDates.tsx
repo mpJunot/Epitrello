@@ -21,6 +21,7 @@ export interface CardModalDatesProps {
   isMovePopoverOpen: boolean;
   onMovePopoverOpenChange: (open: boolean) => void;
   moveCardContent: React.ReactNode;
+  readOnly?: boolean;
 }
 
 export function CardModalDates({
@@ -37,6 +38,7 @@ export function CardModalDates({
   isMovePopoverOpen,
   onMovePopoverOpenChange,
   moveCardContent,
+  readOnly = false,
 }: CardModalDatesProps) {
   if (!startDate && !dueDate) return null;
 
@@ -68,6 +70,24 @@ export function CardModalDates({
   };
 
   const isOverdue = dueDate && getDueDateStatus(dueDate) === 'overdue';
+
+  if (readOnly) {
+    return (
+      <div>
+        <h3 className='text-sm font-semibold text-trello mb-2'>Dates</h3>
+        <div className='flex items-center gap-2'>
+          <div className='bg-trello-hover px-3 py-2 rounded-md text-sm text-trello flex items-center gap-2'>
+            <span>{formatDateRange()}</span>
+            {isOverdue && (
+              <span className='bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium'>
+                Overdue
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

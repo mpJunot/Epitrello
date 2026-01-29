@@ -15,6 +15,13 @@ import {
   ItemTitle,
 } from '@/components/ui/item';
 import { Check, X, Mail } from 'lucide-react';
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
+} from '@/components/ui/empty';
 import { acceptInvitation, rejectInvitation } from '@/lib/actions/workspaces';
 import {
   useMyInvitationsQuery,
@@ -123,8 +130,8 @@ export default function InvitationsPage() {
   const invitationsList = invitations ?? [];
 
   return (
-    <div className='min-h-screen bg-background p-6'>
-      <div className='max-w-4xl mx-auto'>
+    <div className='min-h-screen bg-background flex flex-col p-4'>
+      <div className='p-6 max-w-4xl mx-auto w-full'>
         <div className='mb-6'>
           <h1 className='text-3xl font-bold text-foreground mb-2'>
             My Invitations
@@ -137,10 +144,17 @@ export default function InvitationsPage() {
         <Separator className='mb-6 h-px bg-accent' />
 
         {invitationsList.length === 0 ? (
-          <div className='text-center py-12'>
-            <Mail className='h-12 w-12 text-muted-foreground mx-auto mb-4' />
-            <p className='text-muted-foreground'>No pending invitations</p>
-          </div>
+          <Empty className='py-12'>
+            <EmptyHeader>
+              <EmptyMedia variant='icon'>
+                <Mail className='size-6' />
+              </EmptyMedia>
+              <EmptyTitle>No pending invitations</EmptyTitle>
+              <EmptyDescription>
+                When someone invites you to a workspace, it will appear here
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <ScrollArea className='h-[calc(100vh-200px)]'>
             <div className='space-y-3 pr-4'>

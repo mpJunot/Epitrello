@@ -79,6 +79,7 @@ type Card {
   description: String
   dueDate: DateTime
   id: ID!
+  isArchived: Boolean!
   labels: [Label!]
   listId: ID!
   position: Float!
@@ -178,6 +179,7 @@ input CreateListInput {
 
 input CreateUserInput {
   avatar: String
+  description: String
   email: String!
   name: String!
   password: String!
@@ -252,6 +254,7 @@ input LoginInput {
 
 type MemberUser {
   avatar: String
+  description: String
   email: String!
   id: ID!
   name: String!
@@ -288,6 +291,9 @@ type Mutation {
 
   """Archive a board. User must be ADMIN or MEMBER."""
   archiveBoard(id: ID!): Board!
+
+  """Archive a card. User must have access to the board."""
+  archiveCard(id: ID!): Card!
 
   """Archive a list. User must have access to the board."""
   archiveList(id: ID!): List!
@@ -371,6 +377,11 @@ type Mutation {
   """Invite a member to a workspace. Only ADMIN members can invite."""
   inviteMember(input: InviteMemberInput!): WorkspaceInvitation!
 
+  """
+  Join a workspace via invite link. Adds current user as MEMBER if not already a member.
+  """
+  joinWorkspaceByInviteLink(workspaceId: ID!): Boolean!
+
   """Leave a board. Cannot leave if you are the last admin."""
   leaveBoard(boardId: ID!): Boolean!
 
@@ -425,6 +436,12 @@ type Mutation {
   """Unarchive a board. User must be ADMIN or MEMBER."""
   unarchiveBoard(id: ID!): Board!
 
+  """Unarchive a card. User must have access to the board."""
+  unarchiveCard(id: ID!): Card!
+
+  """Unarchive a list. User must have access to the board."""
+  unarchiveList(id: ID!): List!
+
   """Unassign a member from a card. User must have access to the board."""
   unassignMemberFromCard(input: UnassignMemberFromCardInput!): Card!
 
@@ -471,6 +488,12 @@ type Mutation {
 }
 
 type Query {
+  """Get archived cards for a board. User must have access to the board."""
+  archivedCards(boardId: ID!): [Card!]!
+
+  """Get archived lists for a board. User must have access to the board."""
+  archivedLists(boardId: ID!): [List!]!
+
   """Get an attachment by ID. User must have access to the board."""
   attachment(id: ID!): Attachment!
 
@@ -513,6 +536,9 @@ type Query {
   """Get a user by ID (requires authentication)"""
   user(id: ID!): User
 
+  """Get a user by email (for invite flows; requires authentication)"""
+  userByEmail(email: String!): User
+
   """Get all users (requires authentication)"""
   users: [User!]!
 
@@ -524,6 +550,9 @@ type Query {
 
   """Get pending invitations for a workspace. Only ADMIN can view."""
   workspaceInvitations(workspaceId: ID!): [WorkspaceInvitation!]!
+
+  """Get workspace name/logo for the invite link page. Public."""
+  workspaceInviteInfo(workspaceId: ID!): WorkspaceInviteInfo!
 
   """Get all members of a workspace. User must be a member to view."""
   workspaceMembers(workspaceId: ID!): [WorkspaceMemberWithUser!]!
@@ -658,6 +687,7 @@ input UpdateMemberRoleInput {
 
 input UpdateUserInput {
   avatar: String
+  description: String
   email: String
   name: String
   password: String
@@ -673,6 +703,7 @@ input UpdateWorkspaceInput {
 type User {
   avatar: String
   createdAt: DateTime!
+  description: String
   email: String!
   id: ID!
   name: String!
@@ -711,6 +742,12 @@ type WorkspaceInvitation {
   updatedAt: DateTime!
   workspaceId: ID!
   workspaceName: String
+}
+
+type WorkspaceInviteInfo {
+  id: ID!
+  logoUrl: String
+  name: String!
 }
 
 type WorkspaceMember {

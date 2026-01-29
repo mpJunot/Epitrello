@@ -1,5 +1,13 @@
 import { graphqlRequest, type GraphQLRequestOptions } from "@/lib/graphql-client";
 import { getCurrentUser } from "@/lib/actions/users";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyMedia,
+} from '@/components/ui/empty';
+import { LayoutGrid } from 'lucide-react';
 
 export const metadata = {
   title: "Cards",
@@ -192,9 +200,17 @@ export default async function CardsPage() {
       </div>
 
       {cards.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-muted p-6 text-sm text-muted-foreground bg-muted/30">
-          No cards assigned to you yet.
-        </div>
+        <Empty className="rounded-lg border border-dashed border-muted bg-muted/30">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <LayoutGrid className="size-6" />
+            </EmptyMedia>
+            <EmptyTitle>No cards assigned to you yet</EmptyTitle>
+            <EmptyDescription>
+              Cards you are assigned to will appear here
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (

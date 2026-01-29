@@ -78,6 +78,7 @@ export async function graphqlRequest<T>(
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody),
+      credentials: 'include',
     });
 
     log('[GraphQL Client] Response received', {
@@ -176,6 +177,16 @@ export function clearAuthToken() {
     localStorage.removeItem('auth_token');
     document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
   }
+}
+
+/**
+ * Remove all Epitrello-related keys from localStorage (e.g. epitrello_workspaces,
+ * epitrello_workspace_members_*, epitrello_notifications, etc.). Call on logout.
+ */
+export function clearEpitrelloLocalStorage() {
+  if (typeof window === 'undefined') return;
+  const keys = Object.keys(localStorage).filter((k) => k.startsWith('epitrello_'));
+  keys.forEach((k) => localStorage.removeItem(k));
 }
 
 export function setAuthTokenCookie(token: string) {

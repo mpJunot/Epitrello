@@ -38,6 +38,14 @@ export class UsersResolver {
     return this.usersService.findOne(id);
   }
 
+  @Query(() => User, {
+    nullable: true,
+    description: 'Get a user by email (for invite flows; requires authentication)',
+  })
+  async userByEmail(@Args('email') email: string): Promise<User | null> {
+    return this.usersService.findByEmail(email);
+  }
+
   @Mutation(() => User, {
     description: 'Create a new user (requires authentication)',
   })

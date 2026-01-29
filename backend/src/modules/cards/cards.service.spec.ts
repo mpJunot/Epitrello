@@ -24,6 +24,7 @@ describe('CardsService', () => {
     },
     list: {
       findUnique: jest.fn(),
+      findMany: jest.fn(),
     },
     board: {
       findUnique: jest.fn(),
@@ -83,6 +84,7 @@ describe('CardsService', () => {
     dueDate: null,
     position: 0,
     completed: false,
+    isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -158,6 +160,7 @@ describe('CardsService', () => {
           title: input.title,
           position: 5,
           completed: false,
+          isArchived: false,
           description: undefined,
           background: undefined,
           startDate: undefined,
@@ -721,6 +724,84 @@ describe('CardsService', () => {
       expect(result[0].map((assignee) => assignee.id)).toEqual(['assignee-1', 'assignee-3']);
       expect(result[1].map((assignee) => assignee.id)).toEqual(['assignee-2']);
       expect(prismaService.cardAssignee.findMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('archive', () => {
+    it('should archive a card', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValue({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.card.update.mockResolvedValue({
+        ...mockCard,
+        isArchived: true,
+      });
+
+      const result = await service.archive('card-1', mockUser.id);
+
+      expect(result.isArchived).toBe(true);
+      expect(prismaService.card.update).toHaveBeenCalledWith({
+        where: { id: 'card-1' },
+        data: { isArchived: true },
+      });
+    });
+
+    it('should throw NotFoundException if card does not exist', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValue(null);
+
+      await expect(service.archive('card-1', mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('unarchive', () => {
+    it('should unarchive a card', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValue({
+        ...mockCard,
+        list: { boardId: 'board-1' },
+      });
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.card.update.mockResolvedValue({
+        ...mockCard,
+        isArchived: false,
+      });
+
+      const result = await service.unarchive('card-1', mockUser.id);
+
+      expect(result.isArchived).toBe(false);
+      expect(prismaService.card.update).toHaveBeenCalledWith({
+        where: { id: 'card-1' },
+        data: { isArchived: false },
+      });
+    });
+
+    it('should throw NotFoundException if card does not exist', async () => {
+      mockPrismaService.card.findUnique.mockResolvedValue(null);
+
+      await expect(service.unarchive('card-1', mockUser.id)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findArchivedByBoardId', () => {
+    it('should return archived cards for a board', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaService.list.findMany.mockResolvedValue([{ id: 'list-1' }]);
+      mockPrismaService.card.findMany.mockResolvedValue([
+        { ...mockCard, id: 'card-1', isArchived: true },
+      ]);
+
+      const result = await service.findArchivedByBoardId('board-1', mockUser.id);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].isArchived).toBe(true);
+      expect(prismaService.card.findMany).toHaveBeenCalledWith({
+        where: {
+          listId: { in: ['list-1'] },
+          isArchived: true,
+        },
+        orderBy: [{ listId: 'asc' }, { position: 'asc' }],
+      });
     });
   });
 });

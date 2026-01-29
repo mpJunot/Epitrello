@@ -210,6 +210,52 @@ describe('WorkspacesService', () => {
     });
   });
 
+  describe('findInviteInfo', () => {
+    it('should return workspace invite info when workspace exists', async () => {
+      const workspaceId = '1';
+      const inviteInfo = {
+        id: workspaceId,
+        name: 'Test Workspace',
+        logoUrl: 'https://example.com/logo.png',
+      };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(inviteInfo);
+
+      const result = await service.findInviteInfo(workspaceId);
+
+      expect(result).toEqual(inviteInfo);
+      expect(prisma.workspace.findUnique).toHaveBeenCalledWith({
+        where: { id: workspaceId },
+        select: { id: true, name: true, logoUrl: true },
+      });
+    });
+
+    it('should return workspace invite info without logoUrl', async () => {
+      const workspaceId = '2';
+      const inviteInfo = { id: workspaceId, name: 'Another Workspace', logoUrl: null };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(inviteInfo);
+
+      const result = await service.findInviteInfo(workspaceId);
+
+      expect(result).toEqual(inviteInfo);
+      expect(result.logoUrl).toBeNull();
+    });
+
+    it('should throw NotFoundException when workspace not found', async () => {
+      const workspaceId = '999';
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(null);
+
+      await expect(service.findInviteInfo(workspaceId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findInviteInfo(workspaceId)).rejects.toThrow(
+        `Workspace with ID ${workspaceId} not found`,
+      );
+    });
+  });
+
   describe('findMyWorkspaces', () => {
     it('should return all workspaces where user is a member', async () => {
       const userId = 'user1';

@@ -90,6 +90,63 @@ export async function deleteList(id: string): Promise<boolean> {
   return result.deleteList;
 }
 
+export async function archiveList(id: string): Promise<List> {
+  const mutation = `
+    mutation ArchiveList($id: ID!) {
+      archiveList(id: $id) {
+        id
+        title
+        position
+        boardId
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ archiveList: List }>(mutation, { id });
+  return result.archiveList;
+}
+
+export async function unarchiveList(id: string): Promise<List> {
+  const mutation = `
+    mutation UnarchiveList($id: ID!) {
+      unarchiveList(id: $id) {
+        id
+        title
+        position
+        boardId
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ unarchiveList: List }>(mutation, { id });
+  return result.unarchiveList;
+}
+
+/**
+ * Get archived lists for a board
+ */
+export async function getArchivedLists(boardId: string): Promise<List[]> {
+  const query = `
+    query ArchivedLists($boardId: ID!) {
+      archivedLists(boardId: $boardId) {
+        id
+        title
+        position
+        boardId
+        isArchived
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ archivedLists: List[] }>(query, { boardId });
+  return result.archivedLists ?? [];
+}
+
 /**
  * Get all lists for a board (currently returns empty array as backend doesn't expose this query yet)
  * For now, we'll create default lists if none exist

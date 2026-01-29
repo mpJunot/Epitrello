@@ -5,12 +5,15 @@ interface MembersHeaderProps {
   memberCount: number;
   memberLimit: number;
   onInviteClick: () => void;
+  /** If false, the invite button is hidden (non-admin). */
+  canInvite?: boolean;
 }
 
 export function MembersHeader({
   memberCount,
   memberLimit,
   onInviteClick,
+  canInvite = true,
 }: MembersHeaderProps) {
   return (
     <div className='shrink-0'>
@@ -21,13 +24,15 @@ export function MembersHeader({
             {memberCount}/{memberLimit}
           </span>
         </div>
-        <Button
-          onClick={onInviteClick}
-          className='bg-trello-blue hover:bg-trello-blue-hover text-white'
-        >
-          <UserPlus className='h-4 w-4 mr-2' />
-          Invite Workspace members
-        </Button>
+        {canInvite && (
+          <Button
+            onClick={onInviteClick}
+            className='bg-trello-blue hover:bg-trello-blue-hover text-white'
+          >
+            <UserPlus className='h-4 w-4 mr-2' />
+            Invite Workspace members
+          </Button>
+        )}
       </div>
     </div>
   );

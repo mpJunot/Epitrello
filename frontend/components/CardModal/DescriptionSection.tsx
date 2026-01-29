@@ -12,6 +12,7 @@ interface DescriptionSectionProps {
   onSave: () => void;
   onCancel: () => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  readOnly?: boolean;
 }
 
 export default function DescriptionSection({
@@ -23,6 +24,7 @@ export default function DescriptionSection({
   onSave,
   onCancel,
   textareaRef,
+  readOnly = false,
 }: DescriptionSectionProps) {
   return (
     <div>
@@ -31,7 +33,11 @@ export default function DescriptionSection({
         <h3 className='text-sm font-semibold text-trello'>Description</h3>
       </div>
       <div className='ml-7'>
-        {!isEditing ? (
+        {readOnly ? (
+          <p className='text-sm text-trello-text-secondary whitespace-pre-wrap px-3 py-2 min-h-[40px]'>
+            {cardDescription || '—'}
+          </p>
+        ) : !isEditing ? (
           <div onClick={onStartEdit} className='cursor-pointer'>
             {cardDescription ? (
               <p className='text-sm text-trello-text-secondary whitespace-pre-wrap px-3 py-2 transition-colors min-h-[80px]'>
