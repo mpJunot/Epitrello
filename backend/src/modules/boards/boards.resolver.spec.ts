@@ -74,6 +74,38 @@ describe('BoardsResolver', () => {
     expect(resolver).toBeDefined();
   });
 
+  describe('lists', () => {
+    it('should resolve lists with non-archived cards for a board', async () => {
+      const mockLists = [
+        {
+          id: 'list-1',
+          boardId: mockBoard.id,
+          title: 'To Do',
+          position: 0,
+          isArchived: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cards: [],
+        },
+      ];
+      mockPrismaService.list.findMany.mockResolvedValue(mockLists);
+
+      const result = await resolver.lists(mockBoard);
+
+      expect(result).toEqual(mockLists);
+      expect(mockPrismaService.list.findMany).toHaveBeenCalledWith({
+        where: { boardId: mockBoard.id, isArchived: false },
+        orderBy: { position: 'asc' },
+        include: {
+          cards: {
+            where: { isArchived: false },
+            orderBy: { position: 'asc' },
+          },
+        },
+      });
+    });
+  });
+
   describe('createBoard', () => {
     it('should create a board', async () => {
       const input = {
