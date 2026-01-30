@@ -16,7 +16,7 @@ on:
 
 jobs:
   backend-tests:
-    name: Backend Lint, Build and Tests
+    name: Lint, Build and Tests Backend
     runs-on: ubuntu-latest
 
     env:
