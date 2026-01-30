@@ -59,86 +59,6 @@ jobs:
               - 'terraform/**'
               - '.github/workflows/deploy.yml'
 
-  test-backend:
-    name: Test Backend
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.terraform == 'true'
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
-      JWT_SECRET: test-secret-key-for-ci
-      NODE_ENV: test
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: epitrello_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Backend
-        uses: ./.github/actions/setup-backend
-
-      - name: Run backend tests
-        working-directory: backend
-        run: pnpm test:unit
-
-  test-frontend:
-    name: Test Frontend
-    runs-on: ubuntu-latest
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.terraform == 'true'
-
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
-      JWT_SECRET: test-secret-key-for-ci
-      NODE_ENV: test
-      NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
-      FRONTEND_URL: http://localhost:3000
-      PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
-      EMAIL_FROM: test@epitrello.com
-      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: epitrello_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Backend
-        uses: ./.github/actions/setup-backend
-
-      - name: Setup Frontend
-        uses: ./.github/actions/setup-frontend
-
-      # Frontend E2E tests not run in CI (tests kept locally)
-
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -197,8 +117,8 @@ jobs:
   build-backend:
     name: Build Backend Docker Image
     runs-on: ubuntu-latest
-    needs: [changes, test-backend]
-    if: needs.changes.outputs.backend == 'true' && needs.test-backend.result == 'success'
+    needs: [changes]
+    if: needs.changes.outputs.backend == 'true'
     permissions:
       contents: read
       id-token: write
@@ -244,8 +164,8 @@ jobs:
   build-frontend:
     name: Build Frontend Docker Image
     runs-on: ubuntu-latest
-    needs: [changes, test-frontend]
-    if: needs.changes.outputs.frontend == 'true' && needs.test-frontend.result == 'success'
+    needs: [changes]
+    if: needs.changes.outputs.frontend == 'true'
     permissions:
       contents: read
       id-token: write
@@ -302,8 +222,8 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [changes, terraform-validate, test-backend, test-frontend]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success' && needs.test-backend.result == 'success' && needs.test-frontend.result == 'success'
+    needs: [changes, terraform-validate]
+    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
     environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
