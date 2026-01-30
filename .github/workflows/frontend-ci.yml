@@ -43,26 +43,30 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
 
+      - name: List frontend build output
+        run: ls -la frontend/.next 2>/dev/null || echo "frontend/.next not found"
+
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: frontend/.next/
           retention-days: 7
+          if-no-files-found: warn
 
-  unit-tests:
-    name: Unit Tests
+  e2e-tests:
+    name: Frontend E2E Tests
     runs-on: ubuntu-latest
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/epitrello_test?schema=public
       JWT_SECRET: test-secret-key-for-ci
       NODE_ENV: test
-      NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
-      FRONTEND_URL: http://localhost:3000
-      PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
-      EMAIL_FROM: test@epitrello.com
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EMAIL_FROM: test@epitrello.com
+      FRONTEND_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
 
     services:
       postgres:
@@ -86,18 +90,70 @@ jobs:
       - name: Setup Backend
         uses: ./.github/actions/setup-backend
 
+      - name: Run database migrations
+        working-directory: backend
+        run: pnpm prisma migrate deploy
+
+      - name: Build Backend
+        working-directory: backend
+        run: pnpm run build
+
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
 
-      - name: Run E2E tests
+      - name: Build Frontend
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
+
+      - name: Start services and run Frontend E2E tests
+        working-directory: frontend
         run: |
-          chmod +x ./frontend/e2e/scripts/run-e2e.sh
-          ./frontend/e2e/scripts/run-e2e.sh
+          cd ../backend && PORT=4000 pnpm run start:prod &
+          BACKEND_PID=$!
+          echo "Waiting for backend on :4000..."
+          for i in $(seq 1 60); do
+            if curl -s http://localhost:4000/graphql -X POST -H "Content-Type: application/json" -d '{"query":"{ __typename }"}' > /dev/null 2>&1; then
+              echo "Backend ready"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              kill $BACKEND_PID 2>/dev/null || true
+              echo "Backend failed to start"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          cd ../frontend && PORT=3000 pnpm run start &
+          FRONTEND_PID=$!
+          echo "Waiting for frontend on :3000..."
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 | grep -q 200; then
+              echo "Frontend ready"
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+              echo "Frontend failed to start"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          cd ../frontend && pnpm test:e2e
+          EXIT=$?
+          kill $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+          exit $EXIT
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
 
       - name: Upload Playwright report
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: frontend-e2e-playwright-report
           path: frontend/e2e/playwright-report/
           retention-days: 7
+          if-no-files-found: warn

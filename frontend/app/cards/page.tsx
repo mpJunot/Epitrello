@@ -1,5 +1,8 @@
-import { graphqlRequest, type GraphQLRequestOptions } from "@/lib/graphql-client";
-import { getCurrentUser } from "@/lib/actions/users";
+import {
+  graphqlRequest,
+  type GraphQLRequestOptions,
+} from '@/lib/graphql-client';
+import { getCurrentUser } from '@/lib/actions/users';
 import {
   Empty,
   EmptyHeader,
@@ -10,8 +13,11 @@ import {
 import { LayoutGrid } from 'lucide-react';
 
 export const metadata = {
-  title: "Cards",
+  title: 'Cards',
 };
+
+/** Skip static prerender at build time; this page needs the backend (current user, workspaces). */
+export const dynamic = 'force-dynamic';
 
 type RawCard = {
   id: string;
@@ -21,7 +27,12 @@ type RawCard = {
   position?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
-  assignees?: Array<{ id: string; name?: string | null; email?: string | null; avatar?: string | null }> | null;
+  assignees?: Array<{
+    id: string;
+    name?: string | null;
+    email?: string | null;
+    avatar?: string | null;
+  }> | null;
 };
 
 type RawList = {
@@ -49,7 +60,10 @@ type CardWithBoard = {
   updatedAt?: string;
 };
 
-const quietOptions: GraphQLRequestOptions = { suppressLogs: true, suppressAuthError: true };
+const quietOptions: GraphQLRequestOptions = {
+  suppressLogs: true,
+  suppressAuthError: true,
+};
 
 async function fetchWorkspaces() {
   const query = `
@@ -62,7 +76,9 @@ async function fetchWorkspaces() {
   `;
 
   try {
-    const result = await graphqlRequest<{ myWorkspaces?: Array<{ id: string }> | null }>(query, undefined, quietOptions);
+    const result = await graphqlRequest<{
+      myWorkspaces?: Array<{ id: string }> | null;
+    }>(query, undefined, quietOptions);
     return result.myWorkspaces || [];
   } catch {
     return [];
@@ -101,7 +117,9 @@ async function fetchBoards(workspaceId: string) {
   `;
 
   try {
-    const result = await graphqlRequest<{ workspaceBoards?: RawBoard[] | null }>(query, { workspaceId }, quietOptions);
+    const result = await graphqlRequest<{
+      workspaceBoards?: RawBoard[] | null;
+    }>(query, { workspaceId }, quietOptions);
     return result.workspaceBoards || [];
   } catch {
     return [];
@@ -123,10 +141,17 @@ async function fetchUserCards(): Promise<CardWithBoard[]> {
 
   if (!me) {
     console.log('Server', '❌ No current user found - Backend returned null');
-    console.log('Server', '⚠️ Check: Is the token valid? Is the user in the database?');
+    console.log(
+      'Server',
+      '⚠️ Check: Is the token valid? Is the user in the database?',
+    );
     return [];
   }
-  console.log(P, 'Current user:', { id: me.id, email: me.email, name: me.name });
+  console.log(P, 'Current user:', {
+    id: me.id,
+    email: me.email,
+    name: me.name,
+  });
   const workspaces = await fetchWorkspaces();
   console.log(P, 'Workspaces fetched:', workspaces.length);
   if (!workspaces.length) {
@@ -148,18 +173,35 @@ async function fetchUserCards(): Promise<CardWithBoard[]> {
     for (const board of boards) {
       const lists = board.lists || [];
       totalLists += lists.length;
-      console.log(P, 'Board', board.id, `"${board.title}"`, 'lists:', lists.length);
+      console.log(
+        P,
+        'Board',
+        board.id,
+        `"${board.title}"`,
+        'lists:',
+        lists.length,
+      );
       for (const list of lists) {
         const listCards = list.cards || [];
         totalCards += listCards.length;
-        console.log(P, '  List', list.id, `"${list.title}"`, 'cards:', listCards.length);
+        console.log(
+          P,
+          '  List',
+          list.id,
+          `"${list.title}"`,
+          'cards:',
+          listCards.length,
+        );
         for (const card of listCards) {
           const assigneeIds = (card.assignees || []).map((a) => a.id);
           const isMine = assigneeIds.includes(me.id);
           // We don't have creator info in the schema, so we filter by assignment only.
           if (!isMine) {
             // Uncomment for very verbos  e logs per card not assigned
-            console.log(P, '    Card not assigned to me:', { cardId: card.id, title: card.title });
+            console.log(P, '    Card not assigned to me:', {
+              cardId: card.id,
+              title: card.title,
+            });
             continue;
           }
 
@@ -174,13 +216,21 @@ async function fetchUserCards(): Promise<CardWithBoard[]> {
             updatedAt: card.updatedAt || card.createdAt || undefined,
           });
           assignedCards++;
-          console.log(P, '    ✓ Assigned card found:', { cardId: card.id, title: card.title });
+          console.log(P, '    ✓ Assigned card found:', {
+            cardId: card.id,
+            title: card.title,
+          });
         }
       }
     }
   }
 
-  console.log(P, 'Summary:', { totalBoards, totalLists, totalCards, assignedCards });
+  console.log(P, 'Summary:', {
+    totalBoards,
+    totalLists,
+    totalCards,
+    assignedCards,
+  });
 
   return cards.sort((a, b) => {
     const da = a.updatedAt ? Date.parse(a.updatedAt) : 0;
@@ -193,17 +243,19 @@ export default async function CardsPage() {
   const cards = await fetchUserCards();
 
   return (
-    <main className="p-6 w-full h-full overflow-auto">
-      <div className="space-y-2 mb-6">
-        <h1 className="text-2xl font-semibold">Cards</h1>
-        <p className="text-sm text-muted-foreground">Cards assigned to you, newest first.</p>
+    <main className='p-6 w-full h-full overflow-auto'>
+      <div className='space-y-2 mb-6'>
+        <h1 className='text-2xl font-semibold'>Cards</h1>
+        <p className='text-sm text-muted-foreground'>
+          Cards assigned to you, newest first.
+        </p>
       </div>
 
       {cards.length === 0 ? (
-        <Empty className="rounded-lg border border-dashed border-muted bg-muted/30">
+        <Empty className='rounded-lg border border-dashed border-muted bg-muted/30'>
           <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <LayoutGrid className="size-6" />
+            <EmptyMedia variant='icon'>
+              <LayoutGrid className='size-6' />
             </EmptyMedia>
             <EmptyTitle>No cards assigned to you yet</EmptyTitle>
             <EmptyDescription>
@@ -212,24 +264,32 @@ export default async function CardsPage() {
           </EmptyHeader>
         </Empty>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
           {cards.map((card) => (
             <li key={card.id}>
               <a
                 href={`/boards/${card.boardId}`}
-                className="block rounded-lg border bg-card p-4 shadow-sm hover:border-primary transition"
+                className='block rounded-lg border bg-card p-4 shadow-sm hover:border-primary transition'
               >
-                <div className="text-sm font-semibold text-foreground line-clamp-2">{card.title}</div>
+                <div className='text-sm font-semibold text-foreground line-clamp-2'>
+                  {card.title}
+                </div>
                 {card.description ? (
-                  <div className="text-xs text-muted-foreground mt-2 line-clamp-2">{card.description}</div>
+                  <div className='text-xs text-muted-foreground mt-2 line-clamp-2'>
+                    {card.description}
+                  </div>
                 ) : null}
-                <div className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
-                  <span className="font-medium text-foreground">{card.boardTitle}</span>
+                <div className='text-xs text-muted-foreground mt-3 flex items-center gap-2'>
+                  <span className='font-medium text-foreground'>
+                    {card.boardTitle}
+                  </span>
                   <span aria-hidden>•</span>
                   <span>{card.listTitle}</span>
                 </div>
                 {card.updatedAt && (
-                  <div className="text-[11px] text-muted-foreground mt-2">Updated {new Date(card.updatedAt).toLocaleString()}</div>
+                  <div className='text-[11px] text-muted-foreground mt-2'>
+                    Updated {new Date(card.updatedAt).toLocaleString()}
+                  </div>
                 )}
               </a>
             </li>
