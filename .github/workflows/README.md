@@ -118,7 +118,7 @@ Frontend E2E tests (Playwright) run as part of the **Frontend CI** workflow (`fr
 
 ### 4. Code Quality (`code-quality.yml`)
 
-Comprehensive code quality checks including linting, security analysis, and dependency review.
+Prisma validation, CodeQL security analysis, and dependency review (lint runs in backend-ci / frontend-ci).
 
 **Triggers:**
 
@@ -127,17 +127,16 @@ Comprehensive code quality checks including linting, security analysis, and depe
 
 **Jobs:**
 
-1. **`lint-backend`** - ESLint validation for backend
-2. **`lint-frontend`** - ESLint validation for frontend
-3. **`prisma-validate`** - Prisma schema validation
-4. **`codeql-analysis`** - CodeQL security analysis (JavaScript/TypeScript)
-5. **`dependency-review`** - Dependency vulnerability review
+1. **`prisma-validate`** - Prisma schema validation
+2. **`codeql-analysis`** - CodeQL security analysis (JavaScript/TypeScript)
+3. **`dependency-review`** - Dependency vulnerability review (PRs only)
+
+**Note:** Lint runs in `backend-ci.yml` and `frontend-ci.yml`; not duplicated here.
 
 **Commands:**
 
 ```bash
-pnpm lint
-pnpm prisma validate
+pnpm prisma validate   # prisma-validate job
 ```
 
 ---
@@ -155,7 +154,7 @@ Unified deployment workflow for staging and production with automatic change det
 **Features:**
 
 - Automatic change detection (backend/frontend/terraform)
-- Comprehensive testing before deployment
+- Tests run in dedicated CI workflows (backend-ci, frontend-ci); deploy relies on branch protection
 - Security scanning with Trivy
 - Terraform validation and deployment
 - Docker image build and push to GCR
@@ -165,18 +164,18 @@ Unified deployment workflow for staging and production with automatic change det
 **Jobs:**
 
 1. **`detect-changes`** - Detect what changed (backend/frontend/terraform)
-2. **`test-backend`** - Run backend tests
-3. **`test-frontend`** - Run frontend tests
-4. **`security-scan`** - Trivy vulnerability scanner
-5. **`terraform-validate`** - Validate Terraform configuration
-6. **`build-backend`** - Build and push Docker image to GCR
-7. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
-8. **`terraform-plan`** - Generate Terraform plan
-9. **`terraform-apply`** - Apply Terraform changes
-10. **`deploy-backend`** - Deploy to Cloud Run
-11. **`deploy-frontend`** - Deploy to Cloud Run
-12. **`smoke-tests`** - Run smoke tests
-13. **`notify`** - Deployment status notification
+2. **`security-scan`** - Trivy vulnerability scanner
+3. **`terraform-validate`** - Validate Terraform configuration
+4. **`build-backend`** - Build and push Docker image to GCR
+5. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
+6. **`terraform-plan`** - Generate Terraform plan
+7. **`terraform-apply`** - Apply Terraform changes
+8. **`deploy-backend`** - Deploy to Cloud Run
+9. **`deploy-frontend`** - Deploy to Cloud Run
+10. **`smoke-tests`** - Run smoke tests
+11. **`notify`** - Deployment status notification
+
+**Note:** Backend and frontend tests run in `backend-ci.yml` and `frontend-ci.yml` (path-filtered). Deploy does not re-run them; rely on branch protection requiring those checks to pass before merge.
 
 **Environments:**
 
