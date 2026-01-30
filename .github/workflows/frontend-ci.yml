@@ -16,7 +16,7 @@ on:
 
 jobs:
   lint-and-build:
-    name: Lint and Build
+    name: Lint and Build Frontend
     runs-on: ubuntu-latest
 
     env:
