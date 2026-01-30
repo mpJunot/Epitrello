@@ -241,8 +241,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  build-frontend:
-    name: Build Frontend Docker Image
+  build-frontend-assets:
+    name: Build Frontend
     runs-on: ubuntu-latest
     needs: [changes, test-frontend]
     if: needs.changes.outputs.frontend == 'true' && needs.test-frontend.result == 'success'
@@ -254,11 +254,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup GCP Authentication
-        uses: ./.github/actions/setup-gcp-auth
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - name: Setup Frontend
+        uses: ./.github/actions/setup-frontend
 
       - name: Get Backend URL for build
         id: backend-url
@@ -269,6 +266,44 @@ jobs:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ steps.backend-url.outputs.url }}/graphql
+
+      - name: Upload frontend build
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-next
+          path: frontend/.next/
+          retention-days: 1
+
+  build-frontend:
+    name: Build Frontend Docker Image
+    runs-on: ubuntu-latest
+    needs: [changes, test-frontend, build-frontend-assets]
+    if: needs.changes.outputs.frontend == 'true' && needs.test-frontend.result == 'success'
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-next
+          path: frontend/.next
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Configure Docker for GCR
         run: gcloud auth configure-docker --quiet
@@ -286,15 +321,13 @@ jobs:
             type=raw,value=${{ github.ref_name }}-${{ github.sha }},enable=true
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
 
-      - name: Build and push
+      - name: Build and push (runtime image from pre-built .next)
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
+          file: ./frontend/Dockerfile.runtime
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ steps.backend-url.outputs.url }}/graphql
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
