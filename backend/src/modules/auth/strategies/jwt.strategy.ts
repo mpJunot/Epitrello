@@ -5,7 +5,7 @@ import { Request } from 'express';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 /** Extract JWT from Authorization Bearer header, or from cookie auth_token / token (fallback). */
-function jwtFromRequestOrCookie(req: Request): string | null {
+export function jwtFromRequestOrCookie(req: Request): string | null {
   const fromHeader = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
   if (fromHeader) return fromHeader;
   const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
@@ -40,7 +40,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     this.logger.debug(`User validated successfully: ${user.email}`);
 
-    // Return user object that will be attached to req.user
     return {
       id: user.id,
       userId: user.id,

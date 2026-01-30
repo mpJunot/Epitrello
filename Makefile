@@ -5,7 +5,7 @@
 .PHONY: help install setup docker-start docker-stop docker-restart \
 	docker-backend docker-frontend dev-backend dev-frontend \
 	build-backend build-frontend db-up db-down db-reset db-migrate \
-	prisma-generate prisma-studio test test-backend test-e2e \
+	prisma-generate prisma-studio test test-backend \
 	lint lint-backend lint-frontend format format-backend \
 	clean clean-backend clean-frontend
 
@@ -93,8 +93,6 @@ prisma-studio: ## Open Prisma Studio
 test: test-backend ## Run all tests
 test-backend: ## Run backend unit tests
 	cd $(BACKEND_DIR) && pnpm test
-test-e2e: ## Run end-to-end tests
-	cd $(BACKEND_DIR) && pnpm test:e2e
 
 # Code Quality
 lint: lint-backend lint-frontend ## Lint all code
