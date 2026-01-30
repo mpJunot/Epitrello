@@ -43,12 +43,16 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:4000/graphql
 
+      - name: List frontend build output
+        run: ls -la frontend/.next 2>/dev/null || echo "frontend/.next not found"
+
       - name: Archive build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: frontend/.next/
           retention-days: 7
+          if-no-files-found: warn
 
   e2e-tests:
     name: Frontend E2E Tests
@@ -146,9 +150,10 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
 
       - name: Upload Playwright report
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-e2e-playwright-report
           path: frontend/e2e/playwright-report/
           retention-days: 7
+          if-no-files-found: warn
