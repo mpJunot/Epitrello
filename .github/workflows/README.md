@@ -9,10 +9,8 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ├── workflows/
 │   ├── deploy.yml               # Unified deployment (staging/production) with Terraform
 │   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
-│   ├── frontend-ci.yml          # Frontend tests (lint, build)
-│   ├── e2e-tests.yml            # End-to-end tests
-│   ├── code-quality.yml        # Code quality (lint, CodeQL, Prisma validation)
-│   ├── terraform-plan.yml       # Terraform plan on PRs
+│   ├── frontend-ci.yml          # Frontend tests (lint, build, E2E Playwright)
+│   ├── code-quality.yml         # Code quality (lint, CodeQL, Prisma validation)
 │   ├── database-migrations.yml  # Database migrations management
 │   └── cleanup-cost-management.yml # Cost optimization and cleanup
 └── actions/
@@ -69,7 +67,7 @@ pnpm test:integration
 
 ### 2. Frontend CI (`frontend-ci.yml`)
 
-Validates frontend code quality and builds.
+Validates frontend code quality, builds, and runs E2E tests.
 
 **Triggers:**
 
@@ -84,12 +82,13 @@ Validates frontend code quality and builds.
 - ESLint code linting
 - TypeScript type checking
 - Next.js build compilation
-- Build artifact archival
+- Build artifact archival (optional)
 
-#### `unit-tests`
+#### `e2e-tests`
 
-- Unit test execution (if configured)
-- Codecov upload
+- PostgreSQL + backend + frontend services
+- Playwright E2E tests
+- Upload Playwright report (artifact)
 
 **Commands:**
 
@@ -97,37 +96,23 @@ Validates frontend code quality and builds.
 pnpm lint
 pnpm tsc --noEmit
 pnpm build
-pnpm test
+pnpm test:e2e   # in e2e-tests job
 ```
 
 ---
 
-### 3. E2E Tests (`e2e-tests.yml`)
+### 3. E2E Tests (in Frontend CI)
 
-End-to-end testing for complete application workflows.
+Frontend E2E tests (Playwright) run as part of the **Frontend CI** workflow (`frontend-ci.yml`), in the `e2e-tests` job.
 
-**Triggers:**
+**Triggers:** Same as Frontend CI (changes in `frontend/`, etc.)
 
-- Push to `master`, `dev` branches
-- Pull requests
-- Manual workflow dispatch
+**Job `e2e-tests`:**
 
-**Jobs:**
-
-#### `backend-e2e`
-
-- Backend end-to-end test suite
-- PostgreSQL database service
-- Complete environment configuration
-- Test results and coverage upload
-
-**Commands:**
-
-```bash
-pnpm test:e2e
-```
-
-**Note:** Frontend E2E tests awaiting Playwright/Cypress configuration.
+- PostgreSQL service, migrations, backend and frontend build
+- Start backend (port 4000) and frontend (port 3000)
+- Run Playwright: `pnpm test:e2e`
+- Upload Playwright report as artifact (on success or failure)
 
 ---
 
@@ -185,7 +170,7 @@ Unified deployment workflow for staging and production with automatic change det
 4. **`security-scan`** - Trivy vulnerability scanner
 5. **`terraform-validate`** - Validate Terraform configuration
 6. **`build-backend`** - Build and push Docker image to GCR
-7. **`build-frontend`** - Build frontend application
+7. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
 8. **`terraform-plan`** - Generate Terraform plan
 9. **`terraform-apply`** - Apply Terraform changes
 10. **`deploy-backend`** - Deploy to Cloud Run
