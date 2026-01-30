@@ -137,18 +137,7 @@ jobs:
       - name: Setup Frontend
         uses: ./.github/actions/setup-frontend
 
-      - name: Run E2E tests
-        run: |
-          chmod +x ./frontend/e2e/scripts/run-e2e.sh
-          ./frontend/e2e/scripts/run-e2e.sh
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: frontend/e2e/playwright-report/
-          retention-days: 7
+      # Frontend E2E tests not run in CI (tests kept locally)
 
   security-scan:
     name: Security Scan

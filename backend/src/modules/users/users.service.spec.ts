@@ -55,6 +55,26 @@ describe('UsersService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual(mockUsers);
+    });
+
+    it('should map description null to undefined', async () => {
+      const fromDb = [
+        {
+          id: '1',
+          email: 'a@b.com',
+          name: 'User',
+          avatar: null,
+          description: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+      mockPrismaService.user.findMany.mockResolvedValue(fromDb);
+
+      const result = await service.findAll();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].description).toBeUndefined();
       expect(prisma.user.findMany).toHaveBeenCalledWith({
         select: {
           id: true,
@@ -108,6 +128,58 @@ describe('UsersService', () => {
     });
   });
 
+  describe('findByEmail', () => {
+    it('should return a user when found by email', async () => {
+      const mockUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        avatar: null,
+        description: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+
+      const result = await service.findByEmail('  Test@Example.COM  ');
+
+      expect(result).toEqual(mockUser);
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    });
+
+    it('should return null when user not found by email', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      const result = await service.findByEmail('unknown@example.com');
+
+      expect(result).toBeNull();
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'unknown@example.com' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    });
+  });
+
   describe('create', () => {
     it('should create a new user', async () => {
       const input = {
@@ -121,6 +193,7 @@ describe('UsersService', () => {
         email: input.email,
         name: input.name,
         avatar: null,
+        description: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -133,6 +206,36 @@ describe('UsersService', () => {
       expect(result).toEqual(mockCreatedUser);
       expect(prisma.user.findUnique).toHaveBeenCalledWith({ where: { email: input.email } });
       expect(prisma.user.create).toHaveBeenCalled();
+    });
+
+    it('should create a user with description', async () => {
+      const input = {
+        email: 'desc@example.com',
+        name: 'User',
+        password: 'pwd',
+        description: 'My bio',
+      };
+      const mockCreatedUser = {
+        id: '1',
+        email: input.email,
+        name: input.name,
+        avatar: null,
+        description: input.description,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockCreatedUser);
+
+      const result = await service.create(input);
+
+      expect(result.description).toBe('My bio');
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ description: 'My bio' }),
+          select: expect.objectContaining({ description: true }),
+        }),
+      );
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -232,6 +335,41 @@ describe('UsersService', () => {
       mockPrismaService.user.update.mockRejectedValue(customError);
 
       await expect(service.update('1', input)).rejects.toThrow('Database error');
+    });
+
+    it('should update a user with description', async () => {
+      const input = { description: 'New bio' };
+      const mockUpdatedUser = {
+        id: '1',
+        email: 'test@example.com',
+        name: 'Test User',
+        avatar: null,
+        description: 'New bio',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockPrismaService.user.update.mockResolvedValue(mockUpdatedUser);
+
+      const result = await service.update('1', input);
+
+      expect(result.description).toBe('New bio');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: {
+          name: undefined,
+          avatar: undefined,
+          description: 'New bio',
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          description: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
     });
   });
 

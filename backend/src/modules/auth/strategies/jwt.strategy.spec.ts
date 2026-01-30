@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { JwtStrategy } from './jwt.strategy';
+import { JwtStrategy, jwtFromRequestOrCookie } from './jwt.strategy';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('JwtStrategy', () => {
@@ -74,5 +74,28 @@ describe('JwtStrategy', () => {
     const result = await strategy.validate(payload);
 
     expect(result).toBeNull();
+  });
+});
+
+describe('jwtFromRequestOrCookie', () => {
+  it('should return token from cookie auth_token when no Authorization header', () => {
+    const req = {
+      headers: {},
+      cookies: { auth_token: 'cookie-jwt-token' },
+    } as any;
+    expect(jwtFromRequestOrCookie(req)).toBe('cookie-jwt-token');
+  });
+
+  it('should return token from cookie token when no auth_token', () => {
+    const req = {
+      headers: {},
+      cookies: { token: 'fallback-jwt-token' },
+    } as any;
+    expect(jwtFromRequestOrCookie(req)).toBe('fallback-jwt-token');
+  });
+
+  it('should return null when no cookies', () => {
+    const req = { headers: {} } as any;
+    expect(jwtFromRequestOrCookie(req)).toBeNull();
   });
 });
