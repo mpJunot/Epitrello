@@ -82,6 +82,19 @@ describe('GqlAuthGuard', () => {
   });
 
   describe('getRequest', () => {
+    it('should extract request from HTTP context', () => {
+      const mockRequest = { headers: {}, user: null };
+      const mockExecutionContext = {
+        getType: jest.fn().mockReturnValue('http'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
+      } as unknown as ExecutionContext;
+
+      const result = guard.getRequest(mockExecutionContext);
+
+      expect(result).toBe(mockRequest);
+      expect(mockExecutionContext.switchToHttp).toHaveBeenCalled();
+    });
+
     it('should extract request from GraphQL context', () => {
       const mockRequest = { headers: { authorization: 'Bearer token' }, user: null };
       const mockContext = {
