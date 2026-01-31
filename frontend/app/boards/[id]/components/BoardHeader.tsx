@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Board } from '../types';
+import { Board, BoardFilterState } from '../types';
 import { Share2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FilterMenu } from './BoardHeader/FilterMenu';
@@ -14,6 +14,12 @@ interface BoardHeaderProps {
   canEdit?: boolean;
   onVisibilityChange?: (visibility: 'PRIVATE' | 'PUBLIC' | 'WORKSPACE') => void;
   onMemberAdded?: () => void;
+  filterState?: BoardFilterState;
+  onFilterChange?: (updates: Partial<BoardFilterState>) => void;
+  onClearFilters?: () => void;
+  currentUserId?: string | null;
+
+  filteredCardCount?: number;
 }
 
 export function BoardHeader({
@@ -21,6 +27,11 @@ export function BoardHeader({
   canEdit = true,
   onVisibilityChange,
   onMemberAdded,
+  filterState,
+  onFilterChange,
+  onClearFilters,
+  currentUserId,
+  filteredCardCount,
 }: BoardHeaderProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const boardMembers = board.members || [];
@@ -39,9 +50,19 @@ export function BoardHeader({
         )}
       </div>
 
-      {/* Right side: Actions and members */}
+      {/* Right side: Members, actions */}
       <div className='flex items-center gap-2'>
-        <FilterMenu />
+        <MemberAvatars members={boardMembers} />
+
+        <FilterMenu
+          boardId={board.id}
+          members={boardMembers}
+          filterState={filterState}
+          onFilterChange={onFilterChange}
+          onClearFilters={onClearFilters}
+          currentUserId={currentUserId}
+          filteredCardCount={filteredCardCount}
+        />
 
         {/* Star */}
         <Button
@@ -52,8 +73,6 @@ export function BoardHeader({
         >
           <Star className='w-5 h-5' />
         </Button>
-
-        <MemberAvatars members={boardMembers} />
 
         {/* Share button - only for members who can edit */}
         {canEdit && (
@@ -74,6 +93,7 @@ export function BoardHeader({
           lists={board.lists || []}
           canEdit={canEdit}
           onVisibilityChange={onVisibilityChange}
+          currentUserId={currentUserId}
         />
       </div>
 

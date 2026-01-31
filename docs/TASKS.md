@@ -140,6 +140,27 @@ This document outlines the prioritized development tasks for the Epitrello proje
 - [ ] Checklists in cards
 - [ ] Advanced search and filtering
 
+### 4.5 WebSocket & real-time (Activity, Comments, etc.)
+
+- [ ] **Backend – WebSocket infrastructure**
+  - [ ] Set up a WebSocket gateway (NestJS `@WebSocketGateway`) or GraphQL Subscriptions
+  - [ ] Authenticate connections (JWT / cookie) and associate the user
+  - [ ] Define rooms/channels per board (or per card) to target events
+- [ ] **Activity feed**
+  - [ ] Model / table `Activity` or equivalent (type, boardId, cardId?, userId, payload, createdAt)
+  - [ ] Emit a WebSocket event on each action (card creation, move, assignment, etc.)
+  - [ ] Frontend: subscribe to current board events and display the activity feed (sidebar or panel)
+- [ ] **Real-time comments**
+  - [ ] On comment add / edit / delete, publish an event (e.g. `commentAdded`, `commentUpdated`, `commentDeleted`)
+  - [ ] Frontend: subscribe per card or per board to update the comment list without reloading
+- [ ] **Real-time notifications**
+  - [ ] Events: card assigned, comment on a card, due date soon, board/workspace invitation
+  - [ ] Backend: publish to user or board channel
+  - [ ] Frontend: listen and display toasts / notification badge / notification center
+- [ ] **Collaboration (optional)**
+  - [ ] Presence: who is viewing the board / card (cursors or list of viewers)
+  - [ ] Live card updates (title, description) to avoid edit conflicts
+
 ## Recommended Execution Order
 
 | Phase                            | Priority   | Tasks                                                                                   |
@@ -148,6 +169,7 @@ This document outlines the prioritized development tasks for the Epitrello proje
 | Phase 2 - Core Features          | Priority 2 | Boards Module, Lists Module, Cards Module                                               |
 | Phase 3 - Complementary Features | Priority 3 | Comments Module, Attachments Module                                                     |
 | Phase 4 - Polish                 | Priority 4 | Testing, Documentation, Optimizations                                                   |
+| Phase 5 - Real-time              | Priority 4 | WebSocket infrastructure, Activity feed, Real-time comments, Notifications               |
 
 ## Useful Commands
 

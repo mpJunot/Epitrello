@@ -24,7 +24,7 @@ import { toast } from '@/lib/toast';
 import { updateWorkspace, deleteWorkspace } from '@/lib/actions/workspaces';
 import { useWorkspaceQuery, workspaceQueryKey } from '@/lib/queries/workspaces';
 import { useWorkspaceRole } from '@/lib/hooks/use-workspace-role';
-import { Lock, Pencil } from 'lucide-react';
+import { Lock, Pencil, AlertTriangle, Trash2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -238,6 +238,7 @@ export default function WorkspaceSettingsPage() {
     try {
       await deleteWorkspace(workspaceId);
       queryClient.removeQueries({ queryKey: workspaceQueryKey(workspaceId) });
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
       setShowDeleteDialog(false);
       router.push('/dashboard');
       toast.success('Workspace deleted');
@@ -496,10 +497,13 @@ export default function WorkspaceSettingsPage() {
           {canDelete && (
             <>
               <Separator />
-              <div className='space-y-4'>
-                <h3 className='text-base font-semibold text-destructive'>
-                  Danger zone
-                </h3>
+              <div className='rounded-lg border-2 border-destructive/40 bg-destructive/5 p-4 space-y-4'>
+                <div className='flex items-center gap-2'>
+                  <AlertTriangle className='size-5 text-destructive shrink-0' aria-hidden />
+                  <h3 className='text-base font-semibold text-destructive'>
+                    Danger zone
+                  </h3>
+                </div>
                 <p className='text-sm text-muted-foreground'>
                   Deleting this workspace will permanently remove all associated
                   data. This action cannot be undone.
@@ -507,8 +511,10 @@ export default function WorkspaceSettingsPage() {
                 <Button
                   type='button'
                   variant='destructive'
+                  className='border-2 border-destructive hover:bg-destructive/90'
                   onClick={() => setShowDeleteDialog(true)}
                 >
+                  <Trash2 className='size-4' />
                   Delete workspace
                 </Button>
               </div>
@@ -517,17 +523,20 @@ export default function WorkspaceSettingsPage() {
         </div>
       </div>
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className='border-destructive/30'>
           <DialogHeader>
-            <DialogTitle>
-              Are you sure you want to delete this workspace?
-            </DialogTitle>
+            <div className='flex items-center gap-2 text-destructive'>
+              <AlertTriangle className='size-5 shrink-0' aria-hidden />
+              <DialogTitle>
+                Are you sure you want to delete this workspace?
+              </DialogTitle>
+            </div>
             <DialogDescription>
               This action cannot be undone. All data for this workspace will be
               removed permanently.
             </DialogDescription>
           </DialogHeader>
-          <div className='rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-muted-foreground'>
+          <div className='rounded-md border-2 border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-muted-foreground'>
             You will be redirected to your workspace list after deletion.
           </div>
           <DialogFooter className='gap-2'>
@@ -540,10 +549,12 @@ export default function WorkspaceSettingsPage() {
             </Button>
             <Button
               variant='destructive'
+              className='border-2 border-destructive'
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? 'Deleting...' : 'Delete'}
+              <Trash2 className='size-4' />
+              {deleting ? 'Deleting...' : 'Delete workspace'}
             </Button>
           </DialogFooter>
         </DialogContent>

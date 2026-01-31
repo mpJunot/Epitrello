@@ -8,7 +8,9 @@ import {
   inviteMember,
   removeMember,
   leaveWorkspace,
+  updateMemberRole,
 } from '@/lib/actions/workspaces';
+import { removeBoardMember } from '@/lib/actions/boards';
 import {
   useWorkspaceMembersQuery,
   useWorkspaceBoardsQuery,
@@ -65,6 +67,40 @@ export default function WorkspaceMembersPage() {
     : 0;
   const guestsCount = members.filter((m) => m.role === 'GUEST').length;
 
+  const isOnlyAdmin =
+    !!currentUser?.id &&
+    members.filter((m) => m.role === 'ADMIN').length === 1 &&
+    members.some((m) => m.userId === currentUser.id && m.role === 'ADMIN');
+
+  const otherMembersToPromote = useMemo(
+    () =>
+      members
+        .filter(
+          (m) => m.userId !== currentUser?.id && m.role !== 'ADMIN',
+        )
+        .map((m) => ({
+          userId: m.userId,
+          name: m.user.name ?? '',
+          email: m.user.email ?? '',
+        })),
+    [members, currentUser?.id],
+  );
+
+  const handleAssignAdmin = async (userId: string) => {
+    try {
+      await updateMemberRole(workspaceId, userId, 'ADMIN');
+      await queryClient.invalidateQueries({
+        queryKey: workspaceMembersQueryKey(workspaceId),
+      });
+      toast.success('Admin assigned. You can now leave the workspace.');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to assign admin';
+      toast.error(message);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     if (isError && membersError) {
       toast.error(
@@ -82,30 +118,59 @@ export default function WorkspaceMembersPage() {
     }
   }, [isAdmin, activeTab]);
 
-  const handleRemoveOrLeave = async (userId: string) => {
-    const isCurrentUser = currentUser?.id === userId;
-    const message = isCurrentUser
-      ? 'Leave this workspace?'
-      : 'Are you sure you want to remove this member?';
-    if (!confirm(message)) return;
+  const handleLeaveWorkspace = async () => {
+    if (!currentUser?.id) return;
+    setRemoving(currentUser.id);
+    try {
+      await leaveWorkspace(workspaceId);
+      await queryClient.invalidateQueries({
+        queryKey: workspaceMembersQueryKey(workspaceId),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      toast.success('You left the workspace');
+      router.push('/dashboard');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to leave workspace';
+      toast.error(message);
+      console.error('Failed to leave workspace', error);
+    } finally {
+      setRemoving(null);
+    }
+  };
 
+  const handleRemoveFromWorkspace = async (userId: string) => {
     setRemoving(userId);
     try {
-      if (isCurrentUser) {
-        await leaveWorkspace(workspaceId);
-        await queryClient.invalidateQueries({
-          queryKey: workspaceMembersQueryKey(workspaceId),
-        });
-        await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-        toast.success('You left the workspace');
-        router.push('/dashboard');
-      } else {
-        await removeMember(workspaceId, userId);
-        await queryClient.invalidateQueries({
-          queryKey: workspaceMembersQueryKey(workspaceId),
-        });
-        toast.success('Member removed');
+      await removeMember(workspaceId, userId);
+      await queryClient.invalidateQueries({
+        queryKey: workspaceMembersQueryKey(workspaceId),
+      });
+      toast.success('Member removed from workspace');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to remove member';
+      toast.error(message);
+      console.error('Failed to remove member', error);
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  const handleRemoveFromWorkspaceAndBoards = async (userId: string) => {
+    setRemoving(userId);
+    try {
+      const boardsWhereMember = (workspaceBoards ?? []).filter((b) =>
+        b.members?.some((m) => m.userId === userId),
+      );
+      for (const board of boardsWhereMember) {
+        await removeBoardMember(board.id, userId);
       }
+      await removeMember(workspaceId, userId);
+      await queryClient.invalidateQueries({
+        queryKey: workspaceMembersQueryKey(workspaceId),
+      });
+      toast.success('Member removed from workspace and all boards');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to remove member';
@@ -168,23 +233,33 @@ export default function WorkspaceMembersPage() {
                   memberCount={memberCount}
                   memberLimit={memberLimit}
                   workspaceId={workspaceId}
-                  onRemove={handleRemoveOrLeave}
+                  onLeaveWorkspace={handleLeaveWorkspace}
+                  onRemoveFromWorkspace={handleRemoveFromWorkspace}
+                  onRemoveFromWorkspaceAndBoards={handleRemoveFromWorkspaceAndBoards}
                   removing={removing}
                   canInvite={permissions.canInviteMembers}
                   canRemove={permissions.canRemoveMembers}
                   workspaceBoards={workspaceBoards}
                   currentUserId={currentUser?.id}
+                  isOnlyAdmin={isOnlyAdmin}
+                  otherMembersToPromote={otherMembersToPromote}
+                  onAssignAdmin={handleAssignAdmin}
                 />
               </TabsContent>
 
               <TabsContent value='guests'>
                 <GuestsTabContent
                   members={members}
-                  onRemove={handleRemoveOrLeave}
+                  onLeaveWorkspace={handleLeaveWorkspace}
+                  onRemoveFromWorkspace={handleRemoveFromWorkspace}
+                  onRemoveFromWorkspaceAndBoards={handleRemoveFromWorkspaceAndBoards}
                   removing={removing}
                   canRemove={permissions.canRemoveMembers}
                   workspaceBoards={workspaceBoards}
                   currentUserId={currentUser?.id}
+                  isOnlyAdmin={isOnlyAdmin}
+                  otherMembersToPromote={otherMembersToPromote}
+                  onAssignAdmin={handleAssignAdmin}
                 />
               </TabsContent>
 

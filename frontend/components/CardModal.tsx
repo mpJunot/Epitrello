@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/avatar';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { getInitials } from '@/lib/utils';
-import { getLabelDisplayColor } from '@/lib/constants/label-colors';
+import { LabelBadge } from '@/components/LabelBadge';
 import { LabelsPopover } from './CardModal/LabelsPopover';
 import {
   Popover,
@@ -67,6 +67,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -197,7 +198,7 @@ function MoveCardContent({
                             workspaceName: string;
                             boards: typeof availableBoards;
                           }
-                        >,
+                        >
                       );
 
                       const workspaceEntries =
@@ -221,7 +222,7 @@ function MoveCardContent({
                               <SelectSeparator />
                             )}
                           </SelectGroup>
-                        ),
+                        )
                       );
                     })()
                   ) : currentBoardId ? (
@@ -351,25 +352,25 @@ export default function CardModal({
   const [description, setDescription] = useSyncedState(
     card.description ?? '',
     isOpen,
-    card.id,
+    card.id
   );
 
   const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(
     card.assignees || [],
     isOpen,
-    card.id,
+    card.id
   );
 
   const [assignedLabels, setAssignedLabels] = useSyncedState<LabelType[]>(
     card.labels || [],
     isOpen,
-    card.id,
+    card.id
   );
 
   const [checklists, setChecklists] = useSyncedState<Checklist[]>(
     card.checklists || [],
     isOpen,
-    card.id,
+    card.id
   );
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [addingItemToChecklist, setAddingItemToChecklist] = useState<
@@ -380,21 +381,21 @@ export default function CardModal({
   const [dueDate, setDueDate] = useSyncedState<DueDate | undefined>(
     card.dueDate ? { date: card.dueDate, isComplete: false } : undefined,
     isOpen,
-    card.id,
+    card.id
   );
   const [selectedDate, setSelectedDate] = useState('');
 
   const [startDate, setStartDate] = useSyncedState<string | undefined>(
     card.startDate || undefined,
     isOpen,
-    card.id,
+    card.id
   );
   const [selectedStartDate, setSelectedStartDate] = useState('');
 
   const [comments, setComments] = useSyncedState<Comment[]>(
     card.comments || [],
     isOpen,
-    card.id,
+    card.id
   );
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -404,7 +405,7 @@ export default function CardModal({
   const [background, setBackground] = useSyncedState<string | undefined>(
     card.background || undefined,
     isOpen,
-    card.id,
+    card.id
   );
 
   const [headerBackground, setHeaderBackground] = useState<string | null>(null);
@@ -448,16 +449,16 @@ export default function CardModal({
             avatar: currentUserData.avatar ?? undefined,
           }
         : { id: '', name: '', email: '', avatar: undefined },
-    [currentUserData],
+    [currentUserData]
   );
 
   const { data: boardData } = useBoardQuery(
-    currentBoardId && isOpen ? currentBoardId : '',
+    currentBoardId && isOpen ? currentBoardId : ''
   );
 
   const workspaceId = boardData?.workspaceId;
   const { data: workspaceData } = useWorkspaceQuery(
-    workspaceId && isOpen ? workspaceId : '',
+    workspaceId && isOpen ? workspaceId : ''
   );
 
   const availableMembers: (UserRef & {
@@ -540,7 +541,7 @@ export default function CardModal({
       if (e.key !== 'Tab' || !modalRef.current) return;
 
       const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       const firstElement = focusableElements[0] as HTMLElement;
       const lastElement = focusableElements[
@@ -665,7 +666,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to update member',
+        err instanceof Error ? err.message : 'Failed to update member'
       );
     }
   };
@@ -694,7 +695,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to update label',
+        err instanceof Error ? err.message : 'Failed to update label'
       );
     }
   };
@@ -738,7 +739,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to create checklist',
+        err instanceof Error ? err.message : 'Failed to create checklist'
       );
     }
   };
@@ -783,7 +784,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to add checklist item',
+        err instanceof Error ? err.message : 'Failed to add checklist item'
       );
     }
   };
@@ -829,7 +830,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to update checklist item',
+        err instanceof Error ? err.message : 'Failed to update checklist item'
       );
     }
   };
@@ -850,11 +851,11 @@ export default function CardModal({
       window.dispatchEvent(
         new CustomEvent('epitrello:card-checklists-updated', {
           detail: { cardId: card.id, checklists: updated },
-        }),
+        })
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to delete checklist',
+        err instanceof Error ? err.message : 'Failed to delete checklist'
       );
     }
   };
@@ -887,7 +888,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to delete checklist item',
+        err instanceof Error ? err.message : 'Failed to delete checklist item'
       );
     }
   };
@@ -971,7 +972,7 @@ export default function CardModal({
       toast.success('Background updated successfully');
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to update background',
+        err instanceof Error ? err.message : 'Failed to update background'
       );
     }
   };
@@ -992,7 +993,7 @@ export default function CardModal({
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Failed to remove background',
+        err instanceof Error ? err.message : 'Failed to remove background'
       );
     }
   };
@@ -1052,7 +1053,7 @@ export default function CardModal({
     if (!text) return;
 
     const updated = comments.map((comment) =>
-      comment.id === commentId ? { ...comment, text } : comment,
+      comment.id === commentId ? { ...comment, text } : comment
     );
 
     setComments(updated);
@@ -1081,10 +1082,10 @@ export default function CardModal({
   };
 
   const [selectedBoardId, setSelectedBoardId] = useState<string>(
-    currentBoardId || card.listId || '',
+    currentBoardId || card.listId || ''
   );
   const [selectedListId, setSelectedListId] = useState<string>(
-    card.listId || '',
+    card.listId || ''
   );
   const [selectedPosition, setSelectedPosition] = useState<string>('1');
   // Menu de déplacement dans le header
@@ -1101,6 +1102,8 @@ export default function CardModal({
         targetIndex: parseInt(selectedPosition, 10) - 1,
         fromIndex: card.position,
       });
+      setIsHeaderMoveOpen(false);
+      onClose();
     }
   };
 
@@ -1126,6 +1129,49 @@ export default function CardModal({
     onClose();
   };
 
+  const isCurrentUserAssigned = assignedMembers.some(
+    (m) => m.id === currentUser.id
+  );
+
+  const handleLeaveCard = async () => {
+    if (!currentUser.id || !isCurrentUserAssigned) return;
+    try {
+      await unassignMemberFromCard({ cardId: card.id, userId: currentUser.id });
+      if (currentBoardId) {
+        await queryClient.invalidateQueries({
+          queryKey: boardQueryKey(currentBoardId),
+        });
+      }
+      setAssignedMembers((prev) => prev.filter((m) => m.id !== currentUser.id));
+      emitEvent('epitrello:card-members-updated', {
+        cardId: card.id,
+        members: assignedMembers.filter((m) => m.id !== currentUser.id),
+      });
+      toast.success('You left the card');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to leave the card'
+      );
+    }
+  };
+
+  const handleShareCard = async () => {
+    const url =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}${window.location.pathname}?card=${card.id}`
+        : '';
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard');
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handleWatchCard = () => {
+    toast.info('Watch feature coming soon');
+  };
+
   if (!isOpen) return null;
 
   const isImageHeaderBackground =
@@ -1139,10 +1185,10 @@ export default function CardModal({
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           ref={modalRef}
-          className='sm:max-w-5xl w-full p-0 overflow-hidden max-h-[calc(100vh-200px)] flex flex-col'
+          className='sm:max-w-5xl w-full p-0 overflow-hidden max-h-[calc(100vh-200px)] flex flex-col rounded-2xl gap-0'
           showCloseButton={false}
         >
-          <DialogHeader className='px-6 pt-4 pb-2 h-30  border-b border-accent relative overflow-visible'>
+          <DialogHeader className='px-6 pt-4 pb-2 h-30 border-b border-accent relative overflow-visible'>
             <div
               className={`absolute inset-0 -z-10 ${
                 !isImageHeaderBackground
@@ -1150,8 +1196,8 @@ export default function CardModal({
                     BACKGROUND_COLORS.some((c) => c.value === background)
                     ? background
                     : headerBackground
-                      ? headerBackground
-                      : 'bg-background'
+                    ? headerBackground
+                    : 'bg-background'
                   : 'bg-background'
               }`}
               style={
@@ -1284,7 +1330,9 @@ export default function CardModal({
                                     await saveBackground(color.value);
                                     setShowBackgroundPicker(false);
                                   }}
-                                  className={`h-12 rounded-lg ${color.value} border-2 transition-all ${
+                                  className={`h-12 rounded-lg ${
+                                    color.value
+                                  } border-2 transition-all ${
                                     (headerBackground === color.value ||
                                       background === color.value) &&
                                     !background?.startsWith('data:image')
@@ -1333,12 +1381,16 @@ export default function CardModal({
                       align='end'
                       className='border-accent bg-trello-card-bg'
                     >
-                      <DropdownMenuItem>
-                        <User className='w-4 h-4 mr-2' />
-                        Leave
-                      </DropdownMenuItem>
+                      {isCurrentUserAssigned && (
+                        <DropdownMenuItem onClick={handleLeaveCard}>
+                          <User className='w-4 h-4 mr-2' />
+                          Leave
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
-                        onClick={() => setIsMovePopoverOpen(true)}
+                        onClick={() =>
+                          setTimeout(() => setIsHeaderMoveOpen(true), 0)
+                        }
                       >
                         <Move className='w-4 h-4 mr-2' />
                         Move
@@ -1347,14 +1399,15 @@ export default function CardModal({
                         <Copy className='w-4 h-4 mr-2' />
                         Copy
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleWatchCard}>
                         <Eye className='w-4 h-4 mr-2' />
                         Watch
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleShareCard}>
                         <Share2 className='w-4 h-4 mr-2' />
                         Share
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() => setShowArchiveConfirm(true)}
                       >
@@ -1377,7 +1430,6 @@ export default function CardModal({
               </div>
             </div>
           </DialogHeader>
-
           <div className='flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden'>
             <div className='flex-1 lg:w-[60%] px-6 pt-4 pb-4 overflow-y-auto custom-scrollbar'>
               <div className='flex items-start gap-3 mb-6'>
@@ -1395,8 +1447,8 @@ export default function CardModal({
                                   cardId: card.id,
                                   completed: checked as boolean,
                                 },
-                              },
-                            ),
+                              }
+                            )
                           );
                         }
                   }
@@ -1526,24 +1578,13 @@ export default function CardModal({
                           </h3>
                           <div className='flex flex-wrap items-center gap-2'>
                             {assignedLabels.map((label) => (
-                              <span
+                              <LabelBadge
                                 key={label.id}
-                                role={readOnly ? undefined : 'button'}
-                                onClick={
-                                  readOnly
-                                    ? undefined
-                                    : () => toggleLabel(label)
-                                }
-                                className={`inline-block text-xs px-2 py-0.5 rounded shrink-0 text-white ${!readOnly ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
-                                style={{
-                                  backgroundColor: getLabelDisplayColor(
-                                    label.color,
-                                  ),
-                                }}
-                                title={label.name || 'Untitled'}
-                              >
-                                {label.name || 'Untitled'}
-                              </span>
+                                label={label}
+                                variant='chip'
+                                onClick={() => toggleLabel(label)}
+                                readOnly={readOnly}
+                              />
                             ))}
                             {!readOnly && (
                               <LabelsPopover
@@ -1582,6 +1623,7 @@ export default function CardModal({
                       isMovePopoverOpen={isMovePopoverOpen}
                       onMovePopoverOpenChange={setIsMovePopoverOpen}
                       readOnly={readOnly}
+                      completed={card.completed ?? false}
                       moveCardContent={
                         <MoveCardContent
                           selectedBoardId={selectedBoardId}

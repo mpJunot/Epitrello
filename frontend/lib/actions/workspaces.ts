@@ -304,6 +304,26 @@ export async function removeMember(workspaceId: string, userId: string): Promise
 }
 
 /**
+ * Update a member's role in a workspace (admin only).
+ * Cannot remove the last ADMIN.
+ */
+export async function updateMemberRole(
+  workspaceId: string,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  const mutation = `
+    mutation UpdateMemberRole($input: UpdateMemberRoleInput!) {
+      updateMemberRole(input: $input)
+    }
+  `;
+  const result = await graphqlRequest<{ updateMemberRole: boolean }>(mutation, {
+    input: { workspaceId, userId, role },
+  });
+  return result.updateMemberRole;
+}
+
+/**
  * Get pending invitations for a workspace (admin only)
  */
 export async function getWorkspaceInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
