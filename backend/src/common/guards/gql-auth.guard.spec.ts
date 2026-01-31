@@ -91,6 +91,7 @@ describe('GqlAuthGuard', () => {
       const mockRequest = { user: mockUser };
       const mockExecutionContext = {
         getHandler: jest.fn(),
+
         getClass: jest.fn(),
         getType: jest.fn().mockReturnValue('http'),
         switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
