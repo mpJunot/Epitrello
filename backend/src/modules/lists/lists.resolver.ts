@@ -1,5 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { ListsService } from './lists.service';
 import { List } from './entities/list.entity';
 import { CreateListInput } from './dto/create-list.input';
@@ -7,11 +8,20 @@ import { UpdateListInput } from './dto/update-list.input';
 import { ReorderListsInput } from './dto/reorder-lists.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { TRIGGER_LIST_UPDATED } from '../boards/board-subscription.resolver';
 
 @Resolver(() => List)
 @UseGuards(GqlAuthGuard)
 export class ListsResolver {
-  constructor(private readonly listsService: ListsService) {}
+  constructor(
+    private readonly listsService: ListsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
+
+  private async publishListUpdated(list: List): Promise<void> {
+    this.pubSub.publish(TRIGGER_LIST_UPDATED, { listUpdated: list, boardId: list.boardId });
+  }
 
   @Mutation(() => List, {
     description: 'Create a new list. Position is calculated automatically if not provided.',
@@ -20,7 +30,9 @@ export class ListsResolver {
     @Args('input') input: CreateListInput,
     @CurrentUser() user: any,
   ): Promise<List> {
-    return this.listsService.create(input, user.id);
+    const list = await this.listsService.create(input, user.id);
+    await this.publishListUpdated(list);
+    return list;
   }
 
   @Query(() => List, {
@@ -41,7 +53,9 @@ export class ListsResolver {
     @Args('input') input: UpdateListInput,
     @CurrentUser() user: any,
   ): Promise<List> {
-    return this.listsService.update(input, user.id);
+    const list = await this.listsService.update(input, user.id);
+    await this.publishListUpdated(list);
+    return list;
   }
 
   @Mutation(() => Boolean, {
@@ -61,7 +75,9 @@ export class ListsResolver {
     @Args('input') input: ReorderListsInput,
     @CurrentUser() user: any,
   ): Promise<List[]> {
-    return this.listsService.reorder(input, user.id);
+    const lists = await this.listsService.reorder(input, user.id);
+    for (const list of lists) await this.publishListUpdated(list);
+    return lists;
   }
 
   @Mutation(() => List, {
@@ -71,7 +87,9 @@ export class ListsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<List> {
-    return this.listsService.archive(id, user.id);
+    const list = await this.listsService.archive(id, user.id);
+    await this.publishListUpdated(list);
+    return list;
   }
 
   @Mutation(() => List, {
@@ -81,7 +99,9 @@ export class ListsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<List> {
-    return this.listsService.unarchive(id, user.id);
+    const list = await this.listsService.unarchive(id, user.id);
+    await this.publishListUpdated(list);
+    return list;
   }
 
   @Query(() => [List], {

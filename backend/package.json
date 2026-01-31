@@ -46,6 +46,8 @@
     "cookie-parser": "^1.4.7",
     "dataloader": "^2.2.3",
     "graphql": "^16.8.1",
+    "graphql-subscriptions": "^3.0.0",
+    "graphql-ws": "^6.0.7",
     "passport": "^0.7.0",
     "passport-apple": "^2.0.2",
     "passport-google-oauth20": "^2.0.0",
@@ -54,7 +56,8 @@
     "passport-slack-oauth2": "^1.2.0",
     "reflect-metadata": "^0.1.13",
     "resend": "^6.5.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
@@ -68,6 +71,7 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/passport-jwt": "^3.0.13",
     "@types/supertest": "^6.0.2",
+    "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.0",

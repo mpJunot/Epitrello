@@ -45,6 +45,13 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
+    const req = this.getRequest(context);
+    // Subscription context: user already set in onConnect (WebSocket auth)
+    if (req?.user) {
+      this.logger.debug('Subscription or pre-authenticated context');
+      return true;
+    }
+
     try {
       const result = await super.canActivate(context);
       this.logger.debug('Authentication successful');
