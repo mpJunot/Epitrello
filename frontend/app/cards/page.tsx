@@ -11,6 +11,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty';
 import { LayoutGrid } from 'lucide-react';
+import { CardsTable, type CardRow } from './CardsTable';
 
 export const metadata = {
   title: 'Cards',
@@ -18,6 +19,12 @@ export const metadata = {
 
 /** Skip static prerender at build time; this page needs the backend (current user, workspaces). */
 export const dynamic = 'force-dynamic';
+
+type RawLabel = {
+  id: string;
+  name?: string | null;
+  color?: string | null;
+};
 
 type RawCard = {
   id: string;
@@ -27,12 +34,15 @@ type RawCard = {
   position?: number | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  dueDate?: string | null;
+  completed?: boolean | null;
   assignees?: Array<{
     id: string;
     name?: string | null;
     email?: string | null;
     avatar?: string | null;
   }> | null;
+  labels?: RawLabel[] | null;
 };
 
 type RawList = {
@@ -46,26 +56,18 @@ type RawBoard = {
   id: string;
   title: string;
   workspaceId?: string | null;
+  background?: string | null;
   lists?: RawList[] | null;
 };
 
-type CardWithBoard = {
-  id: string;
-  title: string;
-  description?: string;
-  boardId: string;
-  boardTitle: string;
-  listId: string;
-  listTitle: string;
-  updatedAt?: string;
-};
+type WorkspaceWithName = { id: string; name: string };
 
 const quietOptions: GraphQLRequestOptions = {
   suppressLogs: true,
   suppressAuthError: true,
 };
 
-async function fetchWorkspaces() {
+async function fetchWorkspaces(): Promise<WorkspaceWithName[]> {
   const query = `
     query MyWorkspaces {
       myWorkspaces {
@@ -77,7 +79,7 @@ async function fetchWorkspaces() {
 
   try {
     const result = await graphqlRequest<{
-      myWorkspaces?: Array<{ id: string }> | null;
+      myWorkspaces?: WorkspaceWithName[] | null;
     }>(query, undefined, quietOptions);
     return result.myWorkspaces || [];
   } catch {
@@ -92,6 +94,7 @@ async function fetchBoards(workspaceId: string) {
         id
         title
         workspaceId
+        background
         lists {
           id
           title
@@ -104,11 +107,18 @@ async function fetchBoards(workspaceId: string) {
             position
             createdAt
             updatedAt
+            dueDate
+            completed
             assignees {
               id
               name
               email
               avatar
+            }
+            labels {
+              id
+              name
+              color
             }
           }
         }
@@ -126,128 +136,69 @@ async function fetchBoards(workspaceId: string) {
   }
 }
 
-async function fetchUserCards(): Promise<CardWithBoard[]> {
-  const P = '[CardsPage]';
+type CardsPageData = { cards: CardRow[]; currentUserId: string | null };
+
+async function fetchAllCards(): Promise<CardsPageData> {
   let me = null;
   try {
     me = await getCurrentUser(quietOptions);
-  } catch (err) {
-    console.error(P, 'getCurrentUser error:', err);
-    if (err instanceof Error && err.message === 'UNAUTHORIZED_QUIET') {
-      return [];
-    }
-    return [];
+  } catch {
+    return { cards: [], currentUserId: null };
   }
+  if (!me) return { cards: [], currentUserId: null };
 
-  if (!me) {
-    console.log('Server', '❌ No current user found - Backend returned null');
-    console.log(
-      'Server',
-      '⚠️ Check: Is the token valid? Is the user in the database?',
-    );
-    return [];
-  }
-  console.log(P, 'Current user:', {
-    id: me.id,
-    email: me.email,
-    name: me.name,
-  });
   const workspaces = await fetchWorkspaces();
-  console.log(P, 'Workspaces fetched:', workspaces.length);
-  if (!workspaces.length) {
-    console.warn(P, 'No workspaces for user', me.id);
-    return [];
-  }
+  if (!workspaces.length) return { cards: [], currentUserId: me.id };
 
-  const cards: CardWithBoard[] = [];
-  let totalBoards = 0;
-  let totalLists = 0;
-  let totalCards = 0;
-  let assignedCards = 0;
+  const workspaceNames = new Map(workspaces.map((w) => [w.id, w.name]));
+  const cards: CardRow[] = [];
 
   for (const ws of workspaces) {
-    console.log(P, 'Fetching boards for workspace', ws.id);
     const boards = await fetchBoards(ws.id);
-    console.log(P, 'Boards fetched for workspace', ws.id, ':', boards.length);
-    totalBoards += boards.length;
+    const workspaceName = workspaceNames.get(ws.id) ?? ws.name;
     for (const board of boards) {
       const lists = board.lists || [];
-      totalLists += lists.length;
-      console.log(
-        P,
-        'Board',
-        board.id,
-        `"${board.title}"`,
-        'lists:',
-        lists.length,
-      );
       for (const list of lists) {
         const listCards = list.cards || [];
-        totalCards += listCards.length;
-        console.log(
-          P,
-          '  List',
-          list.id,
-          `"${list.title}"`,
-          'cards:',
-          listCards.length,
-        );
         for (const card of listCards) {
-          const assigneeIds = (card.assignees || []).map((a) => a.id);
-          const isMine = assigneeIds.includes(me.id);
-          // We don't have creator info in the schema, so we filter by assignment only.
-          if (!isMine) {
-            // Uncomment for very verbos  e logs per card not assigned
-            console.log(P, '    Card not assigned to me:', {
-              cardId: card.id,
-              title: card.title,
-            });
-            continue;
-          }
-
           cards.push({
             id: card.id,
             title: card.title,
-            description: card.description || undefined,
             boardId: board.id,
             boardTitle: board.title,
+            boardBackground: board.background ?? undefined,
             listId: list.id,
             listTitle: list.title,
-            updatedAt: card.updatedAt || card.createdAt || undefined,
-          });
-          assignedCards++;
-          console.log(P, '    ✓ Assigned card found:', {
-            cardId: card.id,
-            title: card.title,
+            dueDate: card.dueDate ?? undefined,
+            completed: card.completed ?? false,
+            labels: card.labels ?? undefined,
+            assigneeIds: (card.assignees ?? []).map((a) => a.id),
+            workspaceName,
           });
         }
       }
     }
   }
 
-  console.log(P, 'Summary:', {
-    totalBoards,
-    totalLists,
-    totalCards,
-    assignedCards,
+  cards.sort((a, b) => {
+    const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+    const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+    if (da !== db) return da - db;
+    return a.boardTitle.localeCompare(b.boardTitle) || a.title.localeCompare(b.title);
   });
 
-  return cards.sort((a, b) => {
-    const da = a.updatedAt ? Date.parse(a.updatedAt) : 0;
-    const db = b.updatedAt ? Date.parse(b.updatedAt) : 0;
-    return db - da;
-  });
+  return { cards, currentUserId: me.id };
 }
 
 export default async function CardsPage() {
-  const cards = await fetchUserCards();
+  const { cards, currentUserId } = await fetchAllCards();
 
   return (
     <main className='p-6 w-full h-full overflow-auto'>
       <div className='space-y-2 mb-6'>
         <h1 className='text-2xl font-semibold'>Cards</h1>
         <p className='text-sm text-muted-foreground'>
-          Cards assigned to you, newest first.
+          All cards across your boards. Sort by board, list, or due date. Filter by board, list, labels, due date, or assignee.
         </p>
       </div>
 
@@ -257,44 +208,14 @@ export default async function CardsPage() {
             <EmptyMedia variant='icon'>
               <LayoutGrid className='size-6' />
             </EmptyMedia>
-            <EmptyTitle>No cards assigned to you yet</EmptyTitle>
+            <EmptyTitle>No cards yet</EmptyTitle>
             <EmptyDescription>
-              Cards you are assigned to will appear here
+              Create cards on your boards and they will appear here
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
-        <ul className='grid gap-3 sm:grid-cols-2 lg:grid-cols-3'>
-          {cards.map((card) => (
-            <li key={card.id}>
-              <a
-                href={`/boards/${card.boardId}`}
-                className='block rounded-lg border bg-card p-4 shadow-sm hover:border-primary transition'
-              >
-                <div className='text-sm font-semibold text-foreground line-clamp-2'>
-                  {card.title}
-                </div>
-                {card.description ? (
-                  <div className='text-xs text-muted-foreground mt-2 line-clamp-2'>
-                    {card.description}
-                  </div>
-                ) : null}
-                <div className='text-xs text-muted-foreground mt-3 flex items-center gap-2'>
-                  <span className='font-medium text-foreground'>
-                    {card.boardTitle}
-                  </span>
-                  <span aria-hidden>•</span>
-                  <span>{card.listTitle}</span>
-                </div>
-                {card.updatedAt && (
-                  <div className='text-[11px] text-muted-foreground mt-2'>
-                    Updated {new Date(card.updatedAt).toLocaleString()}
-                  </div>
-                )}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <CardsTable cards={cards} currentUserId={currentUserId} />
       )}
     </main>
   );
