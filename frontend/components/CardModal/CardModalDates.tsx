@@ -22,6 +22,7 @@ export interface CardModalDatesProps {
   onMovePopoverOpenChange: (open: boolean) => void;
   moveCardContent: React.ReactNode;
   readOnly?: boolean;
+  completed?: boolean;
 }
 
 export function CardModalDates({
@@ -39,6 +40,7 @@ export function CardModalDates({
   onMovePopoverOpenChange,
   moveCardContent,
   readOnly = false,
+  completed = false,
 }: CardModalDatesProps) {
   if (!startDate && !dueDate) return null;
 
@@ -78,10 +80,16 @@ export function CardModalDates({
         <div className='flex items-center gap-2'>
           <div className='bg-trello-hover px-3 py-2 rounded-md text-sm text-trello flex items-center gap-2'>
             <span>{formatDateRange()}</span>
-            {isOverdue && (
-              <span className='bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium'>
-                Overdue
+            {completed ? (
+              <span className='bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-medium'>
+                Completed
               </span>
+            ) : (
+              isOverdue && (
+                <span className='bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium'>
+                  Overdue
+                </span>
+              )
             )}
           </div>
         </div>
@@ -107,12 +115,18 @@ export function CardModalDates({
           trigger={
             <div className='flex items-center gap-2 bg-trello-hover hover:bg-trello-border px-3 py-2 rounded-md text-sm text-trello transition-colors cursor-pointer'>
               <span>{formatDateRange()}</span>
-              {isOverdue && (
-                <CardModalDatesOverduePopover
-                  isOpen={isMovePopoverOpen}
-                  onOpenChange={onMovePopoverOpenChange}
-                  moveCardContent={moveCardContent}
-                />
+              {completed ? (
+                <span className='bg-green-600 text-white px-2 py-0.5 rounded-full text-xs font-medium'>
+                  Completed
+                </span>
+              ) : (
+                isOverdue && (
+                  <CardModalDatesOverduePopover
+                    isOpen={isMovePopoverOpen}
+                    onOpenChange={onMovePopoverOpenChange}
+                    moveCardContent={moveCardContent}
+                  />
+                )
               )}
               <ChevronDown className='w-4 h-4 text-trello-text-secondary shrink-0' />
             </div>
