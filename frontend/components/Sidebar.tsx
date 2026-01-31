@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Mail,
   Building2,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,7 +81,7 @@ function saveExpanded(ids: string[]) {
 export default function AppSidebar() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() =>
-    loadExpanded(),
+    loadExpanded()
   );
   const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] =
     useState(false);
@@ -223,7 +224,9 @@ export default function AppSidebar() {
                     isActive={pathname === '/invitations'}
                     tooltip={
                       pendingInvitationsCount > 0
-                        ? `${pendingInvitationsCount} pending invitation${pendingInvitationsCount !== 1 ? 's' : ''}`
+                        ? `${pendingInvitationsCount} pending invitation${
+                            pendingInvitationsCount !== 1 ? 's' : ''
+                          }`
                         : 'Invitations'
                     }
                   >
@@ -233,15 +236,27 @@ export default function AppSidebar() {
                   {pendingInvitationsCount > 0 && (
                     <SidebarMenuBadge
                       className='bg-red-500 text-white hover:bg-red-500 min-w-5 h-5 rounded-full px-1.5 text-[11px] font-semibold shadow-sm ring-2 ring-sidebar'
-                      aria-label={`${pendingInvitationsCount} pending invitation${pendingInvitationsCount !== 1 ? 's' : ''}`}
+                      aria-label={`${pendingInvitationsCount} pending invitation${
+                        pendingInvitationsCount !== 1 ? 's' : ''
+                      }`}
                     >
                       {pendingInvitationsCount > 99
                         ? '99+'
                         : pendingInvitationsCount > 9
-                          ? '9+'
-                          : pendingInvitationsCount}
+                        ? '9+'
+                        : pendingInvitationsCount}
                     </SidebarMenuBadge>
                   )}
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => router.push('/cards')}
+                    isActive={pathname === '/cards'}
+                    tooltip='Cards'
+                  >
+                    <CreditCard />
+                    <span>Cards</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>

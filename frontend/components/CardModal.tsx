@@ -53,17 +53,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label as LabelComponent } from '@/components/ui/label';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -107,202 +96,8 @@ import {
 import { useSyncedState } from './CardModal/hooks/useSyncedState';
 import { BACKGROUND_COLORS } from './CardModal/constants';
 import { BoardMember } from '@/app/boards/[id]/types';
-
-// Move Card Content Component
-function MoveCardContent({
-  selectedBoardId,
-  setSelectedBoardId,
-  selectedListId,
-  setSelectedListId,
-  selectedPosition,
-  setSelectedPosition,
-  availableLists,
-  availableBoards,
-  currentBoardId,
-  handleMoveCard,
-  setIsMovePopoverOpen,
-}: {
-  selectedBoardId: string;
-  setSelectedBoardId: (id: string) => void;
-  selectedListId: string;
-  setSelectedListId: (id: string) => void;
-  selectedPosition: string;
-  setSelectedPosition: (pos: string) => void;
-  availableLists: Array<{ id: string; name: string }>;
-  availableBoards?: Array<{
-    id: string;
-    name: string;
-    workspaceId: string;
-    workspaceName: string;
-  }>;
-  currentBoardId?: string;
-  handleMoveCard: () => void;
-  setIsMovePopoverOpen: (open: boolean) => void;
-}) {
-  return (
-    <>
-      <div className='mb-4'>
-        <div className='flex items-center justify-between mb-4'>
-          <h3 className='text-lg font-semibold'>Move card</h3>
-          <Button
-            variant='ghost'
-            size='icon'
-            className='h-6 w-6'
-            onClick={() => setIsMovePopoverOpen(false)}
-          >
-            <X className='w-4 h-4' />
-          </Button>
-        </div>
-      </div>
-      <div className='space-y-4'>
-        <div>
-          <LabelComponent
-            htmlFor='board-select'
-            className='text-sm font-medium mb-2 block'
-          >
-            Select destination
-          </LabelComponent>
-          <div className='space-y-4'>
-            <div>
-              <LabelComponent
-                htmlFor='board'
-                className='text-xs text-muted-foreground mb-1 block'
-              >
-                Board
-              </LabelComponent>
-              <Select
-                value={selectedBoardId}
-                onValueChange={setSelectedBoardId}
-              >
-                <SelectTrigger id='board' className='w-full'>
-                  <SelectValue placeholder='Select a board' />
-                </SelectTrigger>
-                <SelectContent className='border-accent'>
-                  {availableBoards && availableBoards.length > 0 ? (
-                    (() => {
-                      // Group boards by workspace
-                      const boardsByWorkspace = availableBoards.reduce(
-                        (acc, board) => {
-                          if (!acc[board.workspaceId]) {
-                            acc[board.workspaceId] = {
-                              workspaceName: board.workspaceName,
-                              boards: [],
-                            };
-                          }
-                          acc[board.workspaceId].boards.push(board);
-                          return acc;
-                        },
-                        {} as Record<
-                          string,
-                          {
-                            workspaceName: string;
-                            boards: typeof availableBoards;
-                          }
-                        >
-                      );
-
-                      const workspaceEntries =
-                        Object.entries(boardsByWorkspace);
-                      return workspaceEntries.map(
-                        ([workspaceId, { workspaceName, boards }], index) => (
-                          <SelectGroup key={workspaceId}>
-                            <SelectLabel className='text-xs font-semibold text-muted-foreground px-2 py-1.5'>
-                              {workspaceName}
-                            </SelectLabel>
-                            {boards.map((board) => (
-                              <SelectItem
-                                key={board.id}
-                                value={board.id}
-                                className='pl-6'
-                              >
-                                {board.name}
-                              </SelectItem>
-                            ))}
-                            {index < workspaceEntries.length - 1 && (
-                              <SelectSeparator />
-                            )}
-                          </SelectGroup>
-                        )
-                      );
-                    })()
-                  ) : currentBoardId ? (
-                    <SelectItem value={currentBoardId}>
-                      Current Board
-                    </SelectItem>
-                  ) : (
-                    <SelectItem value='' disabled>
-                      No boards available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className='flex gap-4'>
-              <div className='flex-1'>
-                <LabelComponent
-                  htmlFor='list'
-                  className='text-xs text-muted-foreground mb-1 block'
-                >
-                  List
-                </LabelComponent>
-                <Select
-                  value={selectedListId}
-                  onValueChange={setSelectedListId}
-                >
-                  <SelectTrigger id='list' className='w-full'>
-                    <SelectValue placeholder='Select a list' />
-                  </SelectTrigger>
-                  <SelectContent className='border-accent'>
-                    {availableLists.map((list) => (
-                      <SelectItem key={list.id} value={list.id}>
-                        {list.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className='w-24'>
-                <LabelComponent
-                  htmlFor='position'
-                  className='text-xs text-muted-foreground mb-1 block'
-                >
-                  Position
-                </LabelComponent>
-                <Select
-                  value={selectedPosition}
-                  onValueChange={setSelectedPosition}
-                >
-                  <SelectTrigger id='position' className='w-full'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className='border-accent'>
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((pos) => (
-                      <SelectItem key={pos} value={pos.toString()}>
-                        {pos}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className='mt-4 flex justify-start'>
-          <Button
-            onClick={() => {
-              handleMoveCard();
-              setIsMovePopoverOpen(false);
-            }}
-            disabled={!selectedBoardId || !selectedListId}
-            size='sm'
-          >
-            Move
-          </Button>
-        </div>
-      </div>
-    </>
-  );
-}
+import { CardModalMoveContent } from './CardModal/CardModalMoveContent';
+import { CardModalBackgroundPicker } from './CardModal/CardModalBackgroundPicker';
 
 interface CardModalProps {
   card: Card;
@@ -1245,7 +1040,7 @@ export default function CardModal({
                       align='start'
                       className='w-80 p-4 border-accent bg-trello-card-bg'
                     >
-                      <MoveCardContent
+                      <CardModalMoveContent
                         selectedBoardId={selectedBoardId}
                         setSelectedBoardId={setSelectedBoardId}
                         selectedListId={selectedListId}
@@ -1282,87 +1077,15 @@ export default function CardModal({
                       align='end'
                       className='w-80 p-4 border-accent bg-trello-card-bg'
                     >
-                      <div className='space-y-4'>
-                        <div className='flex items-center justify-between'>
-                          <h3 className='text-lg font-semibold'>
-                            Change background
-                          </h3>
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className='h-6 w-6'
-                            onClick={() => setShowBackgroundPicker(false)}
-                          >
-                            <X className='w-4 h-4' />
-                          </Button>
-                        </div>
-                        <div className='space-y-4'>
-                          <div className='space-y-2'>
-                            <div className='text-sm font-medium'>
-                              Upload Image
-                            </div>
-                            <div className='flex items-center gap-2'>
-                              <Input
-                                type='file'
-                                accept='image/*'
-                                onChange={handleImageUpload}
-                                className='flex-1'
-                                id='background-image-upload-header'
-                              />
-                              <LabelComponent
-                                htmlFor='background-image-upload-header'
-                                className='cursor-pointer'
-                              >
-                                <Button variant='outline' size='sm' asChild>
-                                  <span>Choose File</span>
-                                </Button>
-                              </LabelComponent>
-                            </div>
-                          </div>
-                          <div className='space-y-2'>
-                            <div className='text-sm font-medium'>Colors</div>
-                            <div className='grid grid-cols-4 gap-2'>
-                              {BACKGROUND_COLORS.map((color) => (
-                                <button
-                                  key={color.value}
-                                  onClick={async () => {
-                                    setHeaderBackground(color.value);
-                                    await saveBackground(color.value);
-                                    setShowBackgroundPicker(false);
-                                  }}
-                                  className={`h-12 rounded-lg ${
-                                    color.value
-                                  } border-2 transition-all ${
-                                    (headerBackground === color.value ||
-                                      background === color.value) &&
-                                    !background?.startsWith('data:image')
-                                      ? 'border-primary ring-2 ring-primary ring-offset-2'
-                                      : 'border-transparent hover:border-accent'
-                                  }`}
-                                  title={color.label}
-                                />
-                              ))}
-                            </div>
-                            {(background || headerBackground) && (
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                className='w-full'
-                                onClick={() => {
-                                  if (background) {
-                                    removeBackground();
-                                  } else {
-                                    setHeaderBackground(null);
-                                  }
-                                  setShowBackgroundPicker(false);
-                                }}
-                              >
-                                Remove background
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <CardModalBackgroundPicker
+                        background={background}
+                        headerBackground={headerBackground}
+                        setHeaderBackground={setHeaderBackground}
+                        saveBackground={saveBackground}
+                        removeBackground={removeBackground}
+                        onImageUpload={handleImageUpload}
+                        onClose={() => setShowBackgroundPicker(false)}
+                      />
                     </PopoverContent>
                   </Popover>
                 )}
@@ -1625,7 +1348,7 @@ export default function CardModal({
                       readOnly={readOnly}
                       completed={card.completed ?? false}
                       moveCardContent={
-                        <MoveCardContent
+                        <CardModalMoveContent
                           selectedBoardId={selectedBoardId}
                           setSelectedBoardId={setSelectedBoardId}
                           selectedListId={selectedListId}
