@@ -96,16 +96,16 @@ export default function Topbar() {
         if (Array.isArray(notes)) {
           setNotifications((prevNotifications) => {
             const previousUnread = prevNotifications.filter(
-              (n) => !n.read,
+              (n) => !n.read
             ).length;
             const newUnread = notes.filter(
-              (n: { read?: boolean }) => !n.read,
+              (n: { read?: boolean }) => !n.read
             ).length;
             if (newUnread > previousUnread) {
               const newNotifications = notes.filter(
                 (n: { read?: boolean; id: string; message: string }) =>
                   !n.read &&
-                  !prevNotifications.find((existing) => existing.id === n.id),
+                  !prevNotifications.find((existing) => existing.id === n.id)
               );
               newNotifications.forEach((notification: { message: string }) => {
                 toast.info(notification.message, 'Notification');
@@ -123,7 +123,7 @@ export default function Topbar() {
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener(
       'epitrello:notification-added',
-      handleStorageChange,
+      handleStorageChange
     );
     handleStorageChange();
 
@@ -131,7 +131,7 @@ export default function Topbar() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener(
         'epitrello:notification-added',
-        handleStorageChange,
+        handleStorageChange
       );
     };
   }, []);
@@ -304,7 +304,7 @@ export default function Topbar() {
               try {
                 localStorage.setItem(
                   'epitrello_notifications',
-                  JSON.stringify(updatedNotifications),
+                  JSON.stringify(updatedNotifications)
                 );
               } catch (error) {
                 console.error('Failed to update notifications', error);
@@ -333,13 +333,15 @@ export default function Topbar() {
                 <Avatar className='h-8 w-8'>
                   <AvatarImage src={userAvatar} alt={userName} />
                   <AvatarFallback
-                    className={`text-white ${getAvatarColor(userName || userEmail)}`}
+                    className={`text-white ${getAvatarColor(
+                      userName || userEmail
+                    )}`}
                   >
                     {userName
                       ? getInitials(userName)
                       : userEmail
-                        ? userEmail.charAt(0).toUpperCase()
-                        : 'U'}
+                      ? userEmail.charAt(0).toUpperCase()
+                      : 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -350,13 +352,15 @@ export default function Topbar() {
                   <Avatar className='h-10 w-10'>
                     <AvatarImage src={userAvatar} alt={userName} />
                     <AvatarFallback
-                      className={`text-sm text-white ${getAvatarColor(userName || userEmail)}`}
+                      className={`text-sm text-white ${getAvatarColor(
+                        userName || userEmail
+                      )}`}
                     >
                       {userName
                         ? getInitials(userName)
                         : userEmail
-                          ? userEmail.charAt(0).toUpperCase()
-                          : 'U'}
+                        ? userEmail.charAt(0).toUpperCase()
+                        : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className='flex flex-col'>
