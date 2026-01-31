@@ -2,10 +2,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CardsResolver } from './cards.resolver';
 import { CardsService } from './cards.service';
 import { CardsDataLoader } from './dataloaders/cards.dataloader';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('CardsResolver', () => {
   let resolver: CardsResolver;
   let service: CardsService;
+
+  const mockPubSub = {
+    publish: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPrismaService = {
+    list: {
+      findUnique: jest.fn().mockResolvedValue({ boardId: 'board-1' }),
+    },
+  };
 
   const mockCardsService = {
     create: jest.fn(),
@@ -72,6 +84,14 @@ describe('CardsResolver', () => {
         {
           provide: CardsDataLoader,
           useValue: mockCardsDataLoader,
+        },
+        {
+          provide: PUB_SUB,
+          useValue: mockPubSub,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
       ],
     }).compile();
