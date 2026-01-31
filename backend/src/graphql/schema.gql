@@ -611,6 +611,17 @@ input RespondInvitationInput {
   invitationId: String!
 }
 
+type Subscription {
+  """Subscribe to card create/update/move/delete for a board."""
+  cardUpdated(boardId: ID!): Card!
+
+  """Subscribe to updates for a single card (e.g. card modal)."""
+  cardUpdatedByCardId(cardId: ID!): Card!
+
+  """Subscribe to list create/update/reorder/delete for a board."""
+  listUpdated(boardId: ID!): List!
+}
+
 input UnassignMemberFromCardInput {
   cardId: ID!
   userId: ID!

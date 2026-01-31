@@ -1,5 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { CardsService } from './cards.service';
 import { Card } from './entities/card.entity';
 import { CreateCardInput } from './dto/create-card.input';
@@ -13,6 +14,9 @@ import { RemoveLabelFromCardInput } from './dto/remove-label-from-card.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CardsDataLoader } from './dataloaders/cards.dataloader';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { TRIGGER_CARD_UPDATED } from '../boards/board-subscription.resolver';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Label } from '../labels/entities/label.entity';
 import DataLoader = require('dataloader');
 import { Checklist } from '../checklists/entities/checklist.entity';
@@ -28,10 +32,17 @@ export class CardsResolver {
   constructor(
     private readonly cardsService: CardsService,
     private readonly cardsDataLoader: CardsDataLoader,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly prisma: PrismaService,
   ) {
     this.labelsLoader = this.cardsDataLoader.createLabelsByCardLoader();
     this.checklistsLoader = this.cardsDataLoader.createChecklistsByCardLoader();
     this.assigneesLoader = this.cardsDataLoader.createAssigneesByCardLoader();
+  }
+
+  private async publishCardUpdated(card: Card): Promise<void> {
+    const list = await this.prisma.list.findUnique({ where: { id: card.listId }, select: { boardId: true } });
+    if (list) this.pubSub.publish(TRIGGER_CARD_UPDATED, { cardUpdated: card, boardId: list.boardId });
   }
 
   @Mutation(() => Card, {
@@ -41,7 +52,9 @@ export class CardsResolver {
     @Args('input') input: CreateCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.create(input, user.id);
+    const card = await this.cardsService.create(input, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Query(() => Card, {
@@ -62,7 +75,9 @@ export class CardsResolver {
     @Args('input') input: UpdateCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.update(input, user.id);
+    const card = await this.cardsService.update(input, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Boolean, {
@@ -82,7 +97,9 @@ export class CardsResolver {
     @Args('input') input: MoveCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.move(input, user.id);
+    const card = await this.cardsService.move(input, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => [Card], {
@@ -92,7 +109,9 @@ export class CardsResolver {
     @Args('input') input: ReorderCardsInput,
     @CurrentUser() user: any,
   ): Promise<Card[]> {
-    return this.cardsService.reorder(input, user.id);
+    const cards = await this.cardsService.reorder(input, user.id);
+    for (const card of cards) await this.publishCardUpdated(card);
+    return cards;
   }
 
   @Mutation(() => Card, {
@@ -102,7 +121,9 @@ export class CardsResolver {
     @Args('input') input: AssignMemberToCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.assignMember(input, user.id);
+    const card = await this.cardsService.assignMember(input, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Card, {
@@ -112,7 +133,9 @@ export class CardsResolver {
     @Args('input') input: UnassignMemberFromCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.unassignMember(input, user.id);
+    const card = await this.cardsService.unassignMember(input, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Card, {
@@ -122,7 +145,9 @@ export class CardsResolver {
     @Args('input') input: AddLabelToCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.addLabelToCard(input.cardId, input.labelId, user.id);
+    const card = await this.cardsService.addLabelToCard(input.cardId, input.labelId, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Card, {
@@ -132,7 +157,9 @@ export class CardsResolver {
     @Args('input') input: RemoveLabelFromCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.removeLabelFromCard(input.cardId, input.labelId, user.id);
+    const card = await this.cardsService.removeLabelFromCard(input.cardId, input.labelId, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Card, {
@@ -142,7 +169,9 @@ export class CardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.archive(id, user.id);
+    const card = await this.cardsService.archive(id, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Mutation(() => Card, {
@@ -152,7 +181,9 @@ export class CardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<Card> {
-    return this.cardsService.unarchive(id, user.id);
+    const card = await this.cardsService.unarchive(id, user.id);
+    await this.publishCardUpdated(card);
+    return card;
   }
 
   @Query(() => [Card], {
