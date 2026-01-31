@@ -11,13 +11,19 @@ import type {
   GqlBoard,
 } from '@/lib/actions/workspaces';
 import type { MemberBoardItem } from './MemberBoardsPopover';
+import type { MemberToPromote } from './LeaveWorkspacePopover';
 
 interface MembersTabContentProps {
   members: WorkspaceMemberWithUser[];
   memberCount: number;
   memberLimit: number;
   workspaceId: string;
-  onRemove: (userId: string) => void;
+  /** Called when current user confirms Leave in popover. */
+  onLeaveWorkspace?: () => Promise<void>;
+  /** Called when admin chooses Remove from Workspace in popover. */
+  onRemoveFromWorkspace?: (userId: string) => Promise<void>;
+  /** Called when admin chooses Remove from Workspace and Boards in popover. */
+  onRemoveFromWorkspaceAndBoards?: (userId: string) => Promise<void>;
   removing: string | null;
   /** If false, invite section and remove buttons are hidden (non-admin). */
   canInvite?: boolean;
@@ -26,6 +32,12 @@ interface MembersTabContentProps {
   workspaceBoards?: GqlBoard[];
   /** Current user id to show "Leave" instead of "Remove" for own row. */
   currentUserId?: string;
+  /** When current user is the only admin, members that can be promoted. */
+  otherMembersToPromote?: MemberToPromote[];
+  /** Called when current user promotes another member to admin (before leaving). */
+  onAssignAdmin?: (userId: string) => Promise<void>;
+  /** When true, current user is the only admin. */
+  isOnlyAdmin?: boolean;
 }
 
 function getBoardsForMember(
@@ -47,12 +59,17 @@ export function MembersTabContent({
   memberCount,
   memberLimit,
   workspaceId,
-  onRemove,
+  onLeaveWorkspace,
+  onRemoveFromWorkspace,
+  onRemoveFromWorkspaceAndBoards,
   removing,
   canInvite = true,
   canRemove = true,
   workspaceBoards,
   currentUserId,
+  otherMembersToPromote,
+  onAssignAdmin,
+  isOnlyAdmin,
 }: MembersTabContentProps) {
   const [filterQuery, setFilterQuery] = useState('');
 
@@ -140,7 +157,11 @@ export function MembersTabContent({
               <MemberItem
                 key={member.id}
                 member={member}
-                onRemove={onRemove}
+                onLeaveWorkspace={onLeaveWorkspace}
+                otherMembersToPromote={otherMembersToPromote}
+                onAssignAdmin={onAssignAdmin}
+                onRemoveFromWorkspace={onRemoveFromWorkspace}
+                onRemoveFromWorkspaceAndBoards={onRemoveFromWorkspaceAndBoards}
                 isRemoving={removing === member.userId}
                 canRemove={canRemove}
                 memberBoards={getBoardsForMember(
@@ -148,6 +169,7 @@ export function MembersTabContent({
                   member.userId,
                 )}
                 isCurrentUser={currentUserId === member.userId}
+                isOnlyAdmin={isOnlyAdmin}
               />
             ))
           )}

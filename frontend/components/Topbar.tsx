@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import CreateBoardModal from './CreateBoardModal';
 import { toast } from '@/lib/toast';
 import { Search, Bell, HelpCircle, Keyboard, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SearchWithAdvancedInput } from './SearchWithAdvancedInput';
 import {
   Dialog,
@@ -225,14 +225,25 @@ export default function Topbar() {
   }
 
   return (
-    <header className='w-full bg-card border-b border-sidebar-border shrink-0'>
-      <div className='w-full px-4 py-2 flex items-center justify-between gap-4 min-w-0'>
-        <div className='flex items-center gap-3 min-w-0 flex-1'>
-          <SidebarTrigger className='shrink-0' />
-          {/* Search: opens dialog with Command on all breakpoints */}
+    <header className='w-full bg-card border-b border-accent shrink-0'>
+      <div className='w-full px-4 py-2 flex items-center gap-4 min-w-0'>
+        <Link
+          href='/dashboard'
+          className='flex items-center gap-2 shrink-0 rounded-md hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+          aria-label='Epitrello - Accueil'
+        >
+          <div className='h-8 w-8 rounded bg-trello-blue text-white flex items-center justify-center font-bold'>
+            E
+          </div>
+          <span className='text-sm font-semibold text-foreground hidden sm:inline'>
+            Epitrello
+          </span>
+        </Link>
+
+        <div className='flex-1 flex justify-center min-w-0'>
           <Button
             variant='outline'
-            className='flex-1 max-w-md justify-start text-muted-foreground font-normal gap-2'
+            className='w-full max-w-md justify-start text-muted-foreground font-normal gap-2'
             onClick={() => setShowSearchDialog(true)}
             aria-label='Search boards and workspaces'
           >
@@ -272,6 +283,7 @@ export default function Topbar() {
             aria-label={`Notifications, ${notificationsCount} unread`}
             variant='ghost'
             size='icon'
+            className='relative'
             title='Notifications'
             onClick={() => {
               const unreadNotifications = notifications.filter((n) => !n.read);
@@ -298,7 +310,6 @@ export default function Topbar() {
                 console.error('Failed to update notifications', error);
               }
             }}
-            className='relative'
           >
             <Bell className='h-5 w-5' />
             {notificationsCount > 0 && (

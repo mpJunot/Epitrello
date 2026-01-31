@@ -41,22 +41,23 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.99 0.001 250);
-  --sidebar-foreground: oklch(0.35 0.02 250);
-  --sidebar-primary: oklch(0.5 0.15 240);
-  --sidebar-primary-foreground: oklch(0.98 0.01 250);
-  --sidebar-accent: oklch(0.97 0.002 250);
-  --sidebar-accent-foreground: oklch(0.35 0.02 250);
-  --sidebar-border: oklch(0.96 0.003 250);
-  --sidebar-ring: oklch(0.5 0.15 240);
+  /* Sidebar: Trello blue (aligné avec le Topbar), valeurs HSL pour compatibilité */
+  --sidebar: 214 100% 50%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 214 100% 50%;
+  --sidebar-accent: 214 100% 45%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 214 100% 45%;
+  --sidebar-ring: 0 0% 100% / 0.5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  --color-destructive: 0 84% 60%;
-  --color-destructive-foreground: 0 0% 100%;
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-secondary: 0 0% 96%;
   --color-secondary-foreground: 23 13% 30%;
   --color-muted: 0 0% 96%;
@@ -124,14 +125,15 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --sidebar: oklch(0.22 0.006 250);
-  --sidebar-foreground: oklch(0.95 0.002 250);
-  --sidebar-primary: oklch(0.55 0.18 240);
-  --sidebar-primary-foreground: oklch(0.98 0.01 250);
-  --sidebar-accent: oklch(0.32 0.006 250);
-  --sidebar-accent-foreground: oklch(0.95 0.002 250);
-  --sidebar-border: oklch(0.35 0.005 250);
-  --sidebar-ring: oklch(0.55 0.18 240);
+  /* Sidebar: Trello blue (aligné avec le Topbar), valeurs HSL pour compatibilité */
+  --sidebar: 214 100% 50%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 214 100% 50%;
+  --sidebar-accent: 214 100% 45%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 214 100% 45%;
+  --sidebar-ring: 0 0% 100% / 0.5;
 
   /* Trello dark mode colors */
   --trello-blue: #0079bf;
@@ -280,6 +282,16 @@ textarea:focus {
   box-shadow: none !important;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
 }
 
 /* Custom scroll style for columns */
@@ -452,6 +464,10 @@ html {
   border-color: var(--trello-blue);
 }
 
+.border-trello-blue-hover {
+  border-color: var(--trello-blue-hover);
+}
+
 .hover\:bg-trello-blue-hover:hover {
   background-color: var(--trello-blue-hover);
 }
@@ -512,6 +528,12 @@ html {
     overflow-y: auto;
     margin: 0;
     padding: 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
   }
 
   #__next,
@@ -562,6 +584,12 @@ html {
     border-left: none !important;
   }
 
+  /* Sidebar sous le Topbar quand .topbar-above est sur le parent */
+  .topbar-above [data-slot="sidebar-container"] {
+    top: 3.5rem;
+    height: calc(100svh - 3.5rem);
+  }
+
   [data-sidebar="sidebar"][data-slot="sidebar-inner"] {
     border-right: none !important;
     border-left: none !important;
@@ -586,5 +614,24 @@ html {
     display: flex !important;
     align-items: center;
     justify-content: center;
+  }
+
+  /* Sidebar items: bleu Trello hover/active + cursor pointer */
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"],
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"] {
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"]:hover,
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"]:hover {
+    background-color: var(--trello-blue-hover) !important;
+    color: hsl(0 0% 100%) !important;
+  }
+
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"][data-active="true"],
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"][data-active="true"] {
+    background-color: var(--trello-blue-hover) !important;
+    color: hsl(0 0% 100%) !important;
   }
 }
