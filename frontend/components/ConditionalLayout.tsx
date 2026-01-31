@@ -16,18 +16,18 @@ export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className='flex h-screen w-full'>
-      <AppSidebar />
-      <SidebarInset
-        className={`flex flex-col bg-background w-full min-w-0 ${isBoardView ? 'overflow-hidden' : ''}`}
-      >
-        <Topbar />
-        <main
-          className={`flex-1 w-full ${isBoardView ? 'h-full overflow-hidden' : 'overflow-y-auto'}`}
-        >
-          {children}
-        </main>
-      </SidebarInset>
+    <div className='flex flex-col h-screen w-full'>
+      <Topbar />
+      <div className='flex flex-1 min-h-0 w-full topbar-above'>
+        <AppSidebar />
+        <SidebarInset className='flex flex-col bg-background w-full min-w-0 rounded-xl overflow-hidden shadow-sm'>
+          <main
+            className={`flex-1 w-full ${isBoardView ? 'h-full overflow-hidden' : 'overflow-y-auto scrollbar-hidden'}`}
+          >
+            {children}
+          </main>
+        </SidebarInset>
+      </div>
     </div>
   );
 }

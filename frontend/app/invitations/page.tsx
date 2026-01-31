@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import {
   Item,
@@ -111,16 +110,18 @@ export default function InvitationsPage() {
 
   if (isLoading) {
     return (
-      <div className='min-h-screen bg-background flex items-center justify-center'>
-        <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
+      <div className='h-full bg-background flex flex-col p-4'>
+        <div className='p-6 w-full max-w-4xl flex items-center justify-center'>
+          <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className='min-h-screen bg-background flex items-center justify-center'>
-        <div className='text-center'>
+      <div className='h-full bg-background flex flex-col p-4'>
+        <div className='p-6 w-full max-w-4xl flex items-center justify-center'>
           <p className='text-muted-foreground'>Error loading invitations</p>
         </div>
       </div>
@@ -130,10 +131,10 @@ export default function InvitationsPage() {
   const invitationsList = invitations ?? [];
 
   return (
-    <div className='min-h-screen bg-background flex flex-col p-4'>
-      <div className='p-6 max-w-4xl mx-auto w-full'>
-        <div className='mb-6'>
-          <h1 className='text-3xl font-bold text-foreground mb-2'>
+    <div className='h-full bg-background flex flex-col p-4'>
+      <div className='p-6 w-full max-w-4xl space-y-6'>
+        <div className='space-y-1'>
+          <h1 className='text-2xl font-semibold text-foreground'>
             My Invitations
           </h1>
           <p className='text-sm text-muted-foreground'>
@@ -141,10 +142,10 @@ export default function InvitationsPage() {
           </p>
         </div>
 
-        <Separator className='mb-6 h-px bg-accent' />
+        <Separator className='h-px bg-accent' />
 
         {invitationsList.length === 0 ? (
-          <Empty className='py-12'>
+          <Empty className='py-8'>
             <EmptyHeader>
               <EmptyMedia variant='icon'>
                 <Mail className='size-6' />
@@ -156,9 +157,8 @@ export default function InvitationsPage() {
             </EmptyHeader>
           </Empty>
         ) : (
-          <ScrollArea className='h-[calc(100vh-200px)]'>
-            <div className='space-y-3 pr-4'>
-              {invitationsList.map((invitation) => (
+          <div className='space-y-3'>
+            {invitationsList.map((invitation) => (
                 <Item
                   key={invitation.id}
                   variant='outline'
@@ -216,8 +216,7 @@ export default function InvitationsPage() {
                   </ItemActions>
                 </Item>
               ))}
-            </div>
-          </ScrollArea>
+          </div>
         )}
       </div>
     </div>

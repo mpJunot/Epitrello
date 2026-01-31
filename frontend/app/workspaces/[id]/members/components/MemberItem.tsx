@@ -15,28 +15,67 @@ import {
   MemberBoardsPopover,
   type MemberBoardItem,
 } from './MemberBoardsPopover';
+import {
+  LeaveWorkspacePopover,
+  type MemberToPromote,
+} from './LeaveWorkspacePopover';
+import { RemoveMemberPopover } from './RemoveMemberPopover';
 
 interface MemberItemProps {
   member: WorkspaceMemberWithUser;
-  onRemove: (userId: string) => void;
+  /** Called when current user confirms "Leave Workspace" in popover. */
+  onLeaveWorkspace?: () => Promise<void>;
+  /** When current user is the only admin, members that can be promoted. */
+  otherMembersToPromote?: MemberToPromote[];
+  /** Called when current user promotes another member to admin (before leaving). */
+  onAssignAdmin?: (userId: string) => Promise<void>;
+  /** Called when admin chooses "Remove from Workspace" in popover. */
+  onRemoveFromWorkspace?: (userId: string) => Promise<void>;
+  /** Called when admin chooses "Remove from Workspace and Boards" in popover. */
+  onRemoveFromWorkspaceAndBoards?: (userId: string) => Promise<void>;
   isRemoving: boolean;
-  /** If false, the remove button is hidden (non-admin). */
+  /** If false, the remove/leave button is hidden (non-admin for remove). */
   canRemove?: boolean;
   /** Boards this member is part of in the workspace (for "View boards" popover). */
   memberBoards?: MemberBoardItem[];
-  /** If true, show "Leave..." instead of "Remove..." (current user). */
+  /** If true, show "Leave..." popover instead of "Remove..." (current user). */
   isCurrentUser?: boolean;
+  /** When true, current user is the only admin and must assign another admin before leaving. */
+  isOnlyAdmin?: boolean;
 }
 
 export function MemberItem({
   member,
-  onRemove,
+  onLeaveWorkspace,
+  otherMembersToPromote,
+  onAssignAdmin,
+  onRemoveFromWorkspace,
+  onRemoveFromWorkspaceAndBoards,
   isRemoving,
   canRemove = true,
   memberBoards = [],
   isCurrentUser = false,
+  isOnlyAdmin = false,
 }: MemberItemProps) {
   const memberName = member.user.name || member.user.email || 'This member';
+
+  const removeLeaveTrigger = (
+    <Button
+      variant='ghost'
+      size='sm'
+      disabled={isRemoving}
+      className='text-destructive hover:text-destructive hover:bg-destructive/15 active:bg-destructive/20 transition-colors'
+    >
+      <X className='h-4 w-4' />
+      {isRemoving
+        ? isCurrentUser
+          ? 'Leaving...'
+          : 'Removing...'
+        : isCurrentUser
+        ? 'Leave...'
+        : 'Remove...'}
+    </Button>
+  );
 
   return (
     <Item variant='outline' className='border-accent hover:bg-accent/50'>
@@ -47,7 +86,9 @@ export function MemberItem({
             alt={member.user.name}
           />
           <AvatarFallback
-            className={`text-white ${getAvatarColor(member.user.name || member.user.email)}`}
+            className={`text-white ${getAvatarColor(
+              member.user.name || member.user.email
+            )}`}
           >
             {getInitials(member.user.name)}
           </AvatarFallback>
@@ -68,24 +109,32 @@ export function MemberItem({
           Admin
           <HelpCircle className='h-3 w-3 ml-1' />
         </Button>
-        {canRemove && (
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={() => onRemove(member.userId)}
-            disabled={isRemoving}
-            className='text-destructive hover:text-destructive hover:bg-destructive/10'
-          >
-            <X className='h-4 w-4' />
-            {isRemoving
-              ? isCurrentUser
-                ? 'Leaving...'
-                : 'Removing...'
-              : isCurrentUser
-                ? 'Leave...'
-                : 'Remove...'}
-          </Button>
-        )}
+        {canRemove &&
+          (isCurrentUser
+            ? onLeaveWorkspace && (
+                <LeaveWorkspacePopover
+                  trigger={removeLeaveTrigger}
+                  onConfirm={onLeaveWorkspace}
+                  isOnlyAdmin={isOnlyAdmin}
+                  otherMembers={otherMembersToPromote}
+                  onAssignAdmin={onAssignAdmin}
+                  loading={isRemoving}
+                  disabled={isRemoving}
+                />
+              )
+            : onRemoveFromWorkspace &&
+              onRemoveFromWorkspaceAndBoards && (
+                <RemoveMemberPopover
+                  trigger={removeLeaveTrigger}
+                  userId={member.userId}
+                  onRemoveFromWorkspace={onRemoveFromWorkspace}
+                  onRemoveFromWorkspaceAndBoards={
+                    onRemoveFromWorkspaceAndBoards
+                  }
+                  loading={isRemoving}
+                  disabled={isRemoving}
+                />
+              ))}
       </ItemActions>
     </Item>
   );
