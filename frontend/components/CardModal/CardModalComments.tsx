@@ -40,53 +40,70 @@ export function CardModalComments({
   readOnly = false,
 }: CardModalCommentsProps) {
   return (
-    <div className='border border-accent rounded-lg p-4 bg-trello-card-bg'>
-      <div className='flex items-center justify-between mb-4'>
-        <div className='flex items-center gap-2'>
-          <MessageSquare className='w-5 h-5 text-trello-text-secondary' />
-          <h3 className='text-sm font-semibold text-trello'>
-            Comments and activity
-          </h3>
-        </div>
-        <Button
-          variant='ghost'
-          size='sm'
-          className='text-xs text-trello-secondary hover:bg-trello-hover'
-        >
-          Show details
-        </Button>
+    <div className='flex flex-col h-full'>
+      {/* Header style Trello : simple, pas de bordure */}
+      <div className='flex items-center gap-2 shrink-0 pb-3 border-b border-accent/50'>
+        <MessageSquare className='w-4 h-4 text-trello-text-secondary' />
+        <h3 className='text-sm font-semibold text-trello'>
+          Comments and activity
+        </h3>
       </div>
 
-      {/* Comment input - hidden when read only */}
+      {/* Zone d’ajout de commentaire style Trello : compacte, avatar + champ + Save */}
       {!readOnly && (
-        <div className='mb-4'>
-          <Textarea
-            ref={commentTextareaRef}
-            placeholder='Write a comment...'
-            value={newComment}
-            onChange={(e) => onChangeNewComment(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                onAddComment();
-              }
-            }}
-            className='min-h-[80px] resize-none border-accent'
-          />
+        <div className='flex gap-3 py-4 border-b border-accent/50'>
+          <div className='w-8 h-8 rounded-full bg-trello-blue shrink-0 flex items-center justify-center text-xs font-medium text-white'>
+            +
+          </div>
+          <div className='flex-1 min-w-0 flex flex-col gap-2'>
+            <Textarea
+              ref={commentTextareaRef}
+              placeholder='Write a comment...'
+              value={newComment}
+              onChange={(e) => onChangeNewComment(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  onAddComment();
+                }
+              }}
+              className='min-h-[36px] py-2 px-3 text-sm resize-none border-accent rounded-md bg-trello-hover/50 focus:bg-trello-card-bg placeholder:text-trello-text-secondary'
+              rows={1}
+            />
+            {newComment.trim() && (
+              <div className='flex gap-2'>
+                <Button
+                  size='sm'
+                  className='bg-trello-blue hover:bg-trello-blue/90 text-white h-8 text-xs'
+                  onClick={onAddComment}
+                >
+                  Save
+                </Button>
+                <Button
+                  size='sm'
+                  variant='ghost'
+                  className='h-8 text-xs text-trello-secondary hover:text-trello'
+                  onClick={() => onChangeNewComment('')}
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Comments/activity list */}
-      <div className='space-y-3'>
+      {/* Liste des commentaires style Trello : avatar, nom + date (lien bleu), texte, Edit · Delete au survol */}
+      <div className='flex-1 overflow-y-auto pt-3 space-y-4'>
         {comments.length === 0 ? (
-          <p className='text-sm text-trello-text-secondary italic'>
+          <p className='text-sm text-trello-text-secondary'>
             No comments yet
           </p>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className='flex gap-3'>
+            <div key={comment.id} className='flex gap-3 group'>
               <div
-                className={`w-8 h-8 rounded-full ${getAvatarColor(comment.author?.name || comment.author?.email)} flex items-center justify-center text-xs font-medium text-white shrink-0`}
+                className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-medium text-white ${getAvatarColor(comment.author?.name || comment.author?.email)}`}
               >
                 {comment.author?.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -102,62 +119,68 @@ export function CardModalComments({
                 )}
               </div>
               <div className='flex-1 min-w-0'>
-                <div className='text-sm text-trello'>
-                  <span className='font-semibold'>
-                    {comment.author?.name || 'Unknown'}
-                  </span>{' '}
-                  {!readOnly && editingCommentId === comment.id ? (
-                    <div className='mt-2'>
-                      <Textarea
-                        value={editingCommentText}
-                        onChange={(e) =>
-                          onEditCommentTextChange(e.target.value)
-                        }
-                        className='min-h-[60px] resize-none border-accent'
-                        autoFocus
-                      />
-                      <div className='flex gap-2 mt-2'>
-                        <Button
-                          size='sm'
-                          onClick={() => onSaveEditComment(comment.id)}
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          size='sm'
-                          variant='ghost'
-                          onClick={onCancelEditComment}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
+                {editingCommentId === comment.id ? (
+                  <div className='space-y-2'>
+                    <Textarea
+                      value={editingCommentText}
+                      onChange={(e) =>
+                        onEditCommentTextChange(e.target.value)
+                      }
+                      className='min-h-[60px] text-sm resize-none border-accent rounded-md bg-trello-hover/50 py-2 px-3'
+                      autoFocus
+                    />
+                    <div className='flex gap-2'>
+                      <Button
+                        size='sm'
+                        className='bg-trello-blue hover:bg-trello-blue/90 text-white h-8 text-xs'
+                        onClick={() => onSaveEditComment(comment.id)}
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size='sm'
+                        variant='ghost'
+                        className='h-8 text-xs text-trello-secondary'
+                        onClick={onCancelEditComment}
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                  ) : (
-                    <span>{comment.text}</span>
-                  )}
-                </div>
-                <div className='text-xs text-trello-text-secondary mt-1'>
-                  {formatCommentDate(comment.createdAt)}
-                </div>
-                {!readOnly && !editingCommentId && (
-                  <div className='flex gap-2 mt-2'>
-                    <Button
-                      size='sm'
-                      variant='ghost'
-                      className='h-auto p-0 text-xs text-trello-secondary hover:text-trello'
-                      onClick={() => onStartEditComment(comment)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size='sm'
-                      variant='ghost'
-                      className='h-auto p-0 text-xs text-trello-secondary hover:text-red-600'
-                      onClick={() => onDeleteComment(comment.id)}
-                    >
-                      Delete
-                    </Button>
                   </div>
+                ) : (
+                  <>
+                    <div className='text-sm text-trello'>
+                      <span className='font-semibold'>
+                        {comment.author?.name || 'Unknown'}
+                      </span>
+                      <span className='text-trello-text-secondary mx-1'>·</span>
+                      <span className='text-xs text-blue-500 underline underline-offset-1 cursor-pointer hover:text-blue-400'>
+                        {formatCommentDate(comment.createdAt)}
+                      </span>
+                    </div>
+                    <p className='text-sm text-trello mt-0.5 whitespace-pre-wrap wrap-break-word'>
+                      {comment.text}
+                    </p>
+                    {!readOnly && (
+                      <div className='flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                        <button
+                          type='button'
+                          className='text-xs text-trello-secondary hover:text-trello hover:underline'
+                          onClick={() => onStartEditComment(comment)}
+                        >
+                          Edit
+                        </button>
+                        <span className='text-trello-text-secondary'>·</span>
+                        <button
+                          type='button'
+                          className='text-xs text-trello-secondary hover:text-red-500 hover:underline'
+                          onClick={() => onDeleteComment(comment.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

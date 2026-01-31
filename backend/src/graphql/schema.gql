@@ -123,6 +123,11 @@ type Comment {
   updatedAt: DateTime!
 }
 
+type CommentDeletedEvent {
+  cardId: ID!
+  commentId: ID!
+}
+
 input CreateAttachmentInput {
   cardId: ID!
   filename: String!
@@ -617,6 +622,17 @@ type Subscription {
 
   """Subscribe to updates for a single card (e.g. card modal)."""
   cardUpdatedByCardId(cardId: ID!): Card!
+
+  """Subscribe to new comments on a card. Filter by cardId."""
+  commentAdded(cardId: ID!): Comment!
+
+  """
+  Subscribe to comment deletions on a card. Payload has commentId and cardId.
+  """
+  commentDeleted(cardId: ID!): CommentDeletedEvent!
+
+  """Subscribe to comment edits on a card. Filter by cardId."""
+  commentUpdated(cardId: ID!): Comment!
 
   """Subscribe to list create/update/reorder/delete for a board."""
   listUpdated(boardId: ID!): List!
