@@ -7,7 +7,7 @@ import React, {
   useState,
   useMemo,
 } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Label as LabelType,
   UserRef,
@@ -89,6 +89,13 @@ import { useWorkspaceQuery } from '@/lib/queries/workspaces';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
 import {
+  getCardComments,
+  createComment as createCommentAPI,
+  updateComment as updateCommentAPI,
+  deleteComment as deleteCommentAPI,
+} from '@/lib/actions/comments';
+import { useCommentSubscription } from '@/lib/hooks/use-comment-subscription';
+import {
   emitEvent,
   formatCommentDate,
   getChecklistProgress,
@@ -98,6 +105,43 @@ import { BACKGROUND_COLORS } from './CardModal/constants';
 import { BoardMember } from '@/app/boards/[id]/types';
 import { CardModalMoveContent } from './CardModal/CardModalMoveContent';
 import { CardModalBackgroundPicker } from './CardModal/CardModalBackgroundPicker';
+import type { Comment as GqlComment } from '@/lib/graphql-types';
+
+const cardCommentsQueryKey = (cardId: string) =>
+  ['cardComments', cardId] as const;
+
+function mapGqlCommentToComment(
+  g:
+    | GqlComment
+    | {
+        id: string;
+        content: string;
+        createdAt: string;
+        author?: {
+          id: string;
+          name: string | null;
+          email: string;
+          avatar: string | null;
+        } | null;
+      }
+): Comment {
+  return {
+    id: g.id,
+    text: g.content,
+    author: g.author
+      ? {
+          id: g.author.id,
+          name: g.author.name ?? '',
+          email: g.author.email,
+          avatar: g.author.avatar ?? undefined,
+        }
+      : { id: '', name: '', email: '', avatar: undefined },
+    createdAt:
+      typeof g.createdAt === 'string'
+        ? g.createdAt
+        : new Date(g.createdAt).toISOString(),
+  };
+}
 
 interface CardModalProps {
   card: Card;
@@ -187,15 +231,54 @@ export default function CardModal({
   );
   const [selectedStartDate, setSelectedStartDate] = useState('');
 
-  const [comments, setComments] = useSyncedState<Comment[]>(
-    card.comments || [],
-    isOpen,
-    card.id
+  const { data: commentsData } = useQuery({
+    queryKey: cardCommentsQueryKey(card.id),
+    queryFn: () => getCardComments(card.id),
+    enabled: isOpen && !!card.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+  });
+  const comments: Comment[] = useMemo(
+    () => (commentsData ?? []).map(mapGqlCommentToComment),
+    [commentsData]
   );
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
   const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useCommentSubscription(
+    isOpen ? card.id : null,
+    {
+      onCommentAdded: (c) => {
+        queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+          cardCommentsQueryKey(card.id),
+          (prev) => {
+            if (!prev) return [c as GqlComment];
+            if (prev.some((x) => x.id === c.id)) return prev;
+            return [...prev, c as GqlComment];
+          }
+        );
+      },
+      onCommentUpdated: (c) => {
+        queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+          cardCommentsQueryKey(card.id),
+          (prev) =>
+            prev
+              ? prev.map((x) => (x.id === c.id ? (c as GqlComment) : x))
+              : [c as GqlComment]
+        );
+      },
+      onCommentDeleted: (e) => {
+        queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+          cardCommentsQueryKey(card.id),
+          (prev) => (prev ? prev.filter((x) => x.id !== e.commentId) : [])
+        );
+      },
+    },
+    isOpen && !!card.id
+  );
 
   const [background, setBackground] = useSyncedState<string | undefined>(
     card.background || undefined,
@@ -816,26 +899,28 @@ export default function CardModal({
     reader.readAsDataURL(file);
   };
 
-  const addComment = () => {
+  const addComment = async () => {
     const text = newComment.trim();
     if (!text) return;
     if (!currentUser.id) return;
 
-    const comment: Comment = {
-      id: `comment-${Date.now()}`,
-      text,
-      author: currentUser,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [...comments, comment];
-    setComments(updated);
-    setNewComment('');
-
-    emitEvent('epitrello:card-comments-updated', {
-      cardId: card.id,
-      comments: updated,
-    });
+    try {
+      const created = await createCommentAPI({
+        cardId: card.id,
+        content: text,
+      });
+      queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+        cardCommentsQueryKey(card.id),
+        (prev) => (prev ? [...prev, created] : [created])
+      );
+      setNewComment('');
+      emitEvent('epitrello:card-comments-updated', {
+        cardId: card.id,
+        comments: [...comments, mapGqlCommentToComment(created)],
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add comment');
+    }
   };
 
   const startEditComment = (comment: Comment) => {
@@ -843,22 +928,30 @@ export default function CardModal({
     setEditingCommentText(comment.text);
   };
 
-  const saveEditComment = (commentId: string) => {
+  const saveEditComment = async (commentId: string) => {
     const text = editingCommentText.trim();
     if (!text) return;
 
-    const updated = comments.map((comment) =>
-      comment.id === commentId ? { ...comment, text } : comment
-    );
-
-    setComments(updated);
-    setEditingCommentId(null);
-    setEditingCommentText('');
-
-    emitEvent('epitrello:card-comments-updated', {
-      cardId: card.id,
-      comments: updated,
-    });
+    try {
+      const updated = await updateCommentAPI({ id: commentId, content: text });
+      queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+        cardCommentsQueryKey(card.id),
+        (prev) =>
+          prev ? prev.map((c) => (c.id === commentId ? updated : c)) : [updated]
+      );
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      emitEvent('epitrello:card-comments-updated', {
+        cardId: card.id,
+        comments: comments.map((c) =>
+          c.id === commentId ? mapGqlCommentToComment(updated) : c
+        ),
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update comment'
+      );
+    }
   };
 
   const cancelEditComment = () => {
@@ -866,14 +959,22 @@ export default function CardModal({
     setEditingCommentText('');
   };
 
-  const deleteComment = (commentId: string) => {
-    const updated = comments.filter((c) => c.id !== commentId);
-    setComments(updated);
-
-    emitEvent('epitrello:card-comments-updated', {
-      cardId: card.id,
-      comments: updated,
-    });
+  const deleteComment = async (commentId: string) => {
+    try {
+      await deleteCommentAPI(commentId);
+      queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
+        cardCommentsQueryKey(card.id),
+        (prev) => (prev ? prev.filter((c) => c.id !== commentId) : [])
+      );
+      emitEvent('epitrello:card-comments-updated', {
+        cardId: card.id,
+        comments: comments.filter((c) => c.id !== commentId),
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to delete comment'
+      );
+    }
   };
 
   const [selectedBoardId, setSelectedBoardId] = useState<string>(
@@ -1400,7 +1501,7 @@ export default function CardModal({
               </div>
             </div>
             <div className='hidden lg:block w-px bg-accent' />
-            <div className='lg:w-[40%] overflow-y-auto custom-scrollbar'>
+            <div className='lg:w-[40%] overflow-y-auto custom-scrollbar pl-6 pr-4 py-4'>
               <CardModalComments
                 comments={comments}
                 newComment={newComment}
