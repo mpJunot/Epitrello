@@ -51,9 +51,12 @@ describe('GqlAuthGuard', () => {
     });
 
     it('should call parent guard when route is protected', async () => {
+      const mockRequest = { user: null };
       const mockExecutionContext = {
         getHandler: jest.fn(),
         getClass: jest.fn(),
+        getType: jest.fn().mockReturnValue('http'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
       } as unknown as ExecutionContext;
 
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
@@ -67,9 +70,12 @@ describe('GqlAuthGuard', () => {
     });
 
     it('should rethrow when parent guard fails', async () => {
+      const mockRequest = { user: null };
       const mockExecutionContext = {
         getHandler: jest.fn(),
         getClass: jest.fn(),
+        getType: jest.fn().mockReturnValue('http'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
       } as unknown as ExecutionContext;
 
       jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);

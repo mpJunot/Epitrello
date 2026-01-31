@@ -80,7 +80,7 @@ const buildOAuthProviders = () => {
   ],
   controllers: [AuthController],
   providers: buildOAuthProviders(),
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
 
