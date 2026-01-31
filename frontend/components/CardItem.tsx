@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
-import { getLabelDisplayColor } from '@/lib/constants/label-colors';
+import { LabelBadge } from '@/components/LabelBadge';
 import { useAllUserBoards } from '@/app/boards/[id]/hooks';
 import type { UserRef, Card } from './types';
 import Image from 'next/image';
@@ -68,7 +68,7 @@ export default function CardItem({
   onDragStart?: (
     e: React.DragEvent,
     cardId: string,
-    fromIndex?: number,
+    fromIndex?: number
   ) => void;
   onDragOver?: (e: React.DragEvent, overIndex?: number) => void;
   availableLists?: Array<{ id: string; name: string }>;
@@ -144,7 +144,7 @@ export default function CardItem({
           cardId: card.id,
           completed: checked,
         },
-      }),
+      })
     );
   };
 
@@ -164,7 +164,9 @@ export default function CardItem({
         className={`bg-secondary dark:bg-card border-2 rounded-lg select-none transition-all duration-200 overflow-hidden ${
           card.id.startsWith('temp-')
             ? 'opacity-60 cursor-not-allowed border-accent'
-            : `hover:cursor-pointer border-accent hover:border-blue-500 ${isDragging ? 'opacity-40' : ''}`
+            : `hover:cursor-pointer border-accent hover:border-blue-500 ${
+                isDragging ? 'opacity-40' : ''
+              }`
         } ${localCompleted ? 'opacity-70' : ''}`}
         onClick={handleClick}
         tabIndex={0}
@@ -193,12 +195,7 @@ export default function CardItem({
           {(card.labels ?? []).length > 0 && (
             <div className='flex h-5 w-full overflow-hidden items-center gap-1.5'>
               {(card.labels ?? []).map((label) => (
-                <div
-                  key={label.id}
-                  title={label.name ?? undefined}
-                  className='flex h-2 rounded-sm w-10'
-                  style={{ backgroundColor: getLabelDisplayColor(label.color) }}
-                />
+                <LabelBadge key={label.id} label={label} variant='dot' />
               ))}
             </div>
           )}
@@ -239,20 +236,27 @@ export default function CardItem({
             {/* Dates (clock icon) */}
             {(card.startDate || card.dueDate) && (
               <div
-                className={`flex items-center p-1 gap-1.5 text-xs rounded-sm ${
-                  isOverdue
+                className={`flex items-center p-1 gap-1.5 text-xs rounded-sm flex-wrap ${
+                  !localCompleted && isOverdue
                     ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
                     : 'text-muted-foreground'
-                } ${localCompleted ? 'line-through opacity-60' : ''}`}
+                }`}
               >
                 <Clock className='w-3.5 h-3.5 shrink-0' />
                 <span>
                   {card.startDate && card.dueDate
-                    ? `${formatDate(card.startDate)} → ${formatDate(card.dueDate)}`
+                    ? `${formatDate(card.startDate)} → ${formatDate(
+                        card.dueDate
+                      )}`
                     : card.dueDate
-                      ? `Due: ${formatDate(card.dueDate)}`
-                      : `Start: ${formatDate(card.startDate!)}`}
+                    ? `Due: ${formatDate(card.dueDate)}`
+                    : `Start: ${formatDate(card.startDate!)}`}
                 </span>
+                {localCompleted && (
+                  <span className='bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-medium'>
+                    Completed
+                  </span>
+                )}
               </div>
             )}
 
@@ -260,15 +264,17 @@ export default function CardItem({
             {(() => {
               const total = (card.checklists ?? []).reduce(
                 (s, cl) => s + (cl.items?.length ?? 0),
-                0,
+                0
               );
               const checked = (card.checklists ?? []).reduce(
                 (s, cl) => s + (cl.items?.filter((i) => i.checked).length ?? 0),
-                0,
+                0
               );
               return total > 0 ? (
                 <div
-                  className={`flex items-center gap-1.5 text-xs text-muted-foreground ${localCompleted ? 'line-through opacity-60' : ''}`}
+                  className={`flex items-center gap-1.5 text-xs text-muted-foreground ${
+                    localCompleted ? 'line-through opacity-60' : ''
+                  }`}
                 >
                   <CheckSquare className='w-3.5 h-3.5 shrink-0' />
                   <span>

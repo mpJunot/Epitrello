@@ -1,15 +1,21 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { Dispatch, SetStateAction } from 'react';
 import { createList, updateList, reorderLists, deleteList, archiveList } from '@/lib/actions/lists';
 import { createCard, moveCard, updateCard, deleteCard, archiveCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
+import { boardQueryKey } from './queries';
 import { logAction, handleAsyncError } from './utils';
 
 type DetailEvent<T> = CustomEvent<T> | undefined;
 
 export function createListEventHandlers(
   boardId: string,
-  setLists: Dispatch<SetStateAction<List[]>>
+  setLists: Dispatch<SetStateAction<List[]>>,
+  queryClient?: QueryClient,
 ) {
+  const invalidateBoard = () => {
+    queryClient?.invalidateQueries({ queryKey: boardQueryKey(boardId) });
+  };
   async function handleListCreate(e?: DetailEvent<{ title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
@@ -20,7 +26,7 @@ export function createListEventHandlers(
       if (!newList) throw new Error('Failed to create list');
       logAction('✅', 'List created');
       setLists((prev) => [...prev, { ...newList, position: newList.position ?? prev.length, isArchived: newList.isArchived ?? false, cards: [] }]);
-
+      invalidateBoard();
       window.dispatchEvent(new CustomEvent('epitrello:list-create-success'));
     } catch (err) {
       handleAsyncError(err, 'create list');
@@ -41,6 +47,7 @@ export function createListEventHandlers(
     try {
       await updateList({ id: listId, title });
       logAction('✅', 'List updated');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update list');
     }
@@ -74,6 +81,7 @@ export function createListEventHandlers(
         const positions = updatedLists.map((l, idx) => ({ id: l.id, position: idx }));
         await reorderLists({ boardId, listPositions: positions });
         logAction('✅', 'Lists reordered');
+        invalidateBoard();
       } catch (err) {
         handleAsyncError(err, 'reorder lists');
         // Rollback on failure
@@ -153,6 +161,7 @@ export function createListEventHandlers(
         );
 
         logAction('✅', `List copied with ${createdCards.length} card(s)`);
+        invalidateBoard();
       } catch (err) {
         handleAsyncError(err, 'copy list');
         setLists((prev) => prev.filter((l) => l.id !== tempListId));
@@ -184,6 +193,7 @@ export function createListEventHandlers(
           await moveCard({ cardId: card.id, targetListId });
         }
         logAction('✅', 'All cards moved');
+        invalidateBoard();
       } catch (err) {
         handleAsyncError(err, 'move all cards');
       }
@@ -200,6 +210,7 @@ export function createListEventHandlers(
     try {
       await deleteList(listId);
       logAction('✅', 'List deleted');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'delete list');
       window.location.reload();
@@ -215,6 +226,7 @@ export function createListEventHandlers(
       await archiveList(listId);
       logAction('✅', 'List archived');
       setLists((prevLists) => prevLists.filter((l) => l.id !== listId));
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'archive list');
     }
@@ -232,8 +244,14 @@ export function createListEventHandlers(
 }
 
 export function createCardEventHandlers(
-  setLists: Dispatch<SetStateAction<List[]>>
+  setLists: Dispatch<SetStateAction<List[]>>,
+  getLists?: () => List[],
+  queryClient?: QueryClient,
+  boardId?: string,
 ) {
+  const invalidateBoard = () => {
+    if (boardId) queryClient?.invalidateQueries({ queryKey: boardQueryKey(boardId) });
+  };
   // Store full board snapshot before drag for exact rollback
   let boardSnapshot: List[] = [];
 
@@ -310,6 +328,7 @@ export function createCardEventHandlers(
             : l
         )
       );
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'create card');
       setLists((prevLists) =>
@@ -407,6 +426,7 @@ export function createCardEventHandlers(
     try {
       await moveCard({ cardId, targetListId, position: targetIndex });
       logAction('✅', 'Card moved');
+      invalidateBoard();
     } catch (err) {
       console.error('❌ Backend moveCard failed:', err);
       handleAsyncError(err, 'move card');
@@ -438,6 +458,7 @@ export function createCardEventHandlers(
     try {
       await updateCard({ id: cardId, title });
       logAction('✅', 'Card title updated');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update card title');
     }
@@ -460,6 +481,7 @@ export function createCardEventHandlers(
     try {
       await updateCard({ id: cardId, description });
       logAction('✅', 'Card description updated');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update card description');
     }
@@ -484,6 +506,7 @@ export function createCardEventHandlers(
     try {
       await updateCard({ id: cardId, dueDate: dueDateValue });
       logAction('✅', 'Card due date updated');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update card due date');
     }
@@ -510,6 +533,7 @@ export function createCardEventHandlers(
       // Pass null explicitly to remove the date, or the date value if set
       await updateCard({ id: cardId, startDate: startDateValue });
       logAction('✅', 'Card start date updated');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update card start date');
     }
@@ -520,18 +544,63 @@ export function createCardEventHandlers(
     if (!detail) return;
     const { cardId, completed } = detail;
 
-    setLists((prevLists) =>
-      prevLists.map((lst) => ({
+    const prevLists = getLists?.() ?? [];
+    const doneList = prevLists.find(
+      (l) => l.title?.toLowerCase().trim() === 'done',
+    );
+    const sourceList = prevLists.find((l) =>
+      l.cards?.some((c) => c.id === cardId),
+    );
+    const card = sourceList?.cards?.find((c) => c.id === cardId);
+    const shouldMoveToDone =
+      completed &&
+      !!doneList &&
+      !!sourceList &&
+      !!card &&
+      sourceList.id !== doneList.id;
+    const moveToDone = shouldMoveToDone
+      ? { listId: doneList!.id, position: doneList!.cards?.length ?? 0 }
+      : null;
+
+    setLists((prevLists) => {
+      if (shouldMoveToDone && doneList && sourceList && card) {
+        return prevLists.map((lst) => {
+          if (lst.id === sourceList.id) {
+            return {
+              ...lst,
+              cards: (lst.cards || []).filter((c) => c.id !== cardId),
+            };
+          }
+          if (lst.id === doneList.id) {
+            return {
+              ...lst,
+              cards: [...(lst.cards || []), { ...card, completed: true }],
+            };
+          }
+          return lst;
+        });
+      }
+      return prevLists.map((lst) => ({
         ...lst,
         cards: (lst.cards || []).map((c) =>
-          c.id === cardId ? { ...c, completed } : c
+          c.id === cardId ? { ...c, completed } : c,
         ),
-      }))
-    );
+      }));
+    });
 
     try {
       await updateCard({ id: cardId, completed });
-      logAction('✅', 'Card completed status updated');
+      if (moveToDone) {
+        await moveCard({
+          cardId,
+          targetListId: moveToDone.listId,
+          position: moveToDone.position,
+        });
+        logAction('✅', 'Card completed and moved to Done');
+      } else {
+        logAction('✅', 'Card completed status updated');
+      }
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'update card completed status');
     }
@@ -552,6 +621,7 @@ export function createCardEventHandlers(
     try {
       await deleteCard(cardId);
       logAction('✅', 'Card deleted');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'delete card');
       window.location.reload();
@@ -573,6 +643,7 @@ export function createCardEventHandlers(
     try {
       await archiveCard(cardId);
       logAction('✅', 'Card archived');
+      invalidateBoard();
     } catch (err) {
       handleAsyncError(err, 'archive card');
     }
@@ -601,6 +672,7 @@ export function createCardEventHandlers(
       try {
         await updateCard({ id: cardId, background: backgroundValue });
         logAction('✅', 'Card background updated');
+        invalidateBoard();
       } catch (err) {
         handleAsyncError(err, 'update card background');
       }

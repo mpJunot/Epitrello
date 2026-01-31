@@ -1,14 +1,17 @@
+import type { QueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { createListEventHandlers, createCardEventHandlers } from './eventHandlers';
 import { List } from './types';
 
 export function useEventListeners(
   boardId: string,
-  setLists: React.Dispatch<React.SetStateAction<List[]>>
+  setLists: React.Dispatch<React.SetStateAction<List[]>>,
+  getLists?: () => List[],
+  queryClient?: QueryClient,
 ) {
   useEffect(() => {
-    const listHandlers = createListEventHandlers(boardId, setLists);
-    const cardHandlers = createCardEventHandlers(setLists);
+    const listHandlers = createListEventHandlers(boardId, setLists, queryClient);
+    const cardHandlers = createCardEventHandlers(setLists, getLists, queryClient, boardId);
 
     const eventMap = {
       'epitrello:list-create': listHandlers.handleListCreate,
@@ -43,5 +46,5 @@ export function useEventListeners(
         window.removeEventListener(event, handler as EventListener);
       });
     };
-  }, [boardId, setLists]);
+  }, [boardId, setLists, getLists, queryClient]);
 }

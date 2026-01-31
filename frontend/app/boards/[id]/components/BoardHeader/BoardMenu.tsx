@@ -39,12 +39,23 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getVisibilityLabel, getVisibilityIcon } from './utils';
 import { getVisibilityDescription } from '@/components/BoardView';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { toast } from '@/lib/toast';
-import { createBoard, leaveBoard } from '@/lib/actions/boards';
+import {
+  createBoard,
+  leaveBoard,
+  updateBoardMemberRole,
+} from '@/lib/actions/boards';
 import { ChangeBackgroundDialog } from './ChangeBackgroundDialog';
 import { LabelsDialog } from './LabelsDialog';
 import { AboutBoardDialog } from './AboutBoardDialog';
@@ -66,6 +77,8 @@ interface BoardMenuProps {
   canEdit?: boolean;
   onBoardUpdate?: () => void;
   onVisibilityChange?: (visibility: 'PRIVATE' | 'PUBLIC' | 'WORKSPACE') => void;
+  /** Current user id (to detect if they are the only admin when leaving). */
+  currentUserId?: string | null;
 }
 
 export function BoardMenu({
@@ -74,6 +87,7 @@ export function BoardMenu({
   canEdit = true,
   onBoardUpdate,
   onVisibilityChange,
+  currentUserId,
 }: BoardMenuProps) {
   const router = useRouter();
   const [showCopyDialog, setShowCopyDialog] = useState(false);
@@ -85,6 +99,18 @@ export function BoardMenu({
   const [showBackgroundDialog, setShowBackgroundDialog] = useState(false);
   const [showLabelsDialog, setShowLabelsDialog] = useState(false);
   const [showAboutDialog, setShowAboutDialog] = useState(false);
+  const [showLeaveBoardDialog, setShowLeaveBoardDialog] = useState(false);
+  const [leaveBoardAdminUserId, setLeaveBoardAdminUserId] = useState('');
+  const [leavingBoard, setLeavingBoard] = useState(false);
+
+  const isOnlyAdmin =
+    !!currentUserId &&
+    members.filter((m) => m.role === 'ADMIN').length === 1 &&
+    members.some((m) => m.userId === currentUserId && m.role === 'ADMIN');
+
+  const otherBoardMembersToPromote = members.filter(
+    (m) => m.userId !== currentUserId && m.role !== 'ADMIN',
+  );
 
   const handleCopyBoard = async () => {
     if (!copyBoardTitle.trim()) {
@@ -135,11 +161,21 @@ export function BoardMenu({
     }
   };
 
-  const handleLeaveBoard = async () => {
-    if (!confirm('Are you sure you want to leave this board?')) {
-      return;
+  const handleLeaveBoardClick = () => {
+    if (isOnlyAdmin && otherBoardMembersToPromote.length > 0) {
+      setLeaveBoardAdminUserId('');
+      setShowLeaveBoardDialog(true);
+    } else if (isOnlyAdmin && otherBoardMembersToPromote.length === 0) {
+      toast.error(
+        'You are the last admin. Add another member to the board and assign them as admin before leaving.',
+      );
+    } else {
+      if (!confirm('Are you sure you want to leave this board?')) return;
+      handleLeaveBoard();
     }
+  };
 
+  const handleLeaveBoard = async () => {
     try {
       await leaveBoard(board.id);
       toast.success('You have left the board');
@@ -148,6 +184,27 @@ export function BoardMenu({
       const message =
         error instanceof Error ? error.message : 'Failed to leave board';
       toast.error(message);
+    }
+  };
+
+  const handleAssignAdminAndLeaveBoard = async () => {
+    if (!leaveBoardAdminUserId) {
+      toast.error('Please select a member to assign as admin');
+      return;
+    }
+    setLeavingBoard(true);
+    try {
+      await updateBoardMemberRole(board.id, leaveBoardAdminUserId, 'ADMIN');
+      await leaveBoard(board.id);
+      toast.success('You have left the board');
+      setShowLeaveBoardDialog(false);
+      router.push('/dashboard');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to assign admin or leave board';
+      toast.error(message);
+    } finally {
+      setLeavingBoard(false);
     }
   };
 
@@ -433,7 +490,7 @@ export function BoardMenu({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='flex items-center gap-2 text-red-600'
-                  onClick={handleLeaveBoard}
+                  onClick={handleLeaveBoardClick}
                 >
                   <LogOut className='w-4 h-4' />
                   <span>Leave board</span>
@@ -482,6 +539,54 @@ export function BoardMenu({
                 disabled={copying || !copyBoardTitle.trim()}
               >
                 {copying ? 'Copying...' : 'Copy board'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave board (assign admin first) Dialog */}
+      <Dialog open={showLeaveBoardDialog} onOpenChange={setShowLeaveBoardDialog}>
+        <DialogContent className='sm:max-w-md border-accent'>
+          <DialogHeader>
+            <DialogTitle>Assign an admin before leaving</DialogTitle>
+            <DialogDescription>
+              You are the last admin on this board. Choose a member to assign as
+              admin, then you can leave the board.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <div className='space-y-2'>
+              <Label>Member to assign as admin</Label>
+              <Select
+                value={leaveBoardAdminUserId}
+                onValueChange={setLeaveBoardAdminUserId}
+              >
+                <SelectTrigger className='w-full'>
+                  <SelectValue placeholder='Select a member...' />
+                </SelectTrigger>
+                <SelectContent>
+                  {otherBoardMembersToPromote.map((m) => (
+                    <SelectItem key={m.userId} value={m.userId}>
+                      {m.user?.name || m.user?.email || 'Member'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='flex justify-end gap-2'>
+              <Button
+                variant='outline'
+                onClick={() => setShowLeaveBoardDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignAdminAndLeaveBoard}
+                disabled={leavingBoard || !leaveBoardAdminUserId}
+                className='bg-orange-500 hover:bg-orange-600 text-white border-0'
+              >
+                {leavingBoard ? 'Leaving...' : 'Assign as admin and leave'}
               </Button>
             </div>
           </div>

@@ -187,6 +187,26 @@ export async function removeBoardMember(boardId: string, userId: string): Promis
 }
 
 /**
+ * Update a member's role on a board (board admin only).
+ * Cannot remove the last ADMIN.
+ */
+export async function updateBoardMemberRole(
+  boardId: string,
+  userId: string,
+  role: string,
+): Promise<boolean> {
+  const mutation = `
+    mutation UpdateBoardMemberRole($input: UpdateBoardMemberRoleInput!) {
+      updateBoardMemberRole(input: $input)
+    }
+  `;
+  const result = await graphqlRequest<{ updateBoardMemberRole: boolean }>(mutation, {
+    input: { boardId, userId, role },
+  });
+  return result.updateBoardMemberRole;
+}
+
+/**
  * Leave a board (any member can leave)
  */
 export async function leaveBoard(boardId: string): Promise<boolean> {
