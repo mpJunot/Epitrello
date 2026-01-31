@@ -4,7 +4,12 @@ Real-time collaboration is provided via **GraphQL Subscriptions** over WebSocket
 
 ## Setup summary
 
-| Requirement | Implementation |
+| Requirement | Implementation |Set up WebSocket support for real-time collaboration.
+
+    Add WebSocket gateway (NestJS @WebSocketGateway) or GraphQL Subscriptions
+    Authenticate connections (JWT / cookie) and associate the user
+    Define rooms/channels per board (or per card) to target events
+
 |-------------|----------------|
 | **WebSocket** | GraphQL Subscriptions with `graphql-ws` (same URL as `/graphql`) |
 | **Authentication** | JWT in connection params; `onConnect` validates token and attaches user; unauthenticated connections are rejected |

@@ -85,6 +85,30 @@ describe('GqlAuthGuard', () => {
       await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow('Auth failed');
       expect(Logger.prototype.warn).toHaveBeenCalled();
     });
+
+    it('should return true when req.user is set (subscription / pre-authenticated context)', async () => {
+      const mockUser = { id: 'user-1', email: 'test@example.com' };
+      const mockRequest = { user: mockUser };
+      const mockExecutionContext = {
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        getType: jest.fn().mockReturnValue('http'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
+      } as unknown as ExecutionContext;
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      const parentPrototype = Object.getPrototypeOf(GqlAuthGuard.prototype) as { canActivate: (c: ExecutionContext) => Promise<boolean> };
+      const parentSpy = jest.spyOn(parentPrototype, 'canActivate');
+      parentSpy.mockClear();
+
+      const result = await guard.canActivate(mockExecutionContext);
+
+      expect(result).toBe(true);
+      expect(Logger.prototype.debug).toHaveBeenCalledWith(
+        'Subscription or pre-authenticated context',
+      );
+      expect(parentSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('getRequest', () => {
@@ -119,6 +143,9 @@ describe('GqlAuthGuard', () => {
       const result = guard.getRequest(mockExecutionContext);
 
       expect(result).toEqual(mockRequest);
+      expect(Logger.prototype.debug).toHaveBeenCalledWith(
+        'Authentication attempt with Bearer token',
+      );
     });
 
     it('should log when no authorization header is present', () => {
