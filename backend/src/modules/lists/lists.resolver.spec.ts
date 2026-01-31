@@ -1,10 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ListsResolver } from './lists.resolver';
 import { ListsService } from './lists.service';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 
 describe('ListsResolver', () => {
   let resolver: ListsResolver;
   let service: ListsService;
+
+  const mockPubSub = {
+    publish: jest.fn().mockResolvedValue(undefined),
+  };
 
   const mockListsService = {
     create: jest.fn(),
@@ -40,6 +45,10 @@ describe('ListsResolver', () => {
         {
           provide: ListsService,
           useValue: mockListsService,
+        },
+        {
+          provide: PUB_SUB,
+          useValue: mockPubSub,
         },
       ],
     }).compile();
