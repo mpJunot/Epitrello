@@ -169,7 +169,7 @@ This document outlines the prioritized development tasks for the Epitrello proje
 | Phase 2 - Core Features          | Priority 2 | Boards Module, Lists Module, Cards Module                                               |
 | Phase 3 - Complementary Features | Priority 3 | Comments Module, Attachments Module                                                     |
 | Phase 4 - Polish                 | Priority 4 | Testing, Documentation, Optimizations                                                   |
-| Phase 5 - Real-time              | Priority 4 | WebSocket infrastructure, Activity feed, Real-time comments, Notifications               |
+| Phase 5 - Real-time              | Priority 4 | WebSocket infrastructure, Activity feed, Real-time comments, Notifications              |
 
 ## Useful Commands
 

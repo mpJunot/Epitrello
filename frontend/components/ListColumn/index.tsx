@@ -6,10 +6,7 @@ import { Card, ListColumnProps, SortOption } from './types';
 import { dispatchCustomEvent, generateId, createCardsSignature } from './utils';
 import { useFocusWhen } from './hooks';
 import { CardComposer } from './components/CardComposer';
-import { CopyListMenu } from './components/CopyListMenu';
-import { MoveListMenu } from './components/MoveListMenu';
-import { MoveAllCardsMenu } from './components/MoveAllCardsMenu';
-import { DeleteListMenu } from './components/DeleteListMenu';
+import { ListColumnDialogs } from './components/ListColumnDialogs';
 import {
   MoreVertical,
   Plus,
@@ -35,14 +32,6 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
 export default function ListColumn({
   list,
   totalListsCount = 1,
@@ -556,98 +545,25 @@ export default function ListColumn({
             </DropdownMenu>
           )}
 
-          {/* Dialogs for complex actions */}
-          <Dialog open={showCopyDialog} onOpenChange={setShowCopyDialog}>
-            <DialogContent className='sm:max-w-md border-accent'>
-              <DialogHeader>
-                <DialogTitle>Copy list</DialogTitle>
-                <DialogDescription>
-                  Create a copy of this list with all its cards.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='py-4'>
-                <CopyListMenu
-                  defaultName={`${title} (copy)`}
-                  onClose={() => setShowCopyDialog(false)}
-                  onSubmit={(name) => {
-                    handleCopyList(name);
-                    setShowCopyDialog(false);
-                  }}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-            <DialogContent className='sm:max-w-md border-accent'>
-              <DialogHeader>
-                <DialogTitle>Move list</DialogTitle>
-                <DialogDescription>
-                  Move this list to a different position.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='py-4'>
-                <MoveListMenu
-                  totalListsCount={totalListsCount}
-                  onClose={() => setShowMoveDialog(false)}
-                  onSubmit={(position) => {
-                    handleMoveList(position);
-                    setShowMoveDialog(false);
-                  }}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog
-            open={showMoveAllCardsDialog}
-            onOpenChange={setShowMoveAllCardsDialog}
-          >
-            <DialogContent className='sm:max-w-md border-accent'>
-              <DialogHeader>
-                <DialogTitle>Move all cards</DialogTitle>
-                <DialogDescription>
-                  Move all cards from this list to another list.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='py-4'>
-                <MoveAllCardsMenu
-                  sourceListId={list.id}
-                  allLists={allLists}
-                  cardsCount={cards.length}
-                  totalListsCount={totalListsCount}
-                  onClose={() => setShowMoveAllCardsDialog(false)}
-                  onSubmit={(targetListId) => {
-                    handleMoveAllCards(targetListId);
-                    setShowMoveAllCardsDialog(false);
-                  }}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <DialogContent className='sm:max-w-md border-accent'>
-              <DialogHeader>
-                <DialogTitle>Delete list?</DialogTitle>
-                <DialogDescription>
-                  This action cannot be undone. This will permanently delete the
-                  list and all its cards.
-                </DialogDescription>
-              </DialogHeader>
-              <div className='py-4'>
-                <DeleteListMenu
-                  listTitle={title}
-                  cardsCount={cards.length}
-                  onClose={() => setShowDeleteDialog(false)}
-                  onConfirm={() => {
-                    handleDeleteList();
-                    setShowDeleteDialog(false);
-                  }}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <ListColumnDialogs
+            listTitle={title}
+            listId={list.id}
+            cardsCount={cards.length}
+            totalListsCount={totalListsCount}
+            allLists={allLists}
+            showCopyDialog={showCopyDialog}
+            setShowCopyDialog={setShowCopyDialog}
+            showMoveDialog={showMoveDialog}
+            setShowMoveDialog={setShowMoveDialog}
+            showMoveAllCardsDialog={showMoveAllCardsDialog}
+            setShowMoveAllCardsDialog={setShowMoveAllCardsDialog}
+            showDeleteDialog={showDeleteDialog}
+            setShowDeleteDialog={setShowDeleteDialog}
+            onCopyList={handleCopyList}
+            onMoveList={handleMoveList}
+            onMoveAllCards={handleMoveAllCards}
+            onDeleteList={handleDeleteList}
+          />
         </div>
       </div>
 
