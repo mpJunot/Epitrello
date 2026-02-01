@@ -40,6 +40,30 @@ describe('AllExceptionsFilter', () => {
     expect((result as GraphQLError).message).toBe('Validation failed');
   });
 
+  it('should handle HTTP exception with array message in response', () => {
+    const exception = new HttpException(
+      { message: ['Error one', 'Error two'], error: 'Bad Request' },
+      HttpStatus.BAD_REQUEST,
+    );
+
+    const result = filter.catch(exception);
+
+    expect(result).toBeInstanceOf(GraphQLError);
+    expect((result as GraphQLError).message).toBe('Error one, Error two');
+  });
+
+  it('should handle HTTP exception with invalid message shape (fallback to Request failed)', () => {
+    const exception = new HttpException(
+      { message: 123, error: 'Bad Request' },
+      HttpStatus.BAD_REQUEST,
+    );
+
+    const result = filter.catch(exception);
+
+    expect(result).toBeInstanceOf(GraphQLError);
+    expect((result as GraphQLError).message).toBe('Request failed');
+  });
+
   it('should handle Prisma P2002 error', () => {
     const exception = { code: 'P2002', message: 'Unique constraint failed' };
 

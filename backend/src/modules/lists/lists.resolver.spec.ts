@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ListsResolver } from './lists.resolver';
 import { ListsService } from './lists.service';
+import { ActivityService } from '../activity/activity.service';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 
 describe('ListsResolver', () => {
@@ -9,6 +10,10 @@ describe('ListsResolver', () => {
 
   const mockPubSub = {
     publish: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockActivityService = {
+    create: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockListsService = {
@@ -49,6 +54,10 @@ describe('ListsResolver', () => {
         {
           provide: PUB_SUB,
           useValue: mockPubSub,
+        },
+        {
+          provide: ActivityService,
+          useValue: mockActivityService,
         },
       ],
     }).compile();

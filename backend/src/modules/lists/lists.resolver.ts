@@ -10,6 +10,8 @@ import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 import { TRIGGER_LIST_UPDATED } from '../boards/board-subscription.resolver';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityType } from '@prisma/client';
 
 @Resolver(() => List)
 @UseGuards(GqlAuthGuard)
@@ -17,6 +19,7 @@ export class ListsResolver {
   constructor(
     private readonly listsService: ListsService,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly activityService: ActivityService,
   ) {}
 
   private async publishListUpdated(list: List): Promise<void> {
@@ -89,6 +92,13 @@ export class ListsResolver {
   ): Promise<List> {
     const list = await this.listsService.archive(id, user.id);
     await this.publishListUpdated(list);
+    await this.activityService.create({
+      type: ActivityType.LIST_ARCHIVED,
+      userId: user.id,
+      boardId: list.boardId,
+      listId: list.id,
+      payload: { listName: list.title },
+    });
     return list;
   }
 
@@ -101,6 +111,13 @@ export class ListsResolver {
   ): Promise<List> {
     const list = await this.listsService.unarchive(id, user.id);
     await this.publishListUpdated(list);
+    await this.activityService.create({
+      type: ActivityType.LIST_UNARCHIVED,
+      userId: user.id,
+      boardId: list.boardId,
+      listId: list.id,
+      payload: { listName: list.title },
+    });
     return list;
   }
 
