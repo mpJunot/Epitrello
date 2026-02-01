@@ -4,11 +4,32 @@ import {
   useQuery,
   useQueryClient,
   type UseQueryResult,
+  type QueryClient,
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { getBoard } from '@/lib/actions/boards';
 import { List, Board, type Card } from './types';
 import { logAction } from './utils';
+
+export function updateBoardCardInCache(
+  queryClient: QueryClient,
+  boardId: string,
+  cardId: string,
+  partial: Partial<Card>,
+): void {
+  queryClient.setQueryData<Board>(boardQueryKey(boardId), (old) => {
+    if (!old?.lists) return old;
+    return {
+      ...old,
+      lists: old.lists.map((list) => ({
+        ...list,
+        cards: (list.cards ?? []).map((c) =>
+          c.id === cardId ? { ...c, ...partial } : c
+        ),
+      })),
+    };
+  });
+}
 
 export const boardQueryKey = (boardId: string) => ['board', boardId] as const;
 

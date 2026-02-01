@@ -85,7 +85,8 @@ import {
   updateChecklistItem as updateChecklistItemAPI,
   deleteChecklistItem as deleteChecklistItemAPI,
 } from '@/lib/actions/checklists';
-import { boardQueryKey, useBoardQuery } from '@/app/boards/[id]/queries';
+import { useBoardQuery, updateBoardCardInCache } from '@/app/boards/[id]/queries';
+import type { Card as BoardCard } from '@/app/boards/[id]/types';
 import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
 import { useWorkspaceQuery } from '@/lib/queries/workspaces';
 import { useCurrentUserQuery } from '@/lib/queries/users';
@@ -102,6 +103,8 @@ import {
   deleteAttachment as deleteAttachmentAPI,
 } from '@/lib/actions/attachments';
 import { useCommentSubscription } from '@/lib/hooks/use-comment-subscription';
+import { useCardSubscription } from '@/lib/hooks/use-card-subscription';
+import type { SubscriptionCard } from '@/lib/hooks/use-card-subscription';
 import {
   emitEvent,
   formatCommentDate,
@@ -200,6 +203,7 @@ export default function CardModal({
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useSyncedState(card.title, isOpen, card.id);
+  const isEditingTitleRef = useRef(false);
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [description, setDescription] = useSyncedState(
@@ -207,6 +211,12 @@ export default function CardModal({
     isOpen,
     card.id
   );
+  const isEditingDescriptionRef = useRef(false);
+
+  useEffect(() => {
+    isEditingTitleRef.current = isEditingTitle;
+    isEditingDescriptionRef.current = isEditingDescription;
+  }, [isEditingTitle, isEditingDescription]);
 
   const [assignedMembers, setAssignedMembers] = useSyncedState<UserRef[]>(
     card.assignees || [],
@@ -299,6 +309,78 @@ export default function CardModal({
           cardCommentsQueryKey(card.id),
           (prev) => (prev ? prev.filter((x) => x.id !== e.commentId) : [])
         );
+      },
+    },
+    isOpen && !!card.id
+  );
+
+  useCardSubscription(
+    isOpen ? card.id : null,
+    {
+      onCardUpdated: (updated: SubscriptionCard) => {
+        if (!isEditingTitleRef.current) setTitle(updated.title);
+        if (!isEditingDescriptionRef.current)
+          setDescription(updated.description ?? '');
+        setAssignedMembers(
+          (updated.assignees ?? []).map((a) => ({
+            id: a.id,
+            name: a.name ?? '',
+            email: a.email,
+            avatar: a.avatar ?? undefined,
+          }))
+        );
+        setAssignedLabels(updated.labels ?? []);
+        setChecklists(
+          (updated.checklists ?? []).map((cl) => ({
+            id: cl.id,
+            title: cl.title,
+            items: (cl.items ?? []).map((item) => ({
+              id: item.id,
+              content: item.content,
+              text: item.content,
+              checked: item.checked,
+              position: item.position,
+              checklistId: cl.id,
+            })),
+          }))
+        );
+        setDueDate(
+          updated.dueDate
+            ? { date: updated.dueDate, isComplete: false }
+            : undefined
+        );
+        setStartDate(updated.startDate ?? undefined);
+        setBackground(updated.background ?? undefined);
+        if (currentBoardId) {
+          const partial = {
+            title: updated.title,
+            description: updated.description ?? undefined,
+            dueDate: updated.dueDate ?? undefined,
+            startDate: updated.startDate ?? undefined,
+            completed: updated.completed,
+            background: updated.background ?? undefined,
+            assignees: (updated.assignees ?? []).map((a) => ({
+              id: a.id,
+              name: a.name ?? '',
+              email: a.email,
+              avatar: a.avatar ?? undefined,
+            })),
+            labels: updated.labels ?? undefined,
+            checklists: (updated.checklists ?? []).map((cl) => ({
+              id: cl.id,
+              title: cl.title,
+              items: (cl.items ?? []).map((item) => ({
+                id: item.id,
+                content: item.content,
+                text: item.content,
+                checked: item.checked,
+                position: item.position,
+                checklistId: cl.id,
+              })),
+            })),
+          };
+          updateBoardCardInCache(queryClient, currentBoardId, updated.id, partial as Partial<BoardCard>);
+        }
       },
     },
     isOpen && !!card.id
@@ -426,7 +508,8 @@ export default function CardModal({
         behavior: 'smooth',
         block: 'start',
       });
-      setAttachmentAddPopoverOpen(true);
+      const id = setTimeout(() => setAttachmentAddPopoverOpen(true), 0);
+      return () => clearTimeout(id);
     }
   }, [openMenu, attachments.length]);
 
@@ -463,13 +546,11 @@ export default function CardModal({
       ] as HTMLElement;
 
       if (e.shiftKey) {
-        // Shift + Tab: if on first element, go to last
         if (document.activeElement === firstElement) {
           e.preventDefault();
           lastElement?.focus();
         }
       } else {
-        // Tab: if on last element, go to first
         if (document.activeElement === lastElement) {
           e.preventDefault();
           firstElement?.focus();
@@ -501,7 +582,7 @@ export default function CardModal({
     setTitle,
   ]);
 
-  const saveTitle = () => {
+  const saveTitle = async () => {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setTitle(card.title);
@@ -512,10 +593,18 @@ export default function CardModal({
     setIsEditingTitle(false);
 
     if (trimmedTitle !== card.title) {
-      emitEvent('epitrello:card-title-updated', {
-        cardId: card.id,
-        title: trimmedTitle,
-      });
+      try {
+        await updateCard({ id: card.id, title: trimmedTitle });
+        if (currentBoardId) {
+          updateBoardCardInCache(queryClient, currentBoardId, card.id, { title: trimmedTitle });
+        }
+        emitEvent('epitrello:card-title-updated', {
+          cardId: card.id,
+          title: trimmedTitle,
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update title');
+      }
     }
   };
 
@@ -524,14 +613,22 @@ export default function CardModal({
     setIsEditingTitle(false);
   };
 
-  const saveDescription = () => {
+  const saveDescription = async () => {
     setIsEditingDescription(false);
 
     if (description !== (card.description || '')) {
-      emitEvent('epitrello:card-description-updated', {
-        cardId: card.id,
-        description,
-      });
+      try {
+        await updateCard({ id: card.id, description });
+        if (currentBoardId) {
+          updateBoardCardInCache(queryClient, currentBoardId, card.id, { description });
+        }
+        emitEvent('epitrello:card-description-updated', {
+          cardId: card.id,
+          description,
+        });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to update description');
+      }
     }
   };
 
@@ -568,12 +665,10 @@ export default function CardModal({
       } else {
         await assignMemberToCard({ cardId: card.id, userId: member.id });
       }
-      if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
-      }
       setAssignedMembers(updated);
+      if (currentBoardId) {
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { assignees: updated });
+      }
       emitEvent('epitrello:card-members-updated', {
         cardId: card.id,
         members: updated,
@@ -597,12 +692,14 @@ export default function CardModal({
       } else {
         await addLabelToCard({ cardId: card.id, labelId: label.id });
       }
-      if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
-      }
       setAssignedLabels(updated);
+      if (currentBoardId) {
+        const labelsWithBoardId = updated.map((l) => ({
+          ...l,
+          boardId: l.boardId ?? currentBoardId,
+        })) as BoardCard['labels'];
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { labels: labelsWithBoardId });
+      }
       emitEvent('epitrello:card-labels-updated', {
         cardId: card.id,
         labels: updated,
@@ -642,9 +739,7 @@ export default function CardModal({
       setOpenMenu(null);
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
       emitEvent('epitrello:card-checklists-updated', {
@@ -687,9 +782,7 @@ export default function CardModal({
       setNewItemText('');
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
       emitEvent('epitrello:card-checklists-updated', {
@@ -733,9 +826,7 @@ export default function CardModal({
       setChecklists(updated);
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
       emitEvent('epitrello:card-checklists-updated', {
@@ -757,9 +848,7 @@ export default function CardModal({
       setChecklists(updated);
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
       window.dispatchEvent(
@@ -791,9 +880,7 @@ export default function CardModal({
       setChecklists(updated);
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
       emitEvent('epitrello:card-checklists-updated', {
@@ -807,7 +894,7 @@ export default function CardModal({
     }
   };
 
-  const saveDueDate = (date?: string) => {
+  const saveDueDate = async (date?: string) => {
     const dateToUse = date ?? selectedDate;
     if (!dateToUse) return;
 
@@ -819,42 +906,74 @@ export default function CardModal({
     setDueDate(newDueDate);
     setOpenMenu(null);
 
-    emitEvent('epitrello:card-duedate-updated', {
-      cardId: card.id,
-      dueDate: newDueDate,
-    });
+    try {
+      await updateCard({ id: card.id, dueDate: dateToUse });
+      if (currentBoardId) {
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { dueDate: dateToUse });
+      }
+      emitEvent('epitrello:card-duedate-updated', {
+        cardId: card.id,
+        dueDate: newDueDate,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update due date');
+    }
   };
 
-  const removeDueDate = () => {
+  const removeDueDate = async () => {
     setDueDate(undefined);
 
-    emitEvent('epitrello:card-duedate-updated', {
-      cardId: card.id,
-      dueDate: undefined,
-    });
+    try {
+      await updateCard({ id: card.id, dueDate: null });
+      if (currentBoardId) {
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { dueDate: undefined });
+      }
+      emitEvent('epitrello:card-duedate-updated', {
+        cardId: card.id,
+        dueDate: undefined,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove due date');
+    }
   };
 
-  const saveStartDate = (date?: string) => {
+  const saveStartDate = async (date?: string) => {
     const dateToUse = date ?? selectedStartDate;
     if (!dateToUse) return;
 
     setStartDate(dateToUse);
     setOpenMenu(null);
 
-    emitEvent('epitrello:card-startdate-updated', {
-      cardId: card.id,
-      startDate: dateToUse,
-    });
+    try {
+      await updateCard({ id: card.id, startDate: dateToUse });
+      if (currentBoardId) {
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { startDate: dateToUse });
+      }
+      emitEvent('epitrello:card-startdate-updated', {
+        cardId: card.id,
+        startDate: dateToUse,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update start date');
+    }
   };
 
-  const removeStartDate = () => {
+  const removeStartDate = async () => {
     setStartDate(undefined);
     setOpenMenu(null);
 
-    emitEvent('epitrello:card-startdate-updated', {
-      cardId: card.id,
-      startDate: undefined,
-    });
+    try {
+      await updateCard({ id: card.id, startDate: null });
+      if (currentBoardId) {
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { startDate: undefined });
+      }
+      emitEvent('epitrello:card-startdate-updated', {
+        cardId: card.id,
+        startDate: undefined,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove start date');
+    }
   };
 
   const saveBackground = async (url: string) => {
@@ -873,9 +992,7 @@ export default function CardModal({
       }
 
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { background: url.trim() });
       }
 
       emitEvent('epitrello:card-background-updated', {
@@ -895,9 +1012,7 @@ export default function CardModal({
     try {
       await updateCard({ id: card.id, background: null });
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { background: undefined });
       }
       setBackground(undefined);
       setHeaderBackground(null);
@@ -1026,11 +1141,6 @@ export default function CardModal({
       cardAttachmentsQueryKey(card.id),
       (prev) => (prev ? [...prev, created] : [created])
     );
-    if (currentBoardId) {
-      await queryClient.invalidateQueries({
-        queryKey: boardQueryKey(currentBoardId),
-      });
-    }
     return created;
   };
 
@@ -1040,11 +1150,6 @@ export default function CardModal({
       cardAttachmentsQueryKey(card.id),
       (prev) => (prev ? prev.filter((a) => a.id !== id) : [])
     );
-    if (currentBoardId) {
-      await queryClient.invalidateQueries({
-        queryKey: boardQueryKey(currentBoardId),
-      });
-    }
   };
 
   const [selectedBoardId, setSelectedBoardId] = useState<string>(
@@ -1101,17 +1206,16 @@ export default function CardModal({
 
   const handleLeaveCard = async () => {
     if (!currentUser.id || !isCurrentUserAssigned) return;
+    const updated = assignedMembers.filter((m) => m.id !== currentUser.id);
     try {
       await unassignMemberFromCard({ cardId: card.id, userId: currentUser.id });
+      setAssignedMembers(updated);
       if (currentBoardId) {
-        await queryClient.invalidateQueries({
-          queryKey: boardQueryKey(currentBoardId),
-        });
+        updateBoardCardInCache(queryClient, currentBoardId, card.id, { assignees: updated });
       }
-      setAssignedMembers((prev) => prev.filter((m) => m.id !== currentUser.id));
       emitEvent('epitrello:card-members-updated', {
         cardId: card.id,
-        members: assignedMembers.filter((m) => m.id !== currentUser.id),
+        members: updated,
       });
       toast.success('You left the card');
     } catch (err) {
