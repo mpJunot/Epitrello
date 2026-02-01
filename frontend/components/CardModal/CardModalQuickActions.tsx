@@ -29,6 +29,8 @@ interface CardModalQuickActionsProps {
   onRemoveStartDate: () => void;
   onSetNewChecklistTitle: (title: string) => void;
   onCreateChecklist: () => void;
+  /** When provided (e.g. when no attachments yet), used instead of the default Attachment button */
+  attachmentTrigger?: React.ReactNode;
   readOnly?: boolean;
 }
 
@@ -53,6 +55,7 @@ export function CardModalQuickActions({
   onRemoveStartDate,
   onSetNewChecklistTitle,
   onCreateChecklist,
+  attachmentTrigger,
   readOnly = false,
 }: CardModalQuickActionsProps) {
   if (readOnly) return null;
@@ -139,16 +142,20 @@ export function CardModalQuickActions({
         }
       />
 
-      {/* Attachment */}
-      <Button
-        variant='outline'
-        size='sm'
-        className='text-sm bg-muted hover:bg-muted/80 text-foreground rounded-md'
-        onClick={() => onToggleMenu('attachment')}
-      >
-        <Paperclip className='w-4 h-4 mr-1' />
-        Attachment
-      </Button>
+      {/* Attachment: popover when no attachments, hidden when there are attachments */}
+      {attachmentTrigger === undefined ? (
+        <Button
+          variant='outline'
+          size='sm'
+          className='text-sm bg-muted hover:bg-muted/80 text-foreground rounded-md'
+          onClick={() => onToggleMenu('attachment')}
+        >
+          <Paperclip className='w-4 h-4 mr-1' />
+          Attachment
+        </Button>
+      ) : (
+        attachmentTrigger
+      )}
     </div>
   );
 }

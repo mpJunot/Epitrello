@@ -101,9 +101,12 @@ export class AttachmentsService {
     return trimmed;
   }
 
+  /** Allows 0 for link attachments (no file size). */
   private validateSize(size: number): number {
-    if (!Number.isFinite(size) || size <= 0) {
-      throw new BadRequestException('Attachment size must be a positive number');
+    if (!Number.isFinite(size) || size < 0) {
+      throw new BadRequestException(
+        'Attachment size must be zero or greater',
+      );
     }
     return size;
   }
