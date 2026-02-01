@@ -4,9 +4,10 @@ import { CommentsService } from './comments.service';
 import { CommentsResolver } from './comments.resolver';
 import { CommentsDataLoader } from './dataloaders/comments.dataloader';
 import { CommentSubscriptionResolver } from './comment-subscription.resolver';
+import { ActivityModule } from '../activity/activity.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, ActivityModule],
   providers: [
     CommentsService,
     CommentsResolver,

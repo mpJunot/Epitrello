@@ -70,7 +70,7 @@ describe('Users (e2e)', () => {
         .post('/graphql')
         .send({ query: queryWithFieldError })
         .expect((res) => {
-          // GraphQL peut retourner 200 ou 400 selon l'implémentation
+          // GraphQL may return 200 or 400 depending on implementation
           expect([200, 400]).toContain(res.status);
           expect(res.body).toHaveProperty('errors');
         });

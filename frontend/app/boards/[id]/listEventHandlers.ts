@@ -4,6 +4,7 @@ import { createList, updateList, reorderLists, deleteList, archiveList } from '@
 import { createCard, moveCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
 import { boardQueryKey } from './queries';
+import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
 import { logAction, handleAsyncError } from './utils';
 
 type DetailEvent<T> = CustomEvent<T> | undefined;
@@ -15,6 +16,10 @@ export function createListEventHandlers(
 ) {
   const invalidateBoard = () => {
     queryClient?.invalidateQueries({ queryKey: boardQueryKey(boardId) });
+  };
+  const invalidateActivity = () => {
+    queryClient?.invalidateQueries({ queryKey: activityInvalidateKey });
+    queryClient?.invalidateQueries({ queryKey: activityBoardInvalidateKey });
   };
   async function handleListCreate(e?: DetailEvent<{ title: string }>) {
     const detail = e?.detail;
@@ -194,6 +199,7 @@ export function createListEventHandlers(
         }
         logAction('✅', 'All cards moved');
         invalidateBoard();
+        invalidateActivity();
       } catch (err) {
         handleAsyncError(err, 'move all cards');
       }

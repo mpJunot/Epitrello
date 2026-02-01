@@ -21,6 +21,8 @@ import { Label } from '../labels/entities/label.entity';
 import DataLoader = require('dataloader');
 import { Checklist } from '../checklists/entities/checklist.entity';
 import { MemberUser } from '../invitations/entities/workspace-member.entity';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityType } from '@prisma/client';
 
 @Resolver(() => Card)
 @UseGuards(GqlAuthGuard)
@@ -34,6 +36,7 @@ export class CardsResolver {
     private readonly cardsDataLoader: CardsDataLoader,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
     private readonly prisma: PrismaService,
+    private readonly activityService: ActivityService,
   ) {
     this.labelsLoader = this.cardsDataLoader.createLabelsByCardLoader();
     this.checklistsLoader = this.cardsDataLoader.createChecklistsByCardLoader();
@@ -54,6 +57,20 @@ export class CardsResolver {
   ): Promise<Card> {
     const card = await this.cardsService.create(input, user.id);
     await this.publishCardUpdated(card);
+    const list = await this.prisma.list.findUnique({
+      where: { id: card.listId },
+      include: { board: { select: { id: true, title: true } } },
+    });
+    if (list?.board) {
+      await this.activityService.create({
+        type: ActivityType.CARD_CREATED,
+        userId: user.id,
+        boardId: list.board.id,
+        cardId: card.id,
+        listId: card.listId,
+        payload: { cardTitle: card.title, listName: list.title, boardTitle: list.board.title },
+      });
+    }
     return card;
   }
 
@@ -75,8 +92,25 @@ export class CardsResolver {
     @Args('input') input: UpdateCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
+    const previous = input.completed !== undefined ? await this.cardsService.findOne(input.id, user.id) : null;
     const card = await this.cardsService.update(input, user.id);
     await this.publishCardUpdated(card);
+    if (previous && input.completed !== undefined && previous.completed !== input.completed) {
+      const list = await this.prisma.list.findUnique({
+        where: { id: card.listId },
+        include: { board: { select: { id: true } } },
+      });
+      if (list?.board) {
+        await this.activityService.create({
+          type: input.completed ? ActivityType.CARD_COMPLETED : ActivityType.CARD_UNCOMPLETED,
+          userId: user.id,
+          boardId: list.board.id,
+          cardId: card.id,
+          listId: card.listId,
+          payload: { cardTitle: card.title, listName: list.title },
+        });
+      }
+    }
     return card;
   }
 
@@ -97,8 +131,27 @@ export class CardsResolver {
     @Args('input') input: MoveCardInput,
     @CurrentUser() user: any,
   ): Promise<Card> {
+    const cardBefore = await this.cardsService.findOne(input.cardId, user.id);
     const card = await this.cardsService.move(input, user.id);
     await this.publishCardUpdated(card);
+    const [sourceList, targetList] = await Promise.all([
+      this.prisma.list.findUnique({ where: { id: cardBefore.listId }, select: { title: true } }),
+      this.prisma.list.findUnique({ where: { id: card.listId }, include: { board: { select: { id: true } } } }),
+    ]);
+    if (targetList?.board) {
+      await this.activityService.create({
+        type: ActivityType.CARD_MOVED,
+        userId: user.id,
+        boardId: targetList.board.id,
+        cardId: card.id,
+        listId: card.listId,
+        payload: {
+          cardTitle: card.title,
+          listName: sourceList?.title ?? undefined,
+          targetListName: targetList.title,
+        },
+      });
+    }
     return card;
   }
 
@@ -123,6 +176,20 @@ export class CardsResolver {
   ): Promise<Card> {
     const card = await this.cardsService.assignMember(input, user.id);
     await this.publishCardUpdated(card);
+    const [list, assignedUser] = await Promise.all([
+      this.prisma.list.findUnique({ where: { id: card.listId }, include: { board: { select: { id: true } } } }),
+      this.prisma.user.findUnique({ where: { id: input.userId }, select: { name: true } }),
+    ]);
+    if (list?.board && assignedUser) {
+      await this.activityService.create({
+        type: ActivityType.MEMBER_ADDED_TO_CARD,
+        userId: user.id,
+        boardId: list.board.id,
+        cardId: card.id,
+        listId: card.listId,
+        payload: { cardTitle: card.title, memberName: assignedUser.name },
+      });
+    }
     return card;
   }
 
@@ -171,6 +238,19 @@ export class CardsResolver {
   ): Promise<Card> {
     const card = await this.cardsService.archive(id, user.id);
     await this.publishCardUpdated(card);
+    const list = await this.prisma.list.findUnique({
+      where: { id: card.listId },
+      select: { boardId: true },
+    });
+    if (list) {
+      await this.activityService.create({
+        type: ActivityType.CARD_ARCHIVED,
+        userId: user.id,
+        boardId: list.boardId,
+        cardId: card.id,
+        payload: { cardTitle: card.title },
+      });
+    }
     return card;
   }
 
@@ -183,6 +263,19 @@ export class CardsResolver {
   ): Promise<Card> {
     const card = await this.cardsService.unarchive(id, user.id);
     await this.publishCardUpdated(card);
+    const list = await this.prisma.list.findUnique({
+      where: { id: card.listId },
+      select: { boardId: true },
+    });
+    if (list) {
+      await this.activityService.create({
+        type: ActivityType.CARD_UNARCHIVED,
+        userId: user.id,
+        boardId: list.boardId,
+        cardId: card.id,
+        payload: { cardTitle: card.title },
+      });
+    }
     return card;
   }
 

@@ -11,6 +11,9 @@ import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 import { PubSub } from 'graphql-subscriptions';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityType } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   TRIGGER_COMMENT_ADDED,
   TRIGGER_COMMENT_UPDATED,
@@ -26,6 +29,8 @@ export class CommentsResolver {
     private readonly commentsService: CommentsService,
     private readonly commentsDataLoader: CommentsDataLoader,
     @Inject(PUB_SUB) private readonly pubSub: PubSub,
+    private readonly activityService: ActivityService,
+    private readonly prisma: PrismaService,
   ) {
     this.usersLoader = this.commentsDataLoader.createUsersByIdLoader();
   }
@@ -64,6 +69,21 @@ export class CommentsResolver {
       comment,
       cardId: comment.cardId,
     });
+    const card = await this.prisma.card.findUnique({
+      where: { id: comment.cardId },
+      include: { list: { include: { board: { select: { id: true } } } } },
+    });
+    if (card?.list?.board) {
+      const preview = comment.content.length > 80 ? `${comment.content.slice(0, 80)}…` : comment.content;
+      await this.activityService.create({
+        type: ActivityType.COMMENT_ADDED,
+        userId: user.id,
+        boardId: card.list.board.id,
+        cardId: comment.cardId,
+        listId: card.listId,
+        payload: { cardTitle: card.title, commentPreview: preview },
+      });
+    }
     return comment;
   }
 

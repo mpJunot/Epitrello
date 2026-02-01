@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Share2, Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { getUserByEmail } from '@/lib/actions/users';
 import { addBoardMember } from '@/lib/actions/boards';
+import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
 import { toast } from '@/lib/toast';
 import type { BoardMember } from '../../types';
 
@@ -42,6 +44,7 @@ export function ShareDialog({
   members,
   onMemberAdded,
 }: ShareDialogProps) {
+  const queryClient = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'MEMBER' | 'ADMIN'>('MEMBER');
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -52,7 +55,7 @@ export function ShareDialog({
       typeof window !== 'undefined'
         ? `${window.location.origin}/boards/${boardId}`
         : '',
-    [boardId],
+    [boardId]
   );
 
   const handleCopyLink = async () => {
@@ -86,6 +89,8 @@ export function ShareDialog({
         return;
       }
       await addBoardMember(boardId, user.id, inviteRole);
+      await queryClient.invalidateQueries({ queryKey: activityInvalidateKey });
+      await queryClient.invalidateQueries({ queryKey: activityBoardInvalidateKey });
       toast.success(`${user.name || user.email} has been added to the board`);
       setInviteEmail('');
       onMemberAdded?.();

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BoardsResolver } from './boards.resolver';
 import { BoardsService } from './boards.service';
+import { ActivityService } from '../activity/activity.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Visibility, Role } from '@prisma/client';
 
@@ -26,6 +27,12 @@ describe('BoardsResolver', () => {
     list: {
       findMany: jest.fn(),
     },
+    board: { findUnique: jest.fn() },
+    user: { findUnique: jest.fn() },
+  };
+
+  const mockActivityService = {
+    create: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockUser = {
@@ -58,6 +65,10 @@ describe('BoardsResolver', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ActivityService,
+          useValue: mockActivityService,
         },
       ],
     }).compile();
