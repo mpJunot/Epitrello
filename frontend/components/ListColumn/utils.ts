@@ -20,10 +20,29 @@ export const generateId = (): string => {
 };
 
 /**
- * Creates a content signature for comparing card arrays
+ * Creates a content signature for comparing card arrays.
+ * Includes title, description, completed, labels, assignees, dueDate, startDate, background, checklists
  */
 export const createCardsSignature = (
-  cards: Array<{ id: string; title: string; description?: string | null; completed?: boolean | null }>
+  cards: Array<{
+    id: string;
+    title?: string;
+    description?: string | null;
+    completed?: boolean | null;
+    dueDate?: string | null;
+    startDate?: string | null;
+    background?: string | null;
+    labels?: Array<{ id: string }> | null;
+    assignees?: Array<{ id: string }> | null;
+    checklists?: Array<{ id: string; items?: unknown[] }> | null;
+  }>
 ): string => {
-  return cards.map((c) => `${c.id}:${c.title}:${c.description || ''}:${c.completed ?? false}`).join('|');
+  return cards
+    .map((c) => {
+      const labelIds = (c.labels ?? []).map((l) => l.id).sort().join(',');
+      const assigneeIds = (c.assignees ?? []).map((a) => a.id).sort().join(',');
+      const checklistSig = (c.checklists ?? []).map((cl) => `${cl.id}:${(cl.items ?? []).length}`).join(';');
+      return `${c.id}:${c.title ?? ''}:${c.description ?? ''}:${c.completed ?? false}:${c.dueDate ?? ''}:${c.startDate ?? ''}:${c.background ?? ''}:${labelIds}:${assigneeIds}:${checklistSig}`;
+    })
+    .join('|');
 };

@@ -68,13 +68,11 @@ export default function ListColumn({
     const incomingSignature = createCardsSignature(incoming);
 
     if (localSignature === incomingSignature) return;
-    if (Date.now() - lastLocalChange < 400) return;
+    // Sync immédiat si le parent a plus de cartes (création temps réel ou handler)
+    const hasNewCardsFromParent =
+      (incoming?.length ?? 0) > (cards?.length ?? 0);
+    if (!hasNewCardsFromParent && Date.now() - lastLocalChange < 400) return;
 
-    console.log(
-      '🔄 ListColumn: Updating cards from parent for list:',
-      list.id,
-      list.title,
-    );
     setCards(incoming);
   }, [list.cards, cards, lastLocalChange, list.id, list.title]);
 
@@ -93,18 +91,6 @@ export default function ListColumn({
   ] as const;
 
   const handleSubmitCard = (trimmedTitle: string) => {
-    const newCard: Card = {
-      id: generateId(),
-      title: trimmedTitle,
-      description: '',
-      createdAt: new Date().toISOString(),
-      position: cards.length,
-      listId: list.id,
-      completed: false,
-    };
-
-    setCards([...cards, newCard]);
-    setLastLocalChange(Date.now());
     dispatchCustomEvent('epitrello:card-created', {
       listId: list.id,
       title: trimmedTitle,
@@ -227,7 +213,7 @@ export default function ListColumn({
   const handleCardDragStart = (
     e: React.DragEvent,
     cardId: string,
-    fromIndex?: number,
+    fromIndex?: number
   ) => {
     console.log('🎬 Drag start:', {
       cardId,
@@ -405,7 +391,9 @@ export default function ListColumn({
         <div className='flex items-center justify-between gap-2'>
           {!editing ? (
             <h3
-              className={`font-medium text-foreground text-sm flex-1 ${!readOnly ? 'cursor-text' : ''}`}
+              className={`font-medium text-foreground text-sm flex-1 ${
+                !readOnly ? 'cursor-text' : ''
+              }`}
               onClick={() => !readOnly && setEditing(true)}
               title={readOnly ? undefined : 'Click to edit'}
               {...(readOnly ? {} : dragHandleProps)}
@@ -525,7 +513,7 @@ export default function ListColumn({
                     window.dispatchEvent(
                       new CustomEvent('epitrello:list-archived', {
                         detail: { listId: list.id },
-                      }),
+                      })
                     );
                   }}
                 >
@@ -569,7 +557,9 @@ export default function ListColumn({
 
       {/* Cards area */}
       <div
-        className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 scrollbar-hidden ${cards.length > 0 ? 'max-h-full' : ''}`}
+        className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 scrollbar-hidden ${
+          cards.length > 0 ? 'max-h-full' : ''
+        }`}
       >
         {cards.length === 0 && dragOverIndex === 0 && (
           <div className='h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-xl flex items-center justify-center animate-drag-placeholder'>
