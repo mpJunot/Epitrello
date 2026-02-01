@@ -125,7 +125,37 @@ describe('AttachmentsService', () => {
     ).rejects.toThrow('Attachment filename is required');
   });
 
-  it('should reject invalid size', async () => {
+  it('should allow size 0 for link attachments', async () => {
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+    mockPrismaService.attachment.create.mockResolvedValue({
+      id: 'attachment-1',
+      cardId: 'card-1',
+      uploaderId: 'user-1',
+      url: 'https://example.com/link',
+      filename: 'link',
+      size: 0,
+      createdAt: new Date(),
+    });
+
+    const result = await service.create(
+      {
+        cardId: 'card-1',
+        url: 'https://example.com/link',
+        filename: 'link',
+        size: 0,
+      },
+      mockUser.id,
+    );
+
+    expect(result.id).toBe('attachment-1');
+    expect(result.size).toBe(0);
+  });
+
+  it('should reject negative size', async () => {
     mockPrismaService.card.findUnique.mockResolvedValue({
       id: 'card-1',
       list: { boardId: 'board-1' },
@@ -138,11 +168,11 @@ describe('AttachmentsService', () => {
           cardId: 'card-1',
           url: 'https://example.com/file.png',
           filename: 'file.png',
-          size: 0,
+          size: -1,
         },
         mockUser.id,
       ),
-    ).rejects.toThrow('Attachment size must be a positive number');
+    ).rejects.toThrow('Attachment size must be zero or greater');
   });
 
   it('should throw when card does not exist', async () => {
@@ -296,6 +326,38 @@ describe('AttachmentsService', () => {
     expect(prismaService.attachment.update).toHaveBeenCalled();
   });
 
+  it('should allow update with size 0 for link', async () => {
+    mockPrismaService.attachment.findUnique.mockResolvedValue({
+      id: 'attachment-1',
+      cardId: 'card-1',
+      uploaderId: 'user-1',
+      url: 'https://example.com/link',
+      filename: 'Link',
+      size: 0,
+    });
+    mockPrismaService.card.findUnique.mockResolvedValue({
+      id: 'card-1',
+      list: { boardId: 'board-1' },
+    });
+    mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
+    mockPrismaService.attachment.update.mockResolvedValue({
+      id: 'attachment-1',
+      cardId: 'card-1',
+      uploaderId: 'user-1',
+      url: 'https://example.com/new-link',
+      filename: 'New link',
+      size: 0,
+    });
+
+    const result = await service.update(
+      { id: 'attachment-1', filename: 'New link', size: 0 },
+      mockUser.id,
+    );
+
+    expect(result.size).toBe(0);
+    expect(prismaService.attachment.update).toHaveBeenCalled();
+  });
+
   it('should prevent updating others attachments', async () => {
     mockPrismaService.attachment.findUnique.mockResolvedValue({
       id: 'attachment-1',
@@ -316,7 +378,7 @@ describe('AttachmentsService', () => {
     ).rejects.toThrow('You can only edit your own attachments');
   });
 
-  it('should reject invalid size on update', async () => {
+  it('should reject negative size on update', async () => {
     mockPrismaService.attachment.findUnique.mockResolvedValue({
       id: 'attachment-1',
       cardId: 'card-1',
@@ -332,8 +394,8 @@ describe('AttachmentsService', () => {
     mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
 
     await expect(
-      service.update({ id: 'attachment-1', size: 0 }, mockUser.id),
-    ).rejects.toThrow('Attachment size must be a positive number');
+      service.update({ id: 'attachment-1', size: -1 }, mockUser.id),
+    ).rejects.toThrow('Attachment size must be zero or greater');
   });
 
   it('should delete an attachment', async () => {

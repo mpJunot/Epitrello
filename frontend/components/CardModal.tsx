@@ -35,6 +35,7 @@ import {
   Image as ImageIcon,
   MoreHorizontal,
   Plus,
+  Paperclip,
 } from 'lucide-react';
 import {
   Avatar,
@@ -95,6 +96,11 @@ import {
   updateComment as updateCommentAPI,
   deleteComment as deleteCommentAPI,
 } from '@/lib/actions/comments';
+import {
+  getCardAttachments,
+  createAttachment as createAttachmentAPI,
+  deleteAttachment as deleteAttachmentAPI,
+} from '@/lib/actions/attachments';
 import { useCommentSubscription } from '@/lib/hooks/use-comment-subscription';
 import {
   emitEvent,
@@ -106,10 +112,17 @@ import { BACKGROUND_COLORS } from './CardModal/constants';
 import { BoardMember } from '@/app/boards/[id]/types';
 import { CardModalMoveContent } from './CardModal/CardModalMoveContent';
 import { CardModalBackgroundPicker } from './CardModal/CardModalBackgroundPicker';
+import {
+  CardModalAttachments,
+  CardModalAttachmentAddPopover,
+} from './CardModal/CardModalAttachments';
 import type { Comment as GqlComment } from '@/lib/graphql-types';
 
 const cardCommentsQueryKey = (cardId: string) =>
   ['cardComments', cardId] as const;
+
+const cardAttachmentsQueryKey = (cardId: string) =>
+  ['cardAttachments', cardId] as const;
 
 function mapGqlCommentToComment(
   g:
@@ -244,6 +257,16 @@ export default function CardModal({
     () => (commentsData ?? []).map(mapGqlCommentToComment),
     [commentsData]
   );
+
+  const { data: attachmentsData } = useQuery({
+    queryKey: cardAttachmentsQueryKey(card.id),
+    queryFn: () => getCardAttachments(card.id),
+    enabled: isOpen && !!card.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+  const attachments = attachmentsData ?? [];
+  const attachmentsSectionRef = useRef<HTMLDivElement>(null);
   const [newComment, setNewComment] = useState('');
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState('');
@@ -361,6 +384,8 @@ export default function CardModal({
   }, [boardData, workspaceData, isOpen]);
 
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [attachmentAddPopoverOpen, setAttachmentAddPopoverOpen] =
+    useState(false);
   const menuRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
@@ -394,6 +419,16 @@ export default function CardModal({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenu]);
+
+  useEffect(() => {
+    if (openMenu === 'attachment' && attachments.length > 0) {
+      attachmentsSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      setAttachmentAddPopoverOpen(true);
+    }
+  }, [openMenu, attachments.length]);
 
   const cancelEditDescription = useCallback(() => {
     setDescription(card.description || '');
@@ -980,6 +1015,38 @@ export default function CardModal({
     }
   };
 
+  const createAttachmentHandler = async (input: {
+    cardId: string;
+    url: string;
+    filename: string;
+    size: number;
+  }) => {
+    const created = await createAttachmentAPI(input);
+    queryClient.setQueryData<Awaited<ReturnType<typeof getCardAttachments>>>(
+      cardAttachmentsQueryKey(card.id),
+      (prev) => (prev ? [...prev, created] : [created])
+    );
+    if (currentBoardId) {
+      await queryClient.invalidateQueries({
+        queryKey: boardQueryKey(currentBoardId),
+      });
+    }
+    return created;
+  };
+
+  const deleteAttachmentHandler = async (id: string) => {
+    await deleteAttachmentAPI(id);
+    queryClient.setQueryData<Awaited<ReturnType<typeof getCardAttachments>>>(
+      cardAttachmentsQueryKey(card.id),
+      (prev) => (prev ? prev.filter((a) => a.id !== id) : [])
+    );
+    if (currentBoardId) {
+      await queryClient.invalidateQueries({
+        queryKey: boardQueryKey(currentBoardId),
+      });
+    }
+  };
+
   const [selectedBoardId, setSelectedBoardId] = useState<string>(
     currentBoardId || card.listId || ''
   );
@@ -1340,9 +1407,49 @@ export default function CardModal({
                   onRemoveStartDate={removeStartDate}
                   onSetNewChecklistTitle={setNewChecklistTitle}
                   onCreateChecklist={createChecklist}
+                  attachmentTrigger={
+                    attachments.length > 0
+                      ? null
+                      : attachments.length === 0 && !readOnly
+                        ? (
+                          <CardModalAttachmentAddPopover
+                            trigger={
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='text-sm bg-muted hover:bg-muted/80 text-foreground rounded-md'
+                              >
+                                <Paperclip className='w-4 h-4 mr-1' />
+                                Attachment
+                              </Button>
+                            }
+                            cardId={card.id}
+                            onCreateAttachment={createAttachmentHandler}
+                          />
+                          )
+                        : undefined
+                  }
                   readOnly={readOnly}
                 />
               </div>
+
+              {attachments.length > 0 && (
+                <div ref={attachmentsSectionRef} className='mb-6'>
+                  <CardModalAttachments
+                    attachments={attachments}
+                    cardId={card.id}
+                    currentUserId={currentUser.id}
+                    onCreateAttachment={createAttachmentHandler}
+                    onDeleteAttachment={deleteAttachmentHandler}
+                    addPopoverOpen={attachmentAddPopoverOpen}
+                    onAddPopoverOpenChange={(open) => {
+                      setAttachmentAddPopoverOpen(open);
+                      if (!open) setOpenMenu(null);
+                    }}
+                    readOnly={readOnly}
+                  />
+                </div>
+              )}
 
               {(assignedMembers.length > 0 ||
                 assignedLabels.length > 0 ||
