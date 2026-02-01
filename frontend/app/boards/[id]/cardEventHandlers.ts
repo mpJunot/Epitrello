@@ -3,6 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 import { createCard, moveCard, updateCard, deleteCard, archiveCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
 import { boardQueryKey } from './queries';
+import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
 import { logAction, handleAsyncError } from './utils';
 
 type DetailEvent<T> = CustomEvent<T> | undefined;
@@ -15,6 +16,10 @@ export function createCardEventHandlers(
 ) {
   const invalidateBoard = () => {
     if (boardId) queryClient?.invalidateQueries({ queryKey: boardQueryKey(boardId) });
+  };
+  const invalidateActivity = () => {
+    queryClient?.invalidateQueries({ queryKey: activityInvalidateKey });
+    queryClient?.invalidateQueries({ queryKey: activityBoardInvalidateKey });
   };
   // Store full board snapshot before drag for exact rollback
   let boardSnapshot: List[] = [];
@@ -93,6 +98,7 @@ export function createCardEventHandlers(
         )
       );
       invalidateBoard();
+      invalidateActivity();
     } catch (err) {
       handleAsyncError(err, 'create card');
       setLists((prevLists) =>
@@ -156,6 +162,7 @@ export function createCardEventHandlers(
       await moveCard({ cardId, targetListId, position: targetIndex });
       logAction('✅', 'Card moved');
       invalidateBoard();
+      invalidateActivity();
     } catch (err) {
       handleAsyncError(err, 'move card');
       if (boardSnapshot.length > 0) {
@@ -319,6 +326,7 @@ export function createCardEventHandlers(
         logAction('✅', 'Card completed status updated');
       }
       invalidateBoard();
+      invalidateActivity();
     } catch (err) {
       handleAsyncError(err, 'update card completed status');
     }

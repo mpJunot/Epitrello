@@ -38,7 +38,9 @@ export function BoardHeader({
 
   return (
     <header
-      className={`flex items-center justify-between p-3 text-white ${board.background || 'bg-primary'} shadow-lg`}
+      className={`flex items-center justify-between p-3 text-white ${
+        board.background || 'bg-primary'
+      } shadow-lg`}
     >
       {/* Left side: Board title */}
       <div className='flex items-center gap-3'>

@@ -2,7 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CommentsResolver } from './comments.resolver';
 import { CommentsService } from './comments.service';
 import { CommentsDataLoader } from './dataloaders/comments.dataloader';
+import { ActivityService } from '../activity/activity.service';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('CommentsResolver', () => {
   let resolver: CommentsResolver;
@@ -26,6 +28,21 @@ describe('CommentsResolver', () => {
 
   const mockCommentsDataLoader = {
     createUsersByIdLoader: jest.fn().mockReturnValue(usersLoader),
+  };
+
+  const mockActivityService = {
+    create: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPrismaService = {
+    card: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'card-1',
+        title: 'Card',
+        listId: 'list-1',
+        list: { board: { id: 'board-1' } },
+      }),
+    },
   };
 
   const mockUser = { id: 'user-1' };
@@ -54,6 +71,14 @@ describe('CommentsResolver', () => {
         {
           provide: PUB_SUB,
           useValue: mockPubSub,
+        },
+        {
+          provide: ActivityService,
+          useValue: mockActivityService,
+        },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
       ],
     }).compile();
