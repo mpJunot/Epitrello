@@ -171,11 +171,11 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardTitleUpdate(e?: DetailEvent<{ cardId: string; title: string }>) {
+  function handleCardTitleUpdate(e?: DetailEvent<{ cardId: string; title: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, title } = detail;
-
+    // Sync cache only (modal already called updateCard + setQueryData; emit is for other listeners)
     setLists((prevLists) =>
       prevLists.map((lst) => ({
         ...lst,
@@ -184,21 +184,13 @@ export function createCardEventHandlers(
         ),
       }))
     );
-
-    try {
-      await updateCard({ id: cardId, title });
-      logAction('✅', 'Card title updated');
-      invalidateBoard();
-    } catch (err) {
-      handleAsyncError(err, 'update card title');
-    }
   }
 
-  async function handleCardDescriptionUpdate(e?: DetailEvent<{ cardId: string; description: string }>) {
+  function handleCardDescriptionUpdate(e?: DetailEvent<{ cardId: string; description: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, description } = detail;
-
+    // Sync cache only (modal already called updateCard + setQueryData; emit is for other listeners)
     setLists((prevLists) =>
       prevLists.map((lst) => ({
         ...lst,
@@ -207,17 +199,9 @@ export function createCardEventHandlers(
         ),
       }))
     );
-
-    try {
-      await updateCard({ id: cardId, description });
-      logAction('✅', 'Card description updated');
-      invalidateBoard();
-    } catch (err) {
-      handleAsyncError(err, 'update card description');
-    }
   }
 
-  async function handleCardDueDateUpdate(e?: DetailEvent<{ cardId: string; dueDate?: { date?: string; isComplete?: boolean } }>) {
+  function handleCardDueDateUpdate(e?: DetailEvent<{ cardId: string; dueDate?: { date?: string; isComplete?: boolean } }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, dueDate } = detail;
@@ -232,17 +216,9 @@ export function createCardEventHandlers(
         ),
       }))
     );
-
-    try {
-      await updateCard({ id: cardId, dueDate: dueDateValue });
-      logAction('✅', 'Card due date updated');
-      invalidateBoard();
-    } catch (err) {
-      handleAsyncError(err, 'update card due date');
-    }
   }
 
-  async function handleCardStartDateUpdate(e?: DetailEvent<{ cardId: string; startDate?: string }>) {
+  function handleCardStartDateUpdate(e?: DetailEvent<{ cardId: string; startDate?: string }>) {
     const detail = e?.detail;
     if (!detail) return;
     const { cardId, startDate } = detail;
@@ -257,14 +233,6 @@ export function createCardEventHandlers(
         ),
       }))
     );
-
-    try {
-      await updateCard({ id: cardId, startDate: startDateValue });
-      logAction('✅', 'Card start date updated');
-      invalidateBoard();
-    } catch (err) {
-      handleAsyncError(err, 'update card start date');
-    }
   }
 
   async function handleCardCompletedUpdate(e?: DetailEvent<{ cardId: string; completed: boolean }>) {
@@ -375,10 +343,10 @@ export function createCardEventHandlers(
     }
   }
 
-  async function handleCardBackgroundUpdate(e?: DetailEvent<{ cardId: string; background?: string | null; skipBackendUpdate?: boolean }>) {
+  function handleCardBackgroundUpdate(e?: DetailEvent<{ cardId: string; background?: string | null; skipBackendUpdate?: boolean }>) {
     const detail = e?.detail;
     if (!detail) return;
-    const { cardId, background, skipBackendUpdate } = detail;
+    const { cardId, background } = detail;
 
     const backgroundValue = background === undefined ? null : (background || null);
 
@@ -390,16 +358,6 @@ export function createCardEventHandlers(
         ),
       }))
     );
-
-    if (!skipBackendUpdate) {
-      try {
-        await updateCard({ id: cardId, background: backgroundValue });
-        logAction('✅', 'Card background updated');
-        invalidateBoard();
-      } catch (err) {
-        handleAsyncError(err, 'update card background');
-      }
-    }
   }
 
   async function handleCardChecklistsUpdate(
