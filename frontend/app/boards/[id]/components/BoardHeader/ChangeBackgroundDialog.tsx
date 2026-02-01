@@ -24,9 +24,16 @@ interface ChangeBackgroundDialogProps {
   onUpdate: () => void;
 }
 
-export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: ChangeBackgroundDialogProps) {
+export function ChangeBackgroundDialog({
+  open,
+  onOpenChange,
+  board,
+  onUpdate,
+}: ChangeBackgroundDialogProps) {
   const [backgroundInput, setBackgroundInput] = useState('');
-  const [localBackground, setLocalBackground] = useState<string | undefined>(undefined);
+  const [localBackground, setLocalBackground] = useState<string | undefined>(
+    undefined
+  );
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -71,7 +78,8 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
       onUpdate();
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update background';
+      const message =
+        error instanceof Error ? error.message : 'Failed to update background';
       toast.error(message);
       console.error('Failed to update board background', error);
     } finally {
@@ -92,7 +100,8 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
       onUpdate();
       onOpenChange(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to remove background';
+      const message =
+        error instanceof Error ? error.message : 'Failed to remove background';
       toast.error(message);
       console.error('Failed to remove board background', error);
     } finally {
@@ -100,75 +109,81 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
     }
   };
 
+  /** URL safe for img src (CodeQL: avoid "DOM text reinterpreted as HTML"). Only allow data:image or http(s). No regex to avoid ReDoS. */
+  const safePreviewUrl =
+    localBackground &&
+    (localBackground.startsWith('data:image') ||
+      localBackground.startsWith('https://') ||
+      localBackground.startsWith('http://'))
+      ? localBackground
+      : undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-accent">
+      <DialogContent className='sm:max-w-md border-accent'>
         <DialogHeader>
           <DialogTitle>Change background</DialogTitle>
           <DialogDescription>
             Customize the background of your board
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Upload Image</div>
-            <div className="flex items-center gap-2">
+        <div className='space-y-4 py-4'>
+          <div className='space-y-2'>
+            <div className='text-sm font-medium'>Upload Image</div>
+            <div className='flex items-center gap-2'>
               <Input
-                type="file"
-                accept="image/*"
+                type='file'
+                accept='image/*'
                 onChange={handleImageUpload}
-                className="flex-1"
-                id="board-background-upload"
+                className='flex-1'
+                id='board-background-upload'
               />
               <Label
-                htmlFor="board-background-upload"
-                className="cursor-pointer"
+                htmlFor='board-background-upload'
+                className='cursor-pointer'
               >
-                <Button variant="outline" size="sm" asChild>
+                <Button variant='outline' size='sm' asChild>
                   <span>
-                    <ImageIcon className="w-4 h-4 mr-2 inline" />
+                    <ImageIcon className='w-4 h-4 mr-2 inline' />
                     Choose Image
                   </span>
                 </Button>
               </Label>
             </div>
-            {localBackground &&
-              (localBackground.startsWith('data:image') ||
-                localBackground.startsWith('http') ||
-                localBackground.startsWith('https')) && (
-                <div className="relative w-full h-32 rounded-lg overflow-hidden border border-accent">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={localBackground}
-                    alt="Background preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6"
-                    onClick={removeBoardBackground}
-                    disabled={updating}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+            {safePreviewUrl && (
+              <div className='relative w-full h-32 rounded-lg overflow-hidden border border-accent'>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={safePreviewUrl}
+                  alt='Background preview'
+                  className='w-full h-full object-cover'
+                />
+                <Button
+                  variant='destructive'
+                  size='icon'
+                  className='absolute top-2 right-2 h-6 w-6'
+                  onClick={removeBoardBackground}
+                  disabled={updating}
+                >
+                  <X className='h-4 w-4' />
+                </Button>
+              </div>
+            )}
           </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Image URL</div>
-            <div className="flex gap-2">
+          <div className='space-y-2'>
+            <div className='text-sm font-medium'>Image URL</div>
+            <div className='flex gap-2'>
               <Input
-                type="url"
-                placeholder="Enter image URL"
+                type='url'
+                placeholder='Enter image URL'
                 value={backgroundInput}
                 onChange={(e) => setBackgroundInput(e.target.value)}
-                className="flex-1"
+                className='flex-1'
               />
               {backgroundInput.trim() !== localBackground && (
                 <Button
-                  variant="default"
-                  size="sm"
+                  variant='default'
+                  size='sm'
                   onClick={() => {
                     const url = backgroundInput.trim();
                     if (url) {
@@ -184,9 +199,9 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
               )}
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium">Colors</div>
-            <div className="grid grid-cols-4 gap-2">
+          <div className='space-y-2'>
+            <div className='text-sm font-medium'>Colors</div>
+            <div className='grid grid-cols-4 gap-2'>
               {BACKGROUND_COLORS.map((color) => (
                 <button
                   key={color.value}
@@ -194,7 +209,9 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
                     await saveBoardBackground(color.value);
                   }}
                   disabled={updating}
-                  className={`h-12 rounded-lg ${color.value} border-2 transition-all ${
+                  className={`h-12 rounded-lg ${
+                    color.value
+                  } border-2 transition-all ${
                     localBackground === color.value &&
                     !localBackground?.startsWith('data:image') &&
                     !localBackground?.startsWith('http')
@@ -207,9 +224,9 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
             </div>
             {localBackground && (
               <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
+                variant='outline'
+                size='sm'
+                className='w-full'
                 onClick={removeBoardBackground}
                 disabled={updating}
               >

@@ -74,7 +74,8 @@ export default function RegisterPage() {
       const token = json.data?.register?.token;
       if (token && typeof window !== "undefined") {
         try {
-          localStorage.setItem("token", token);
+          localStorage.setItem("auth_token", token);
+          document.cookie = `auth_token=${token}; path=/; SameSite=Lax; max-age=2592000`;
         } catch {
           // ignore
         }

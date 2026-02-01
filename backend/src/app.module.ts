@@ -20,6 +20,7 @@ import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { ActivityModule } from './modules/activity/activity.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SubscriptionsModule } from './common/subscriptions/subscriptions.module';
 import { validateWsConnection } from './common/subscriptions/ws-auth';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
@@ -89,6 +90,7 @@ import { HealthController } from './common/controllers/health.controller';
     CommentsModule,
     AttachmentsModule,
     ActivityModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [
