@@ -20,6 +20,7 @@ import {
   Mail,
   Building2,
   CreditCard,
+  ListTodo,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -183,6 +184,10 @@ export default function AppSidebar() {
     router.push(`/workspaces/${wid}/settings`);
   };
 
+  const onActivity = (wid: string) => {
+    router.push(`/workspaces/${wid}/activity`);
+  };
+
   if (isAuthPage) {
     return null;
   }
@@ -256,6 +261,16 @@ export default function AppSidebar() {
                   >
                     <CreditCard />
                     <span>Cards</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => router.push('/activity')}
+                    isActive={pathname === '/activity'}
+                    tooltip='Activity'
+                  >
+                    <ListTodo />
+                    <span>Activity</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -336,6 +351,9 @@ export default function AppSidebar() {
               const settingsActive =
                 !!pathname &&
                 pathname.startsWith(`/workspaces/${w.id}/settings`);
+              const activityActive =
+                !!pathname &&
+                pathname.startsWith(`/workspaces/${w.id}/activity`);
 
               return (
                 <Collapsible
@@ -388,6 +406,16 @@ export default function AppSidebar() {
                             >
                               <Settings />
                               <span>Settings</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              onClick={() => onActivity(w.id)}
+                              isActive={activityActive}
+                              tooltip='Activity'
+                            >
+                              <ListTodo />
+                              <span>Activity</span>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
                         </SidebarMenu>

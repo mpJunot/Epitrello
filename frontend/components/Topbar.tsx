@@ -387,47 +387,33 @@ export default function Topbar() {
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href='/settings' className='cursor-pointer'>
+                <Link href='/settings' className='cursor-pointer'>
                   Manage account
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className='text-xs text-muted-foreground font-medium px-2 py-1.5'>
                 Trello
               </DropdownMenuLabel>
               <DropdownMenuItem asChild>
-                <a href='/auth/me' className='cursor-pointer'>
+                <Link href='/profile' className='cursor-pointer'>
                   Profile and visibility
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a
-                  href='#'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Activity (not implemented)');
-                  }}
-                  className='cursor-pointer'
-                >
+                <Link href='/activity' className='cursor-pointer'>
                   Activity
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a
-                  href='#'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Cards (not implemented)');
-                  }}
-                  className='cursor-pointer'
-                >
+                <Link href='/cards' className='cursor-pointer'>
                   Cards
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <a href='/settings' className='cursor-pointer'>
+                <Link href='/settings' className='cursor-pointer'>
                   Settings
-                </a>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>

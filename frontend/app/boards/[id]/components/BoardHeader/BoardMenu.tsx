@@ -50,6 +50,7 @@ import {
   ItemDescription,
 } from '@/components/ui/item';
 import { ArchivedItemsContent } from './ArchivedItemsDialog';
+import { BoardActivityList } from './ActivityPopover';
 import { BoardMenuDialogs } from './BoardMenuDialogs';
 import type { BoardMember } from '../../types';
 import type { Board } from '../../types';
@@ -207,9 +208,6 @@ export function BoardMenu({
     toast.info('Stickers feature coming soon');
   };
 
-  const handleActivity = () => {
-    toast.info('Activity feature coming soon');
-  };
 
   const handlePrintExportShare = () => {
     // Print functionality
@@ -416,13 +414,18 @@ export function BoardMenu({
                   <Sticker className='w-4 h-4' />
                   <span>Stickers</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='flex items-center gap-2'
-                  onClick={handleActivity}
-                >
-                  <Activity className='w-4 h-4' />
-                  <span>Activity</span>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className='flex items-center gap-2'>
+                    <Activity className='w-4 h-4' />
+                    <span>Activity</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className='w-[380px] p-0 border-accent'>
+                    <BoardActivityList
+                      boardId={board.id}
+                      boardTitle={board.title}
+                    />
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger className='flex items-center gap-2'>
                     <Archive className='w-4 h-4' />
