@@ -2,6 +2,45 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Activity {
+  board: Board
+  boardId: ID!
+  cardId: ID
+  createdAt: DateTime!
+  id: ID!
+  listId: ID
+  payload: ActivityPayload
+  type: ActivityType!
+  user: User
+  userId: ID!
+}
+
+type ActivityPayload {
+  boardTitle: String
+  cardTitle: String
+  commentPreview: String
+  listName: String
+  memberName: String
+  targetListName: String
+}
+
+"""Type of user action recorded in the activity log"""
+enum ActivityType {
+  BOARD_ARCHIVED
+  BOARD_UNARCHIVED
+  CARD_ARCHIVED
+  CARD_COMPLETED
+  CARD_CREATED
+  CARD_MOVED
+  CARD_UNARCHIVED
+  CARD_UNCOMPLETED
+  COMMENT_ADDED
+  LIST_ARCHIVED
+  LIST_UNARCHIVED
+  MEMBER_ADDED_TO_BOARD
+  MEMBER_ADDED_TO_CARD
+}
+
 input AddBoardMemberInput {
   boardId: ID!
   role: String
@@ -59,6 +98,12 @@ type Board {
   updatedAt: DateTime!
   visibility: Visibility!
   workspaceId: ID
+}
+
+input BoardActivityInput {
+  """Cursor for pagination (activity id)."""
+  cursor: ID
+  limit: Int = 50
 }
 
 type BoardMemberWithUser {
@@ -492,6 +537,25 @@ type Mutation {
   verifyEmail(token: String!): MessageResponse!
 }
 
+input MyActivityInput {
+  """Cursor for pagination (activity id). Fetch activities older than this."""
+  cursor: ID
+  limit: Int = 20
+
+  """
+  Filter by workspace IDs. Only activities from boards in these workspaces.
+  """
+  workspaceIds: [ID!]
+}
+
+type MyActivityResult {
+  activities: [Activity!]!
+  hasMore: Boolean!
+
+  """Cursor for next page (last activity id)"""
+  nextCursor: ID
+}
+
 type Query {
   """Get archived cards for a board. User must have access to the board."""
   archivedCards(boardId: ID!): [Card!]!
@@ -504,6 +568,11 @@ type Query {
 
   """Get a board by ID. Access based on visibility and membership."""
   board(id: ID!): Board!
+
+  """
+  Get activity for a board (all members). User must have access to the board.
+  """
+  boardActivity(boardId: String!, input: BoardActivityInput = {}): MyActivityResult!
 
   """List all labels for a board. User must have access to the board."""
   boardLabels(boardId: ID!): [Label!]!
@@ -531,6 +600,11 @@ type Query {
 
   """Get the currently authenticated user information"""
   me: User
+
+  """
+  Get current user activity log with optional workspace filter and pagination.
+  """
+  myActivity(input: MyActivityInput = {}): MyActivityResult!
 
   """Get all pending invitations for the current user."""
   myInvitations: [WorkspaceInvitation!]!

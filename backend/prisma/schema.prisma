@@ -61,6 +61,22 @@ enum OAuthProvider {
   SLACK
 }
 
+enum ActivityType {
+  CARD_CREATED
+  CARD_COMPLETED
+  CARD_UNCOMPLETED
+  CARD_MOVED
+  COMMENT_ADDED
+  MEMBER_ADDED_TO_CARD
+  MEMBER_ADDED_TO_BOARD
+  CARD_ARCHIVED
+  CARD_UNARCHIVED
+  LIST_ARCHIVED
+  LIST_UNARCHIVED
+  BOARD_ARCHIVED
+  BOARD_UNARCHIVED
+}
+
 // ============================================================================
 // Core Models
 // ============================================================================
@@ -118,6 +134,7 @@ model User {
   oauthAccounts        OAuthAccount[]
   sentInvitations      WorkspaceInvitation[] @relation("InvitationInviter")
   receivedInvitations  WorkspaceInvitation[] @relation("InvitationInvitee")
+  activities           Activity[]
 
   @@map("users")
 }
@@ -143,12 +160,13 @@ model Board {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  creatorId String
-  creator   User          @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: Cascade)
-  members   BoardMember[]
-  lists     List[]
-  labels    Label[]
+  workspace  Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creatorId  String
+  creator    User          @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members    BoardMember[]
+  lists      List[]
+  labels     Label[]
+  activities Activity[]
 
   @@map("boards")
 }
@@ -426,6 +444,30 @@ model OAuthAccount {
   @@unique([provider, providerId])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+// ----------------------------------------------------------------------------
+// Activity
+// ----------------------------------------------------------------------------
+// Represents a user action for the activity log (card completed, moved, comment added, etc.).
+
+model Activity {
+  id        String       @id @default(uuid())
+  type      ActivityType
+  userId    String
+  boardId   String
+  cardId    String?
+  listId    String?
+  payload   Json?
+  createdAt DateTime     @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([boardId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("activities")
 }
 
 // ----------------------------------------------------------------------------
