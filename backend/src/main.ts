@@ -41,13 +41,16 @@ async function bootstrap() {
     const backendPort = process.env.PORT || '8080';
     const corsOrigins = process.env.CORS_ORIGINS;
 
+    const escapeRegExp = (value: string): string =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     const matchesWildcard = (origin: string, pattern: string): boolean => {
       if (pattern === origin) return true;
       if (!pattern.includes('*')) return false;
 
-      const regexPattern = pattern
-        .replace(/\./g, '\\.')
-        .replace(/\*/g, '.*');
+      // Escape all regex metacharacters, then turn the escaped '*' back into a wildcard (.*)
+      const escapedPattern = escapeRegExp(pattern);
+      const regexPattern = escapedPattern.replace(/\\\*/g, '.*');
       const regex = new RegExp(`^${regexPattern}$`);
       return regex.test(origin);
     };
