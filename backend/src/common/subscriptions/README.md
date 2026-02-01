@@ -4,16 +4,11 @@ Real-time collaboration is provided via **GraphQL Subscriptions** over WebSocket
 
 ## Setup summary
 
-| Requirement | Implementation |Set up WebSocket support for real-time collaboration.
-
-    Add WebSocket gateway (NestJS @WebSocketGateway) or GraphQL Subscriptions
-    Authenticate connections (JWT / cookie) and associate the user
-    Define rooms/channels per board (or per card) to target events
-
+| Requirement | Implementation |
 |-------------|----------------|
 | **WebSocket** | GraphQL Subscriptions with `graphql-ws` (same URL as `/graphql`) |
 | **Authentication** | JWT in connection params; `onConnect` validates token and attaches user; unauthenticated connections are rejected |
-| **Rooms/channels** | **Per board**: `cardUpdated(boardId)`, `listUpdated(boardId)` — **Per card**: `cardUpdatedByCardId(cardId)` |
+| **Rooms/channels** | **Per board**: `cardUpdated(boardId)`, `listUpdated(boardId)` — **Per card**: `cardUpdatedByCardId(cardId)` — **Comments (per card)**: `commentAdded(cardId)`, `commentUpdated(cardId)`, `commentDeleted(cardId)` |
 
 ## Transport
 
@@ -28,14 +23,31 @@ Real-time collaboration is provided via **GraphQL Subscriptions** over WebSocket
   - **`listUpdated(boardId: ID!)`** – List created/updated/reordered/archived on that board. Payload: `List`.
 - **Per card** (single card, e.g. card modal):
   - **`cardUpdatedByCardId(cardId: ID!)`** – Only events for that card. Payload: `Card`.
+- **Comments** (per card; real-time comment list):
+  - **`commentAdded(cardId: ID!)`** – New comment on that card. Payload: `Comment`.
+  - **`commentUpdated(cardId: ID!)`** – Comment edited on that card. Payload: `Comment`.
+  - **`commentDeleted(cardId: ID!)`** – Comment removed. Payload: `CommentDeletedEvent` (commentId, cardId).
 
 Only subscribers whose variable matches the event receive it (server-side filter).
 
 ## Backend implementation
 
-- **PubSub**: In-memory `graphql-subscriptions` `PubSub` (see `pubsub.provider.ts`). For production with multiple instances, use a Redis-backed PubSub.
+- **PubSub**: In-memory `graphql-subscriptions` `PubSub` (see `pubsub.provider.ts`). For production with multiple instances, use a Redis-backed PubSub (e.g. `graphql-redis-subscriptions`).
 - **Auth**: `onConnect` (see `ws-auth.ts`) validates JWT from `connectionParams` and attaches the user to the connection context. Subscription resolvers are protected by `GqlAuthGuard`; for WebSocket the guard accepts pre-authenticated context (`req.user` set from `onConnect`).
-- **Publishing**: `CardsResolver` and `ListsResolver` inject `PUB_SUB` and call `pubSub.publish(trigger, payload)` after mutations. Payload includes `boardId` for filtering.
+
+### PubSub (triggers et publication)
+
+| Trigger (channel) | Payload | Publié par | Fichier |
+|-------------------|---------|------------|---------|
+| `cardUpdated` | `{ cardUpdated: Card; boardId: string }` | CardsResolver | `modules/cards/cards.resolver.ts` |
+| `listUpdated` | `{ listUpdated: List; boardId: string }` | ListsResolver | `modules/lists/lists.resolver.ts` |
+| `commentAdded` | `{ comment: Comment; cardId: string }` | CommentsResolver | `modules/comments/comments.resolver.ts` |
+| `commentUpdated` | `{ comment: Comment; cardId: string }` | CommentsResolver | idem |
+| `commentDeleted` | `{ commentId: string; cardId: string }` | CommentsResolver | idem |
+
+- **Injection** : token `PUB_SUB` (voir `pubsub.provider.ts`). Les resolvers qui publient injectent `@Inject(PUB_SUB) private readonly pubSub: PubSub`.
+- **Subscription resolvers** : `BoardSubscriptionResolver` écoute `cardUpdated` / `listUpdated` (filtre par `boardId` ou `cardId`). `CommentSubscriptionResolver` écoute `commentAdded` / `commentUpdated` / `commentDeleted` (filtre par `cardId`).
+- **Filtrage** : chaque subscription reçoit uniquement les événements dont le `boardId` ou `cardId` correspond à l’argument passé par le client.
 
 ## Frontend usage (Apollo Client)
 
@@ -45,6 +57,7 @@ Only subscribers whose variable matches the event receive it (server-side filter
 3. Subscribe with the right variable:
    - Board: `cardUpdated(boardId: $boardId)` or `listUpdated(boardId: $boardId)`
    - Single card: `cardUpdatedByCardId(cardId: $cardId)`
+   - Comments (per card): `commentAdded(cardId: $cardId)`, `commentUpdated(cardId: $cardId)`, `commentDeleted(cardId: $cardId)`
    Refetch or update cache when events arrive.
 
 Example (board):
@@ -71,6 +84,27 @@ subscription CardUpdatedByCardId($cardId: ID!) {
     title
     dueDate
     # ...
+  }
+}
+```
+
+Example (comments, per card):
+
+```graphql
+subscription CommentAdded($cardId: ID!) {
+  commentAdded(cardId: $cardId) {
+    id
+    cardId
+    authorId
+    content
+    createdAt
+    author { id name email avatar }
+  }
+}
+subscription CommentDeleted($cardId: ID!) {
+  commentDeleted(cardId: $cardId) {
+    commentId
+    cardId
   }
 }
 ```
