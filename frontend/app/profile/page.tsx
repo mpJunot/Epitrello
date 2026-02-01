@@ -16,7 +16,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="h-full w-full flex flex-col p-4">
+      <div className="h-full flex flex-col bg-background p-4">
         <div className="p-6 w-full max-w-4xl space-y-6 mx-auto flex-1">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -47,7 +47,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col p-4">
+    <div className="h-full flex flex-col bg-background p-4">
       <div className="p-6 w-full max-w-4xl space-y-6 mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
