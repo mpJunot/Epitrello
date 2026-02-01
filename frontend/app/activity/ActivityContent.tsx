@@ -45,7 +45,11 @@ function ActivityEntry({
         ? `/boards/${boardId}`
         : null;
   const personHref =
-    currentUserId && item.userId === currentUserId ? '/profile' : '#';
+    item.userId === currentUserId
+      ? '/profile'
+      : item.userId
+        ? `/users/${item.userId}`
+        : '#';
 
   return (
     <div className='flex gap-3 py-3 px-2 rounded-lg hover:bg-muted/50 transition-colors'>

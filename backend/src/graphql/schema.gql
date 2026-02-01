@@ -557,6 +557,11 @@ type MyActivityResult {
 }
 
 type Query {
+  """
+  Get activity feed from all boards the user has access to (all members). Optional workspace filter.
+  """
+  activityFeed(input: MyActivityInput = {}): MyActivityResult!
+
   """Get archived cards for a board. User must have access to the board."""
   archivedCards(boardId: ID!): [Card!]!
 

@@ -60,6 +60,23 @@ export class ActivityResolver {
   }
 
   @Query(() => MyActivityResult, {
+    name: 'activityFeed',
+    description:
+      'Get activity feed from all boards the user has access to (all members). Optional workspace filter.',
+  })
+  async activityFeed(
+    @Args('input', { nullable: true, defaultValue: {} }) input: MyActivityInput | undefined,
+    @CurrentUser() user: { id: string },
+  ): Promise<MyActivityResult> {
+    const opts = {
+      limit: input?.limit ?? 20,
+      cursor: input?.cursor,
+      workspaceIds: input?.workspaceIds,
+    };
+    return this.activityService.findActivityFeed(user.id, opts);
+  }
+
+  @Query(() => MyActivityResult, {
     name: 'boardActivity',
     description:
       'Get activity for a board (all members). User must have access to the board.',
