@@ -109,6 +109,27 @@ describe('AttachmentsResolver', () => {
     );
   });
 
+  it('should create an attachment with size 0 for link', async () => {
+    const linkAttachment = { ...mockAttachment, url: 'https://example.com', size: 0 };
+    mockAttachmentsService.create.mockResolvedValue(linkAttachment);
+
+    const result = await resolver.createAttachment(
+      {
+        cardId: 'card-1',
+        url: 'https://example.com',
+        filename: 'Link',
+        size: 0,
+      },
+      mockUser,
+    );
+
+    expect(result.size).toBe(0);
+    expect(service.create).toHaveBeenCalledWith(
+      { cardId: 'card-1', url: 'https://example.com', filename: 'Link', size: 0 },
+      mockUser.id,
+    );
+  });
+
   it('should update an attachment', async () => {
     mockAttachmentsService.update.mockResolvedValue(mockAttachment);
 
@@ -146,6 +167,15 @@ describe('AttachmentsResolver', () => {
     const result = await resolver.uploader(mockAttachment);
 
     expect(result?.id).toBe('user-1');
+    expect(usersLoader.load).toHaveBeenCalledWith('user-1');
+  });
+
+  it('should resolve uploader as null when loader returns null', async () => {
+    usersLoader.load.mockResolvedValue(null);
+
+    const result = await resolver.uploader(mockAttachment);
+
+    expect(result).toBeNull();
     expect(usersLoader.load).toHaveBeenCalledWith('user-1');
   });
 });
