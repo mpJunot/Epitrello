@@ -444,6 +444,14 @@ type Mutation {
   login(input: LoginInput!): AuthPayload!
 
   """
+  Mark all notifications as read for the current user. Returns count updated.
+  """
+  markAllNotificationsRead: Int!
+
+  """Mark a notification as read."""
+  markNotificationRead(id: ID!): Notification!
+
+  """
   Move a card to a different list within the same board. Position is calculated automatically if not provided.
   """
   moveCard(input: MoveCardInput!): Card!
@@ -556,6 +564,47 @@ type MyActivityResult {
   nextCursor: ID
 }
 
+input MyNotificationsInput {
+  """Cursor for pagination (notification id)"""
+  cursor: String
+
+  """Max number of notifications to return (default 20, max 50)"""
+  limit: Int
+
+  """If true, only unread notifications"""
+  unreadOnly: Boolean
+}
+
+type MyNotificationsResult {
+  hasMore: Boolean!
+
+  """Cursor for next page (last notification id)"""
+  nextCursor: String
+  notifications: [Notification!]!
+}
+
+type Notification {
+  createdAt: DateTime!
+  id: ID!
+
+  """JSON payload (cardId, boardId, workspaceId, etc.)"""
+  payload: String
+  read: Boolean!
+  type: NotificationType!
+  userId: ID!
+}
+
+"""
+Type of notification (card assigned, due soon, comment, invitation, etc.)
+"""
+enum NotificationType {
+  BOARD_INVITATION
+  CARD_ASSIGNED
+  CARD_DUE_SOON
+  COMMENT_ADDED
+  WORKSPACE_INVITATION
+}
+
 type Query {
   """
   Get activity feed from all boards the user has access to (all members). Optional workspace filter.
@@ -613,6 +662,11 @@ type Query {
 
   """Get all pending invitations for the current user."""
   myInvitations: [WorkspaceInvitation!]!
+
+  """
+  Get current user notifications with pagination and optional unread filter.
+  """
+  myNotifications(input: MyNotificationsInput = {}): MyNotificationsResult!
 
   """Get all workspaces where the current user is a member"""
   myWorkspaces: [Workspace!]!
@@ -715,6 +769,9 @@ type Subscription {
 
   """Subscribe to list create/update/reorder/delete for a board."""
   listUpdated(boardId: ID!): List!
+
+  """Real-time notifications for the current user (WebSocket)."""
+  notificationReceived: Notification!
 }
 
 input UnassignMemberFromCardInput {
