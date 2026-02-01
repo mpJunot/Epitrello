@@ -46,6 +46,30 @@ export async function getCurrentUser(options?: GraphQLRequestOptions): Promise<U
 }
 
 /**
+ * Get a user by ID (for viewing another user's profile). Returns null if not found.
+ */
+export async function getUser(id: string): Promise<User | null> {
+  const query = `
+    query User($id: ID!) {
+      user(id: $id) {
+        id
+        email
+        name
+        avatar
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+  try {
+    const result = await graphqlRequest<{ user: User | null }>(query, { id });
+    return result.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get a user by email (for board invite flow). Returns null if not found.
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
