@@ -2,10 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CommentsResolver } from './comments.resolver';
 import { CommentsService } from './comments.service';
 import { CommentsDataLoader } from './dataloaders/comments.dataloader';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 
 describe('CommentsResolver', () => {
   let resolver: CommentsResolver;
   let service: CommentsService;
+
+  const mockPubSub = {
+    publish: jest.fn().mockResolvedValue(undefined),
+  };
 
   const mockCommentsService = {
     findOne: jest.fn(),
@@ -45,6 +50,10 @@ describe('CommentsResolver', () => {
         {
           provide: CommentsDataLoader,
           useValue: mockCommentsDataLoader,
+        },
+        {
+          provide: PUB_SUB,
+          useValue: mockPubSub,
         },
       ],
     }).compile();
@@ -114,12 +123,18 @@ describe('CommentsResolver', () => {
   });
 
   it('should delete a comment', async () => {
+    mockCommentsService.findOne.mockResolvedValue(mockComment);
     mockCommentsService.delete.mockResolvedValue(true);
 
     const result = await resolver.deleteComment('comment-1', mockUser);
 
     expect(result).toBe(true);
+    expect(service.findOne).toHaveBeenCalledWith('comment-1', mockUser.id);
     expect(service.delete).toHaveBeenCalledWith('comment-1', mockUser.id);
+    expect(mockPubSub.publish).toHaveBeenCalledWith('commentDeleted', {
+      commentId: 'comment-1',
+      cardId: 'card-1',
+    });
   });
 
   it('should resolve comment author using dataloader', async () => {
