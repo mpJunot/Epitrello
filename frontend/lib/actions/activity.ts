@@ -115,6 +115,53 @@ export async function getBoardActivity(
 }
 
 /**
+ * Get activity feed from all boards the user has access to (all members). Used for Activity pages.
+ */
+export async function getActivityFeed(
+  input?: MyActivityInput,
+): Promise<MyActivityResult> {
+  const query = `
+    query ActivityFeed($input: MyActivityInput) {
+      activityFeed(input: $input) {
+        activities {
+          id
+          type
+          userId
+          boardId
+          cardId
+          listId
+          payload {
+            cardTitle
+            listName
+            targetListName
+            commentPreview
+            memberName
+            boardTitle
+          }
+          createdAt
+          user {
+            id
+            name
+            avatar
+          }
+          board {
+            id
+            title
+          }
+        }
+        hasMore
+        nextCursor
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ activityFeed: MyActivityResult }>(query, {
+    input: input ?? undefined,
+  });
+  return result.activityFeed;
+}
+
+/**
  * Get current user's activity log with optional workspace filter and pagination.
  */
 export async function getMyActivity(input?: MyActivityInput): Promise<MyActivityResult> {

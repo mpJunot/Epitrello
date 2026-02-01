@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   getMyActivity,
+  getActivityFeed,
   getBoardActivity,
   type MyActivityInput,
 } from '@/lib/actions/activity';
@@ -28,15 +29,20 @@ export const activityInvalidateKey = ['activityInfinite'] as const;
 export const activityBoardInvalidateKey = ['activity'] as const;
 
 /**
- * Infinite query for Activity page: first page, then "Load more" via fetchNextPage.
+ * Infinite query for Activity page: feed from all boards the user has access to (all members).
  */
 export function useActivityInfiniteQuery(workspaceIds?: string[]) {
   return useInfiniteQuery({
     queryKey: activityInfiniteQueryKey(workspaceIds),
     queryFn: ({ pageParam }) =>
-      getMyActivity({ limit: 20, cursor: pageParam as string | undefined, workspaceIds }),
+      getActivityFeed({
+        limit: 20,
+        cursor: pageParam as string | undefined,
+        workspaceIds,
+      }),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasMore ? lastPage.nextCursor ?? undefined : undefined,
     staleTime: 30 * 1000,
   });
 }
