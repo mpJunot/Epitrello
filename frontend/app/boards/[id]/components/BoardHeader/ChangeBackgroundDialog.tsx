@@ -79,6 +79,15 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
     }
   };
 
+  /** URL safe for img src: only data:image or http(s) to avoid CodeQL "DOM text reinterpreted as HTML". */
+  const safePreviewUrl =
+    localBackground &&
+    (localBackground.startsWith('data:image') ||
+      localBackground.startsWith('https://') ||
+      localBackground.startsWith('http://'))
+      ? localBackground
+      : undefined;
+
   const removeBoardBackground = async () => {
     setUpdating(true);
     try {
@@ -132,14 +141,11 @@ export function ChangeBackgroundDialog({ open, onOpenChange, board, onUpdate }: 
                 </Button>
               </Label>
             </div>
-            {localBackground &&
-              (localBackground.startsWith('data:image') ||
-                localBackground.startsWith('http') ||
-                localBackground.startsWith('https')) && (
+            {safePreviewUrl && (
                 <div className="relative w-full h-32 rounded-lg overflow-hidden border border-accent">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={localBackground}
+                    src={safePreviewUrl}
                     alt="Background preview"
                     className="w-full h-full object-cover"
                   />
