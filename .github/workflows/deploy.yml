@@ -91,7 +91,7 @@ jobs:
     name: Validate Terraform
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.terraform == 'true'
+    if: needs.changes.outputs.terraform == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
 
     steps:
       - name: Checkout
@@ -223,7 +223,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [changes, terraform-validate]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-validate.result == 'success'
+    if: github.event_name != 'pull_request' && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') && needs.terraform-validate.result == 'success'
     environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
@@ -306,7 +306,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [changes, terraform-plan]
-    if: github.event_name != 'pull_request' && needs.changes.outputs.terraform == 'true' && needs.terraform-plan.result == 'success'
+    if: github.event_name != 'pull_request' && (needs.changes.outputs.terraform == 'true' || needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true') && needs.terraform-plan.result == 'success'
     environment: ${{ needs.changes.outputs.environment }}
     permissions:
       contents: read
