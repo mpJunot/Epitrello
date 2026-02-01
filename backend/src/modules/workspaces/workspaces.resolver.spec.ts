@@ -22,6 +22,7 @@ describe('WorkspacesResolver', () => {
     create: jest.fn(),
     findMyWorkspaces: jest.fn(),
     findOne: jest.fn(),
+    findInviteInfo: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
   };
@@ -84,6 +85,18 @@ describe('WorkspacesResolver', () => {
     });
   });
 
+  describe('workspaceInviteInfo', () => {
+    it('should return workspace invite info (public, no user)', async () => {
+      const inviteInfo = { id: '1', name: 'Test Workspace', logoUrl: null };
+      mockWorkspacesService.findInviteInfo.mockResolvedValue(inviteInfo);
+
+      const result = await resolver.workspaceInviteInfo('1');
+
+      expect(result).toEqual(inviteInfo);
+      expect(workspacesService.findInviteInfo).toHaveBeenCalledWith('1');
+    });
+  });
+
   describe('updateWorkspace', () => {
     it('should update a workspace', async () => {
       const input = { name: 'Updated Name' };
@@ -93,6 +106,17 @@ describe('WorkspacesResolver', () => {
       const result = await resolver.updateWorkspace('1', input, mockUser);
 
       expect(result.name).toBe('Updated Name');
+      expect(workspacesService.update).toHaveBeenCalledWith('1', input, 'user-1');
+    });
+
+    it('should update workspace description', async () => {
+      const input = { description: 'Updated description' };
+      const updated = { ...mockWorkspace, description: 'Updated description' };
+      mockWorkspacesService.update.mockResolvedValue(updated);
+
+      const result = await resolver.updateWorkspace('1', input, mockUser);
+
+      expect(result.description).toBe('Updated description');
       expect(workspacesService.update).toHaveBeenCalledWith('1', input, 'user-1');
     });
   });

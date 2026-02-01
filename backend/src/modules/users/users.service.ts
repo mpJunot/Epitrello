@@ -16,6 +16,7 @@ export class UsersService {
         email: true,
         name: true,
         avatar: true,
+        description: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -26,6 +27,7 @@ export class UsersService {
       email: user.email,
       name: user.name,
       avatar: user.avatar,
+      description: user.description ?? undefined,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     }));
@@ -39,6 +41,7 @@ export class UsersService {
         email: true,
         name: true,
         avatar: true,
+        description: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -48,6 +51,26 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
+    return user;
+  }
+
+  /**
+   * Find a user by email (for board/workspace invite flows).
+   * Returns null if not found.
+   */
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
     return user;
   }
 
@@ -70,12 +93,14 @@ export class UsersService {
           name: input.name,
           password: hashedPassword,
           avatar: input.avatar,
+          description: input.description,
         },
         select: {
           id: true,
           email: true,
           name: true,
           avatar: true,
+          description: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -97,12 +122,14 @@ export class UsersService {
         data: {
           name: input.name,
           avatar: input.avatar,
+          description: input.description,
         },
         select: {
           id: true,
           email: true,
           name: true,
           avatar: true,
+          description: true,
           createdAt: true,
           updatedAt: true,
         },

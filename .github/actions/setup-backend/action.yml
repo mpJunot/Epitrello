@@ -39,8 +39,3 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: pnpm prisma generate
-
-    - name: Run database migrations
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: pnpm prisma migrate deploy

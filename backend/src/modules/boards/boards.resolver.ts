@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { Board } from './entities/board.entity';
@@ -9,11 +9,33 @@ import { AddBoardMemberInput } from './dto/add-board-member.input';
 import { UpdateBoardMemberRoleInput } from './dto/update-board-member-role.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PrismaService } from '../../prisma/prisma.service';
+import { List } from '../lists/entities/list.entity';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityType } from '@prisma/client';
 
 @Resolver(() => Board)
 @UseGuards(GqlAuthGuard)
 export class BoardsResolver {
-  constructor(private readonly boardsService: BoardsService) {}
+  constructor(
+    private readonly boardsService: BoardsService,
+    private readonly prisma: PrismaService,
+    private readonly activityService: ActivityService,
+  ) { }
+
+  @ResolveField(() => [List])
+  async lists(@Parent() board: Board): Promise<List[]> {
+    return this.prisma.list.findMany({
+      where: { boardId: board.id, isArchived: false },
+      orderBy: { position: 'asc' },
+      include: {
+        cards: {
+          where: { isArchived: false },
+          orderBy: { position: 'asc' },
+        },
+      },
+    });
+  }
 
   @Mutation(() => Board, {
     description: 'Create a new board. User must be ADMIN or MEMBER of the workspace (if provided).',
@@ -74,7 +96,14 @@ export class BoardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<Board> {
-    return this.boardsService.archive(id, user.id);
+    const board = await this.boardsService.archive(id, user.id);
+    await this.activityService.create({
+      type: ActivityType.BOARD_ARCHIVED,
+      userId: user.id,
+      boardId: board.id,
+      payload: { boardTitle: board.title },
+    });
+    return board;
   }
 
   @Mutation(() => Board, {
@@ -84,7 +113,14 @@ export class BoardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<Board> {
-    return this.boardsService.unarchive(id, user.id);
+    const board = await this.boardsService.unarchive(id, user.id);
+    await this.activityService.create({
+      type: ActivityType.BOARD_UNARCHIVED,
+      userId: user.id,
+      boardId: board.id,
+      payload: { boardTitle: board.title },
+    });
+    return board;
   }
 
   @Mutation(() => BoardMemberWithUser, {
@@ -94,7 +130,20 @@ export class BoardsResolver {
     @Args('input') input: AddBoardMemberInput,
     @CurrentUser() user: any,
   ): Promise<BoardMemberWithUser> {
-    return this.boardsService.addMember(input, user.id);
+    const result = await this.boardsService.addMember(input, user.id);
+    const [board, addedUser] = await Promise.all([
+      this.prisma.board.findUnique({ where: { id: input.boardId }, select: { title: true } }),
+      this.prisma.user.findUnique({ where: { id: input.userId }, select: { name: true } }),
+    ]);
+    if (board && addedUser) {
+      await this.activityService.create({
+        type: ActivityType.MEMBER_ADDED_TO_BOARD,
+        userId: user.id,
+        boardId: input.boardId,
+        payload: { boardTitle: board.title, memberName: addedUser.name },
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -116,5 +165,15 @@ export class BoardsResolver {
     @CurrentUser() user: any,
   ): Promise<boolean> {
     return this.boardsService.updateMemberRole(input.boardId, input.userId, input.role, user.id);
+  }
+
+  @Mutation(() => Boolean, {
+    description: 'Leave a board. Cannot leave if you are the last admin.',
+  })
+  async leaveBoard(
+    @Args('boardId', { type: () => ID }) boardId: string,
+    @CurrentUser() user: any,
+  ): Promise<boolean> {
+    return this.boardsService.leaveBoard(boardId, user.id);
   }
 }

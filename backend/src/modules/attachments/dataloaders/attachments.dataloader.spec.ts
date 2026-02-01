@@ -1,0 +1,56 @@
+import { AttachmentsDataLoader } from './attachments.dataloader';
+import { PrismaService } from '../../../prisma/prisma.service';
+
+jest.mock('dataloader', () => {
+  return jest.fn().mockImplementation((batchFn) => ({
+    load: jest.fn((key: string) => Promise.resolve(batchFn([key])[0])),
+    loadMany: jest.fn((keys: readonly string[]) => Promise.resolve(batchFn(keys))),
+  }));
+});
+
+describe('AttachmentsDataLoader', () => {
+  let dataloader: AttachmentsDataLoader;
+  let prisma: PrismaService;
+
+  const mockPrismaService = {
+    user: {
+      findMany: jest.fn(),
+    },
+  };
+
+  beforeEach(() => {
+    prisma = mockPrismaService as unknown as PrismaService;
+    dataloader = new AttachmentsDataLoader(prisma);
+    jest.clearAllMocks();
+  });
+
+  it('should load users by ids', async () => {
+    mockPrismaService.user.findMany.mockResolvedValue([
+      {
+        id: 'user-1',
+        email: 'one@example.com',
+        name: 'One',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'user-2',
+        email: 'two@example.com',
+        name: 'Two',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const loader = dataloader.createUsersByIdLoader();
+    const result = (await loader.loadMany(['user-1', 'user-2'])) as Array<
+      { id: string } | null
+    >;
+
+    expect(result[0]?.id).toBe('user-1');
+    expect(result[1]?.id).toBe('user-2');
+    expect(mockPrismaService.user.findMany).toHaveBeenCalled();
+  });
+});

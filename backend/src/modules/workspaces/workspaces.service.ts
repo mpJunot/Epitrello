@@ -12,7 +12,7 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class WorkspacesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Create a new workspace
@@ -26,6 +26,7 @@ export class WorkspacesService {
       data: {
         name: createWorkspaceInput.name,
         logoUrl: createWorkspaceInput.logoUrl,
+        description: createWorkspaceInput.description,
         visibility: createWorkspaceInput.visibility || 'PRIVATE',
         memberships: {
           create: {
@@ -71,6 +72,21 @@ export class WorkspacesService {
     }
 
     return this.mapToWorkspaceEntity(workspace);
+  }
+
+  /**
+   * Get workspace invite info (id, name, logoUrl) for the invite link page.
+   * No auth / membership check so the invite page can show workspace name.
+   */
+  async findInviteInfo(id: string): Promise<{ id: string; name: string; logoUrl?: string }> {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id },
+      select: { id: true, name: true, logoUrl: true },
+    });
+    if (!workspace) {
+      throw new NotFoundException(`Workspace with ID ${id} not found`);
+    }
+    return workspace;
   }
 
   /**
@@ -185,6 +201,7 @@ export class WorkspacesService {
       id: workspace.id,
       name: workspace.name,
       logoUrl: workspace.logoUrl,
+      description: workspace.description,
       visibility: workspace.visibility,
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,

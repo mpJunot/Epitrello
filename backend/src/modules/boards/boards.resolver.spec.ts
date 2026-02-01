@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BoardsResolver } from './boards.resolver';
 import { BoardsService } from './boards.service';
+import { ActivityService } from '../activity/activity.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { Visibility, Role } from '@prisma/client';
 
 describe('BoardsResolver', () => {
@@ -18,6 +20,19 @@ describe('BoardsResolver', () => {
     addMember: jest.fn(),
     removeMember: jest.fn(),
     updateMemberRole: jest.fn(),
+    leaveBoard: jest.fn(),
+  };
+
+  const mockPrismaService = {
+    list: {
+      findMany: jest.fn(),
+    },
+    board: { findUnique: jest.fn() },
+    user: { findUnique: jest.fn() },
+  };
+
+  const mockActivityService = {
+    create: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockUser = {
@@ -47,6 +62,14 @@ describe('BoardsResolver', () => {
           provide: BoardsService,
           useValue: mockBoardsService,
         },
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: ActivityService,
+          useValue: mockActivityService,
+        },
       ],
     }).compile();
 
@@ -60,6 +83,38 @@ describe('BoardsResolver', () => {
 
   it('should be defined', () => {
     expect(resolver).toBeDefined();
+  });
+
+  describe('lists', () => {
+    it('should resolve lists with non-archived cards for a board', async () => {
+      const mockLists = [
+        {
+          id: 'list-1',
+          boardId: mockBoard.id,
+          title: 'To Do',
+          position: 0,
+          isArchived: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cards: [],
+        },
+      ];
+      mockPrismaService.list.findMany.mockResolvedValue(mockLists);
+
+      const result = await resolver.lists(mockBoard);
+
+      expect(result).toEqual(mockLists);
+      expect(mockPrismaService.list.findMany).toHaveBeenCalledWith({
+        where: { boardId: mockBoard.id, isArchived: false },
+        orderBy: { position: 'asc' },
+        include: {
+          cards: {
+            where: { isArchived: false },
+            orderBy: { position: 'asc' },
+          },
+        },
+      });
+    });
   });
 
   describe('createBoard', () => {
@@ -227,6 +282,17 @@ describe('BoardsResolver', () => {
         input.role,
         mockUser.id,
       );
+    });
+  });
+
+  describe('leaveBoard', () => {
+    it('should allow a user to leave a board', async () => {
+      mockBoardsService.leaveBoard.mockResolvedValue(true);
+
+      const result = await resolver.leaveBoard(mockBoard.id, mockUser);
+
+      expect(result).toBe(true);
+      expect(service.leaveBoard).toHaveBeenCalledWith(mockBoard.id, mockUser.id);
     });
   });
 });

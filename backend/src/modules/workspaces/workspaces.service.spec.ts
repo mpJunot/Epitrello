@@ -26,6 +26,7 @@ describe('WorkspacesService', () => {
     id: '1',
     name: 'Test Workspace',
     logoUrl: null,
+    description: null,
     visibility: Visibility.PRIVATE,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -80,6 +81,46 @@ describe('WorkspacesService', () => {
         data: {
           name: createInput.name,
           logoUrl: createInput.logoUrl,
+          visibility: createInput.visibility,
+          memberships: {
+            create: {
+              userId,
+              role: Role.ADMIN,
+            },
+          },
+        },
+        include: {
+          memberships: true,
+          _count: {
+            select: { memberships: true },
+          },
+        },
+      });
+    });
+
+    it('should create a workspace with description', async () => {
+      const createInput = {
+        name: 'New Workspace',
+        description: 'Workspace description',
+        visibility: Visibility.PRIVATE,
+      };
+      const userId = 'user1';
+
+      const workspaceWithDescription = {
+        ...mockWorkspace,
+        description: 'Workspace description',
+      };
+
+      mockPrismaService.workspace.create.mockResolvedValue(workspaceWithDescription);
+
+      const result = await service.create(createInput, userId);
+
+      expect(result).toBeDefined();
+      expect(result.description).toBe('Workspace description');
+      expect(prisma.workspace.create).toHaveBeenCalledWith({
+        data: {
+          name: createInput.name,
+          description: createInput.description,
           visibility: createInput.visibility,
           memberships: {
             create: {
@@ -169,6 +210,52 @@ describe('WorkspacesService', () => {
     });
   });
 
+  describe('findInviteInfo', () => {
+    it('should return workspace invite info when workspace exists', async () => {
+      const workspaceId = '1';
+      const inviteInfo = {
+        id: workspaceId,
+        name: 'Test Workspace',
+        logoUrl: 'https://example.com/logo.png',
+      };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(inviteInfo);
+
+      const result = await service.findInviteInfo(workspaceId);
+
+      expect(result).toEqual(inviteInfo);
+      expect(prisma.workspace.findUnique).toHaveBeenCalledWith({
+        where: { id: workspaceId },
+        select: { id: true, name: true, logoUrl: true },
+      });
+    });
+
+    it('should return workspace invite info without logoUrl', async () => {
+      const workspaceId = '2';
+      const inviteInfo = { id: workspaceId, name: 'Another Workspace', logoUrl: null };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(inviteInfo);
+
+      const result = await service.findInviteInfo(workspaceId);
+
+      expect(result).toEqual(inviteInfo);
+      expect(result.logoUrl).toBeNull();
+    });
+
+    it('should throw NotFoundException when workspace not found', async () => {
+      const workspaceId = '999';
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(null);
+
+      await expect(service.findInviteInfo(workspaceId)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.findInviteInfo(workspaceId)).rejects.toThrow(
+        `Workspace with ID ${workspaceId} not found`,
+      );
+    });
+  });
+
   describe('findMyWorkspaces', () => {
     it('should return all workspaces where user is a member', async () => {
       const userId = 'user1';
@@ -231,6 +318,35 @@ describe('WorkspacesService', () => {
 
       expect(result).toBeDefined();
       expect(result.name).toBe('Updated Workspace');
+      expect(prisma.workspace.update).toHaveBeenCalledWith({
+        where: { id: workspaceId },
+        data: updateInput,
+        include: {
+          memberships: true,
+          _count: {
+            select: { memberships: true },
+          },
+        },
+      });
+    });
+
+    it('should update workspace description when user is ADMIN', async () => {
+      const workspaceId = '1';
+      const userId = 'user1';
+      const updateInput = {
+        description: 'Updated description',
+      };
+
+      mockPrismaService.workspace.findUnique.mockResolvedValue(mockWorkspace);
+      mockPrismaService.workspace.update.mockResolvedValue({
+        ...mockWorkspace,
+        ...updateInput,
+      });
+
+      const result = await service.update(workspaceId, updateInput, userId);
+
+      expect(result).toBeDefined();
+      expect(result.description).toBe('Updated description');
       expect(prisma.workspace.update).toHaveBeenCalledWith({
         where: { id: workspaceId },
         data: updateInput,

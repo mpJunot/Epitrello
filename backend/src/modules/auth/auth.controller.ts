@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
@@ -6,6 +6,8 @@ import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private authService: AuthService) {}
 
   private async handleOAuthCallback(req: Request, res: Response, provider: string) {
@@ -18,14 +20,9 @@ export class AuthController {
       const result = await this.authService.oauthLogin(user);
       const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-      // Set a httpOnly cookie for backend calls
-      const maxAge = 60 * 60 * 24 * 7; // 7 days
-      res.setHeader(
-        'Set-Cookie',
-        `token=${result.token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`,
-      );
-
-      return res.redirect(`${frontendUrl}/auth/callback?token=${result.token}`);
+      // Encode token so URL-safe (JWT can contain +, /, =)
+      const tokenParam = encodeURIComponent(result.token);
+      return res.redirect(`${frontendUrl}/auth/callback?token=${tokenParam}`);
     } catch (error) {
       const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
       const message =
@@ -38,6 +35,7 @@ export class AuthController {
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
+    this.logger.log('GET /auth/google - redirecting to Google consent');
     return;
   }
 

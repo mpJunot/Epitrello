@@ -7,14 +7,12 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ```
 .github/
 ├── workflows/
+│   ├── deploy.yml               # Unified deployment (staging/production) with Terraform
 │   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
-│   ├── frontend-ci.yml          # Frontend tests (lint, build)
-│   ├── e2e-tests.yml            # End-to-end tests
-│   ├── code-quality.yml         # Code formatting and Prisma validation
-│   ├── deploy-staging.yml       # Staging deployment (dev branch)
-│   ├── deploy-production.yml    # Production deployment (master branch)
-│   ├── docker-build.yml         # Docker image builds
-│   └── release.yml              # GitHub releases
+│   ├── frontend-ci.yml          # Frontend tests (lint, build, E2E Playwright)
+│   ├── code-quality.yml         # Code quality (lint, CodeQL, Prisma validation)
+│   ├── database-migrations.yml  # Database migrations management
+│   └── cleanup-cost-management.yml # Cost optimization and cleanup
 └── actions/
     ├── setup-backend/           # Reusable: Backend setup with DB
     │   └── action.yml
@@ -69,7 +67,7 @@ pnpm test:integration
 
 ### 2. Frontend CI (`frontend-ci.yml`)
 
-Validates frontend code quality and builds.
+Validates frontend code quality, builds, and runs E2E tests.
 
 **Triggers:**
 
@@ -84,12 +82,13 @@ Validates frontend code quality and builds.
 - ESLint code linting
 - TypeScript type checking
 - Next.js build compilation
-- Build artifact archival
+- Build artifact archival (optional)
 
-#### `unit-tests`
+#### `e2e-tests`
 
-- Unit test execution (if configured)
-- Codecov upload
+- PostgreSQL + backend + frontend services
+- Playwright E2E tests
+- Upload Playwright report (artifact)
 
 **Commands:**
 
@@ -97,43 +96,29 @@ Validates frontend code quality and builds.
 pnpm lint
 pnpm tsc --noEmit
 pnpm build
-pnpm test
+pnpm test:e2e   # in e2e-tests job
 ```
 
 ---
 
-### 3. E2E Tests (`e2e-tests.yml`)
+### 3. E2E Tests (in Frontend CI)
 
-End-to-end testing for complete application workflows.
+Frontend E2E tests (Playwright) run as part of the **Frontend CI** workflow (`frontend-ci.yml`), in the `e2e-tests` job.
 
-**Triggers:**
+**Triggers:** Same as Frontend CI (changes in `frontend/`, etc.)
 
-- Push to `master`, `dev` branches
-- Pull requests
-- Manual workflow dispatch
+**Job `e2e-tests`:**
 
-**Jobs:**
-
-#### `backend-e2e`
-
-- Backend end-to-end test suite
-- PostgreSQL database service
-- Complete environment configuration
-- Test results and coverage upload
-
-**Commands:**
-
-```bash
-pnpm test:e2e
-```
-
-**Note:** Frontend E2E tests awaiting Playwright/Cypress configuration.
+- PostgreSQL service, migrations, backend and frontend build
+- Start backend (port 4000) and frontend (port 3000)
+- Run Playwright: `pnpm test:e2e`
+- Upload Playwright report as artifact (on success or failure)
 
 ---
 
 ### 4. Code Quality (`code-quality.yml`)
 
-Checks code formatting and validates Prisma schema.
+Prisma validation, CodeQL security analysis, and dependency review (lint runs in backend-ci / frontend-ci).
 
 **Triggers:**
 
@@ -142,74 +127,122 @@ Checks code formatting and validates Prisma schema.
 
 **Jobs:**
 
-#### `format-check`
+1. **`prisma-validate`** - Prisma schema validation
+2. **`codeql-analysis`** - CodeQL security analysis (JavaScript/TypeScript)
+3. **`dependency-review`** - Dependency vulnerability review (PRs only)
 
-- Prettier format validation
-
-#### `prisma-validate`
-
-- Prisma schema validation
+**Note:** Lint runs in `backend-ci.yml` and `frontend-ci.yml`; not duplicated here.
 
 **Commands:**
 
 ```bash
-pnpm prettier --check .
-pnpm prisma validate
+pnpm prisma validate   # prisma-validate job
 ```
 
 ---
 
-### 5. Deploy Staging (`deploy-staging.yml`)
+### 5. Deploy to GCP (`deploy.yml`)
 
-Automated deployment to staging environment.
+Unified deployment workflow for staging and production with automatic change detection.
 
 **Triggers:**
 
-- Push to `dev` branch
+- Push to `master` (production) or `dev` (staging) branches
+- Pull requests
+- Manual workflow dispatch with environment selection
+
+**Features:**
+
+- Automatic change detection (backend/frontend/terraform)
+- Tests run in dedicated CI workflows (backend-ci, frontend-ci); deploy relies on branch protection
+- Security scanning with Trivy
+- Terraform validation and deployment
+- Docker image build and push to GCR
+- Cloud Run (backend and frontend) deployment
+- Smoke tests after deployment
+
+**Jobs:**
+
+1. **`detect-changes`** - Detect what changed (backend/frontend/terraform)
+2. **`security-scan`** - Trivy vulnerability scanner
+3. **`terraform-validate`** - Validate Terraform configuration
+4. **`build-backend`** - Build and push Docker image to GCR
+5. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
+6. **`terraform-plan`** - Generate Terraform plan
+7. **`terraform-apply`** - Apply Terraform changes
+8. **`deploy-backend`** - Deploy to Cloud Run
+9. **`deploy-frontend`** - Deploy to Cloud Run
+10. **`smoke-tests`** - Run smoke tests
+11. **`notify`** - Deployment status notification
+
+**Note:** Backend and frontend tests run in `backend-ci.yml` and `frontend-ci.yml` (path-filtered). Deploy does not re-run them; rely on branch protection requiring those checks to pass before merge.
+
+**Environments:**
+
+- `staging` - Automatic on `dev` branch
+- `production` - Automatic on `master` branch
+
+**Required Secrets:**
+
+- `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
+- `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
+- `GCP_PROJECT_ID` - GCP Project ID
+- `STAGING_API_URL` / `PRODUCTION_API_URL` - API URLs
+
+---
+
+### 6. Terraform Plan (`terraform-plan.yml`)
+
+Automated Terraform plan on pull requests with PR comments.
+
+**Triggers:**
+
+- Pull requests modifying Terraform files
+
+**Jobs:**
+
+1. **`terraform-plan`** - Format check, validation, and plan
+2. Comments PR with Terraform plan output
+
+---
+
+### 7. Database Migrations (`database-migrations.yml`)
+
+Automated Prisma database migration management.
+
+**Triggers:**
+
+- Push of migrations to `master` branch
+- Manual workflow dispatch
+
+**Actions:**
+
+- `status` - Check migration status
+- `deploy` - Apply migrations
+- `reset` - Reset database (staging only)
+
+**Environments:**
+
+- `staging` - Automatic on push
+- `production` - Manual only
+
+---
+
+### 8. Cleanup & Cost Management (`cleanup-cost-management.yml`)
+
+Automated cost optimization and resource cleanup.
+
+**Triggers:**
+
+- Daily at 2 AM UTC
 - Manual workflow dispatch
 
 **Jobs:**
 
-1. **`test-backend`** - Run backend tests before deployment
-2. **`deploy-backend`** - Backend deployment to staging
-3. **`deploy-frontend`** - Frontend deployment to staging
-4. **`notify`** - Deployment status notification
-
-**Environment:** `staging`
-
-**Required Secrets:**
-
-- `STAGING_API_URL` - Staging API endpoint URL
-
-**Note:** Deployment steps are placeholders. Configure for your infrastructure.
-
----
-
-### 6. Deploy Production (`deploy-production.yml`)
-
-Production deployment with full test verification.
-
-**Triggers:**
-
-- Push to `master`/`main` branches
-- Version tags (`v*.*.*`)
-- Manual dispatch with version input
-
-**Jobs:**
-
-1. **`verify-tests`** - Complete test suite validation
-2. **`deploy-backend`** - Production backend deployment
-3. **`deploy-frontend`** - Production frontend deployment
-4. **`create-release`** - GitHub release creation (tag-triggered only)
-5. **`notify`** - Deployment status notification
-
-**Environment:** `production`
-
-**Required Secrets:**
-
-- `PRODUCTION_API_URL` - Production API endpoint URL
-
-**Note:** Deployment steps require configuration for your specific infrastructure.
+1. **`cleanup-storage`** - Delete old Cloud Storage objects
+2. **`cost-report`** - Generate cost report
+3. **`identify-unused-resources`** - Identify unused resources
+4. **`notify`** - Send notification
 
 ---
 
@@ -303,11 +336,14 @@ Configure the following secrets in repository settings:
 - `CODECOV_TOKEN` - Codecov upload token
 - `RESEND_API_KEY` - Resend API key for email service (E2E tests)
 
-**Deployment:**
+**Deployment (GCP):**
 
+- `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
+- `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
+- `GCP_PROJECT_ID` - GCP Project ID
 - `STAGING_API_URL` - Staging environment API URL
 - `PRODUCTION_API_URL` - Production environment API URL
-- Additional secrets depending on infrastructure (Docker Hub, AWS, GCP, etc.)
+- `DATABASE_URL` - Database connection string (for migrations)
 
 **Location:** `Settings > Secrets and variables > Actions`
 
@@ -345,20 +381,28 @@ pnpm test:all:report       # Run all tests with formatted report
 
 ---
 
-## Migration from Legacy Workflows
+## Workflow Architecture
 
-### Deprecated Workflows
+### Unified Deployment
 
-The following workflows are maintained for compatibility but can be removed after complete migration:
+The `deploy.yml` workflow replaces the following legacy workflows:
 
-- `ci.yml` - Replaced by `backend-ci.yml` + `frontend-ci.yml`
-- `tests.yml` - Replaced by `backend-ci.yml`
+- `deploy-staging.yml` - Merged into `deploy.yml`
+- `deploy-production.yml` - Merged into `deploy.yml`
+- `terraform-staging.yml` - Merged into `deploy.yml`
+- `terraform-production.yml` - Merged into `deploy.yml`
+- `docker-build.yml` - Merged into `deploy.yml` (GCR only)
+- `release.yml` - Can be added to `deploy.yml` if needed
 
-**Still Active:**
+### Current Workflow Structure
 
-- `code-quality.yml` - Code formatting and Prisma validation
-- `docker-build.yml` - Docker image builds
-- `release.yml` - GitHub releases (note: `deploy-production.yml` also creates releases)
+All workflows are now modular and focused on specific responsibilities:
+
+- **Testing**: `backend-ci.yml`, `frontend-ci.yml`, `e2e-tests.yml`
+- **Quality**: `code-quality.yml`
+- **Infrastructure**: `deploy.yml`, `terraform-plan.yml`
+- **Database**: `database-migrations.yml`
+- **Maintenance**: `cleanup-cost-management.yml`
 
 ### Migration Steps
 

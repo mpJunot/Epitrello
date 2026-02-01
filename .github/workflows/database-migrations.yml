@@ -1,0 +1,315 @@
+name: Database Migrations
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - 'backend/prisma/migrations/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - status
+          - deploy
+          - reset
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: string
+      action:
+        description: 'Action to perform'
+        required: true
+        type: string
+        default: 'deploy'
+
+env:
+  GCP_REGION: europe-west1
+
+jobs:
+  detect-migrations:
+    name: Detect Migrations
+    runs-on: ubuntu-latest
+    outputs:
+      has_migrations: ${{ steps.check.outputs.has_migrations }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for migrations
+        id: check
+        run: |
+          if [ -d "backend/prisma/migrations" ] && [ "$(ls -A backend/prisma/migrations)" ]; then
+            echo "has_migrations=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_migrations=false" >> $GITHUB_OUTPUT
+          fi
+
+  migration-status:
+    name: Migration Status
+    runs-on: ubuntu-latest
+    needs: detect-migrations
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'status'
+    environment: ${{ github.event.inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get database connection info
+        id: db
+        run: |
+          ENV=${{ github.event.inputs.environment }}
+          INSTANCE="${ENV}-epitrello-db"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+
+          # Get database connection details
+          CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
+          PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
+          DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
+
+          echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+
+      - name: Get database password from Secret Manager
+        id: db-password
+        run: |
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          SECRET_NAME="${PROJECT_ID}-db-password"
+
+          # Try to get password from Secret Manager
+          PASSWORD=$(gcloud secrets versions access latest --secret=$SECRET_NAME --project=$PROJECT_ID 2>/dev/null || echo "")
+
+          if [ -z "$PASSWORD" ]; then
+            echo "Warning: Could not retrieve password from Secret Manager. Using secret from GitHub."
+            PASSWORD="${{ secrets.DB_PASSWORD }}"
+          fi
+
+          echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+
+      - name: Build DATABASE_URL
+        id: build-db-url
+        run: |
+          # Validate required values
+          if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
+            echo "ERROR: Public IP is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.db-password.outputs.password }}" ]; then
+            echo "ERROR: Password is empty"
+            exit 1
+          fi
+
+          # URL encode password to handle special characters
+          PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
+          DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
+          echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Check migration status
+        working-directory: backend
+        run: |
+          pnpm prisma migrate status
+
+  deploy-migrations:
+    name: Deploy Migrations
+    runs-on: ubuntu-latest
+    needs: detect-migrations
+    if: |
+      (github.event_name == 'push' && needs.detect-migrations.outputs.has_migrations == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy') ||
+      (github.event_name == 'workflow_call' && inputs.action == 'deploy')
+    environment: ${{ github.event.inputs.environment || (inputs.environment != '' && inputs.environment) || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get database connection info
+        id: db
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV=${{ github.event.inputs.environment }}
+          elif [ "${{ github.event_name }}" == "workflow_call" ]; then
+            ENV="${{ inputs.environment }}"
+          elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            ENV="production"
+          else
+            ENV="staging"
+          fi
+          INSTANCE="${ENV}-epitrello-db"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+
+          # Get database connection details
+          CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
+          PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
+          DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
+
+          echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+
+      - name: Get database password from Secret Manager
+        id: db-password
+        run: |
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          SECRET_NAME="${PROJECT_ID}-db-password"
+
+          # Try to get password from Secret Manager
+          PASSWORD=$(gcloud secrets versions access latest --secret=$SECRET_NAME --project=$PROJECT_ID 2>/dev/null || echo "")
+
+          if [ -z "$PASSWORD" ]; then
+            echo "Warning: Could not retrieve password from Secret Manager. Using secret from GitHub."
+            PASSWORD="${{ secrets.DB_PASSWORD }}"
+          fi
+
+          echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+
+      - name: Build DATABASE_URL
+        id: build-db-url
+        run: |
+          # Validate required values
+          if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
+            echo "ERROR: Public IP is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.db-password.outputs.password }}" ]; then
+            echo "ERROR: Password is empty"
+            exit 1
+          fi
+
+          # URL encode password to handle special characters
+          PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
+          DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
+          echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Deploy migrations
+        working-directory: backend
+        run: |
+          pnpm prisma migrate deploy
+
+      - name: Verify migrations
+        working-directory: backend
+        run: |
+          pnpm prisma migrate status
+
+  reset-database:
+    name: Reset Database
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'reset' && github.event.inputs.environment == 'staging'
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get database connection info
+        id: db
+        run: |
+          ENV="staging"
+          INSTANCE="${ENV}-epitrello-db"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+
+          # Get database connection details
+          CONNECTION_NAME=$(gcloud sql instances describe $INSTANCE --format="value(connectionName)")
+          PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
+          # Filter out 'postgres' default database and get the application database
+          DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
+          DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
+
+          echo "connection_name=$CONNECTION_NAME" >> $GITHUB_OUTPUT
+          echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+
+      - name: Get database password from Secret Manager
+        id: db-password
+        run: |
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          SECRET_NAME="${PROJECT_ID}-db-password"
+
+          # Try to get password from Secret Manager
+          PASSWORD=$(gcloud secrets versions access latest --secret=$SECRET_NAME --project=$PROJECT_ID 2>/dev/null || echo "")
+
+          if [ -z "$PASSWORD" ]; then
+            echo "Warning: Could not retrieve password from Secret Manager. Using secret from GitHub."
+            PASSWORD="${{ secrets.DB_PASSWORD }}"
+          fi
+
+          echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+
+      - name: Build DATABASE_URL
+        id: build-db-url
+        run: |
+          # Validate required values
+          if [ -z "${{ steps.db.outputs.public_ip }}" ]; then
+            echo "ERROR: Public IP is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.db-password.outputs.password }}" ]; then
+            echo "ERROR: Password is empty"
+            exit 1
+          fi
+
+          # URL encode password to handle special characters
+          PASSWORD=$(echo "${{ steps.db-password.outputs.password }}" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
+          DB_URL="postgresql://${{ steps.db.outputs.db_user }}:${PASSWORD}@${{ steps.db.outputs.public_ip }}:5432/${{ steps.db.outputs.db_name }}?sslmode=require"
+          echo "DATABASE_URL=${DB_URL}" >> $GITHUB_ENV
+
+      - name: Setup Backend
+        uses: ./.github/actions/setup-backend
+
+      - name: Reset database
+        working-directory: backend
+        run: |
+          pnpm prisma migrate reset --force

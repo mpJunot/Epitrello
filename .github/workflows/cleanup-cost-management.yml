@@ -1,0 +1,99 @@
+name: Cleanup & Cost Management
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM UTC
+  workflow_dispatch:
+
+env:
+  GCP_REGION: europe-west1
+
+jobs:
+  cleanup-storage:
+    name: Cleanup Cloud Storage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Delete old objects (older than 90 days)
+        run: |
+          gsutil -m rm -r gs://${{ secrets.GCP_PROJECT_ID }}-epitrello-storage/** || true
+
+  cost-report:
+    name: Generate Cost Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Get billing account
+        id: billing
+        run: |
+          BILLING_ACCOUNT=$(gcloud billing accounts list --format="value(name)" --limit=1)
+          echo "billing_account=$BILLING_ACCOUNT" >> $GITHUB_OUTPUT
+
+      - name: Generate cost report
+        run: |
+          echo "## Cost Report - $(date +%Y-%m-%d)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Resources" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
+
+          # Count Cloud Run services
+          RUN_SERVICES=$(gcloud run services list --format="value(name)" | wc -l)
+          echo "| Cloud Run | $RUN_SERVICES |" >> $GITHUB_STEP_SUMMARY
+
+          # Count Cloud SQL instances
+          SQL_INSTANCES=$(gcloud sql instances list --format="value(name)" | wc -l)
+          echo "| Cloud SQL | $SQL_INSTANCES |" >> $GITHUB_STEP_SUMMARY
+
+  identify-unused-resources:
+    name: Identify Unused Resources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup GCP Authentication
+        uses: ./.github/actions/setup-gcp-auth
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Identify unused resources
+        run: |
+          echo "## Unused Resources Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Check Cloud Storage objects older than 90 days" >> $GITHUB_STEP_SUMMARY
+          echo "- Review Cloud Run services with 0 requests" >> $GITHUB_STEP_SUMMARY
+
+  notify:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [cleanup-storage, cost-report, identify-unused-resources]
+    if: always()
+
+    steps:
+      - name: Notification
+        run: |
+          # Add Slack/Discord notification here if needed

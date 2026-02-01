@@ -1,0 +1,90 @@
+# ===================================
+# Staging Environment Configuration
+# ===================================
+# Copy this file to staging.tfvars and update with your values
+# NEVER commit staging.tfvars to Git!
+
+# ===================================
+# GCP Project Configuration
+# ===================================
+project_id  = "epitrello-481814"
+region      = "europe-west1"
+zone        = "europe-west1-b"
+environment = "staging"
+
+# ===================================
+# Database Configuration
+# ===================================
+db_tier = "db-f1-micro"
+db_name = "epitrello"
+db_user = "epitrello_user"
+# database_password = "CHANGE_ME_your-super-secure-database-password-minimum-16-chars"
+
+# ===================================
+# Backend (Cloud Run) Configuration
+# ===================================
+backend_image  = "gcr.io/epitrello-481814/epitrello-backend:latest"
+backend_cpu    = "1000m"
+backend_memory = "512Mi"
+backend_min_instances = 1
+backend_max_instances = 1
+
+# ===================================
+# Frontend (Cloud Run) Configuration
+# ===================================
+frontend_image  = "gcr.io/epitrello-481814/epitrello-frontend:latest"
+frontend_cpu    = "1000m"
+frontend_memory = "512Mi"
+frontend_min_instances = 0
+frontend_max_instances = 10
+
+# ===================================
+# Storage Configuration
+# ===================================
+storage_location = "EU"
+
+# ===================================
+# CI/CD Configuration
+# ===================================
+# Service account used by GitHub Actions for deployments
+# This should match the GCP_SERVICE_ACCOUNT secret in GitHub
+# Required for documentation bucket uploads
+# deployer_service_account_email = "epitrello-deployer@your-project-id.iam.gserviceaccount.com"
+
+# ===================================
+# Networking Configuration
+# ===================================
+enable_private_ip = false
+# subnet_cidr = "10.0.0.0/24"
+# connector_cidr = "10.8.0.0/28"
+# connector_min_instances = 2
+# connector_max_instances = 3
+# connector_machine_type = "e2-micro"
+
+# ===================================
+# Secrets (NEVER COMMIT REAL VALUES!)
+# ===================================
+# Generate strong secrets using:
+# JWT Secret:        openssl rand -base64 48
+# Database Password: openssl rand -base64 24
+
+# jwt_secret        = "CHANGE_ME_your-super-secret-jwt-key-minimum-32-characters-long"
+# database_password = "CHANGE_ME_your-super-secure-database-password-minimum-16-chars"
+
+# ===================================
+# Email Configuration (Resend)
+# ===================================
+# resend_api_key = ""  # Optional: Leave empty if not using email service
+
+# ===================================
+# OAuth Configuration (Optional)
+# ===================================
+# Leave empty if not using OAuth providers
+# google_client_id        = ""
+# google_client_secret    = ""
+# microsoft_client_id     = ""
+# microsoft_client_secret = ""
+# apple_client_id         = ""
+# apple_client_secret     = ""
+# slack_client_id         = ""
+# slack_client_secret     = ""

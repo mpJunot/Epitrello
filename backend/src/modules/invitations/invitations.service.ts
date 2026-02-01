@@ -521,6 +521,45 @@ export class InvitationsService {
   }
 
   /**
+   * Join a workspace via invite link (no invitation id required).
+   * Adds the current user as MEMBER if not already a member.
+   */
+  async joinWorkspaceByInviteLink(
+    workspaceId: string,
+    userId: string,
+  ): Promise<boolean> {
+    this.logger.log(`User ${userId} joining workspace ${workspaceId} via invite link`);
+
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, name: true },
+    });
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    const existingMember = await this.prisma.workspaceMember.findUnique({
+      where: {
+        workspaceId_userId: { workspaceId, userId },
+      },
+    });
+    if (existingMember) {
+      throw new ConflictException('You are already a member of this workspace');
+    }
+
+    await this.prisma.workspaceMember.create({
+      data: {
+        workspaceId,
+        userId,
+        role: Role.MEMBER,
+      },
+    });
+
+    this.logger.log(`User ${userId} joined workspace ${workspace.name} via invite link`);
+    return true;
+  }
+
+  /**
    * Check if user has ADMIN role in workspace
    */
   private async checkAdminPermission(workspaceId: string, userId: string): Promise<void> {

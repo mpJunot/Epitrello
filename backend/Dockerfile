@@ -43,6 +43,6 @@ COPY --from=builder /app/scripts ./scripts
 
 RUN chmod +x ./scripts/docker-entrypoint.sh
 
-EXPOSE 4000
+EXPOSE 8080
 
 ENTRYPOINT ["./scripts/docker-entrypoint.sh"]

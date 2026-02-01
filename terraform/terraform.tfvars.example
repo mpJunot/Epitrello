@@ -1,0 +1,128 @@
+# ===================================
+# EpiTrello Terraform Configuration
+# ===================================
+# This is an example file. Copy it to create your own:
+# - staging.tfvars (for staging environment)
+# - production.tfvars (for production environment)
+#
+# NEVER commit files with real secrets to Git!
+
+# ===================================
+# GCP Project Configuration
+# ===================================
+project_id  = "epitrello-YOUR-ENVIRONMENT"  # e.g., epitrello-staging or epitrello-prod
+region      = "europe-west1"
+zone        = "europe-west1-b"
+environment = "staging"  # or "production"
+
+# ===================================
+# Database Configuration
+# ===================================
+# Staging:    db-f1-micro (free tier, ~$0/month)
+# Production: db-n1-standard-1 (~$50/month)
+db_tier = "db-f1-micro"
+db_name = "epitrello"
+db_user = "epitrello_user"
+
+# ===================================
+# Backend (Cloud Run) Configuration
+# ===================================
+backend_image  = "gcr.io/YOUR-PROJECT-ID/epitrello-backend:latest"
+backend_cpu    = "1000m"  # 1000m = 1 vCPU, 2000m = 2 vCPU
+backend_memory = "512Mi"  # 512Mi or 1Gi
+
+# Scaling configuration
+# Staging:    min=0 (scale to zero), max=1
+# Production: min=1 (always on), max=1
+backend_min_instances = 1
+backend_max_instances = 1
+
+# ===================================
+# Frontend (Cloud Run) Configuration
+# ===================================
+frontend_image  = "gcr.io/YOUR-PROJECT-ID/epitrello-frontend:latest"
+frontend_cpu    = "1000m"  # 1000m = 1 vCPU, 2000m = 2 vCPU
+frontend_memory = "512Mi"  # 512Mi or 1Gi
+
+# Scaling configuration
+# Staging:    min=0 (scale to zero), max=5
+# Production: min=0, max=20
+frontend_min_instances = 0
+frontend_max_instances = 10
+
+# ===================================
+# Storage Configuration
+# ===================================
+storage_location = "EU"  # Options: EU, US, ASIA
+
+# ===================================
+# Networking Configuration
+# ===================================
+# Enable private IP for Cloud SQL (recommended for production)
+# Requires VPC and VPC Connector
+enable_private_ip = false  # Set to true for private IP
+
+# VPC Configuration (only needed if enable_private_ip = true)
+# subnet_cidr = "10.0.0.0/24"           # Default: 10.0.0.0/24
+# connector_cidr = "10.8.0.0/28"        # Default: 10.8.0.0/28
+# connector_min_instances = 2           # Default: 2
+# connector_max_instances = 3           # Default: 3
+# connector_machine_type = "e2-micro"   # Default: e2-micro
+
+# ===================================
+# Secrets (NEVER COMMIT REAL VALUES!)
+# ===================================
+# Generate strong secrets using:
+# JWT Secret:        openssl rand -base64 48
+# Database Password: openssl rand -base64 24
+
+jwt_secret        = "CHANGE_ME_your-super-secret-jwt-key-minimum-32-characters-long"
+database_password = "CHANGE_ME_your-super-secure-database-password-minimum-16-chars"
+
+# ===================================
+# Email Configuration (Resend)
+# ===================================
+# Get your API key from https://resend.com
+resend_api_key = ""  # Optional: Leave empty if not using email service
+
+# ===================================
+# OAuth Configuration (Optional)
+# ===================================
+# Leave empty if not using OAuth providers
+google_client_id        = ""
+google_client_secret    = ""
+microsoft_client_id     = ""
+microsoft_client_secret = ""
+apple_client_id         = ""
+apple_client_secret     = ""
+slack_client_id         = ""
+slack_client_secret     = ""
+
+# ===================================
+# Setup Instructions
+# ===================================
+# 1. Copy this file:
+#    cp terraform.tfvars.example staging.tfvars
+#    cp terraform.tfvars.example production.tfvars
+#
+# 2. Generate secrets for staging:
+#    echo "Staging JWT: $(openssl rand -base64 48)"
+#    echo "Staging DB:  $(openssl rand -base64 24)"
+#
+# 3. Generate DIFFERENT secrets for production:
+#    echo "Production JWT: $(openssl rand -base64 48)"
+#    echo "Production DB:  $(openssl rand -base64 32)"
+#
+# 4. Update staging.tfvars and production.tfvars with:
+#    - Your GCP project IDs
+#    - Generated secrets
+#    - Appropriate resource configurations
+#
+# 5. Add to .gitignore:
+#    echo "*.tfvars" >> .gitignore
+#    echo "!terraform.tfvars.example" >> .gitignore
+#
+# 6. Deploy:
+#    terraform workspace select staging
+#    terraform plan -var-file="staging.tfvars"
+#    terraform apply -var-file="staging.tfvars"

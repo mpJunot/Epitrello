@@ -2,10 +2,78 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type Activity {
+  board: Board
+  boardId: ID!
+  cardId: ID
+  createdAt: DateTime!
+  id: ID!
+  listId: ID
+  payload: ActivityPayload
+  type: ActivityType!
+  user: User
+  userId: ID!
+}
+
+type ActivityPayload {
+  boardTitle: String
+  cardTitle: String
+  commentPreview: String
+  listName: String
+  memberName: String
+  targetListName: String
+}
+
+"""Type of user action recorded in the activity log"""
+enum ActivityType {
+  BOARD_ARCHIVED
+  BOARD_UNARCHIVED
+  CARD_ARCHIVED
+  CARD_COMPLETED
+  CARD_CREATED
+  CARD_MOVED
+  CARD_UNARCHIVED
+  CARD_UNCOMPLETED
+  COMMENT_ADDED
+  LIST_ARCHIVED
+  LIST_UNARCHIVED
+  MEMBER_ADDED_TO_BOARD
+  MEMBER_ADDED_TO_CARD
+}
+
 input AddBoardMemberInput {
   boardId: ID!
   role: String
   userId: ID!
+}
+
+input AddChecklistItemInput {
+  checklistId: ID!
+  content: String!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+}
+
+input AddLabelToCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+
+input AssignMemberToCardInput {
+  cardId: ID!
+  userId: ID!
+}
+
+type Attachment {
+  cardId: ID!
+  createdAt: DateTime!
+  filename: String!
+  id: ID!
+  size: Int!
+  uploader: User
+  uploaderId: ID!
+  url: String!
 }
 
 """Authentication response containing JWT token and user data"""
@@ -24,11 +92,18 @@ type Board {
   description: String
   id: ID!
   isArchived: Boolean!
+  lists: [List!]
   members: [BoardMemberWithUser!]
   title: String!
   updatedAt: DateTime!
   visibility: Visibility!
   workspaceId: ID
+}
+
+input BoardActivityInput {
+  """Cursor for pagination (activity id)."""
+  cursor: ID
+  limit: Int = 50
 }
 
 type BoardMemberWithUser {
@@ -40,6 +115,71 @@ type BoardMemberWithUser {
   userId: ID!
 }
 
+type Card {
+  assignees: [MemberUser!]
+  background: String
+  checklists: [Checklist!]
+  completed: Boolean!
+  createdAt: DateTime!
+  description: String
+  dueDate: DateTime
+  id: ID!
+  isArchived: Boolean!
+  labels: [Label!]
+  listId: ID!
+  position: Float!
+  startDate: DateTime
+  title: String!
+  updatedAt: DateTime!
+}
+
+input CardPosition {
+  id: ID!
+  position: Float!
+}
+
+type Checklist {
+  cardId: ID!
+  id: ID!
+  items: [ChecklistItem!]
+  title: String!
+}
+
+type ChecklistItem {
+  checked: Boolean!
+  checklistId: ID!
+  content: String!
+  id: ID!
+  position: Float!
+}
+
+input ChecklistItemPositionInput {
+  id: ID!
+  position: Float!
+}
+
+type Comment {
+  author: User
+  authorId: ID!
+  cardId: ID!
+  content: String!
+  createdAt: DateTime!
+  id: ID!
+  updatedAt: DateTime!
+}
+
+type CommentDeletedEvent {
+  cardId: ID!
+  commentId: ID!
+}
+
+input CreateAttachmentInput {
+  cardId: ID!
+  filename: String!
+  size: Int!
+  url: String!
+}
+
 input CreateBoardInput {
   background: String
   description: String
@@ -48,14 +188,55 @@ input CreateBoardInput {
   workspaceId: ID
 }
 
+input CreateCardInput {
+  background: String
+  completed: Boolean
+
+  """Card description with markdown support"""
+  description: String
+  dueDate: DateTime
+  listId: ID!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+  startDate: DateTime
+  title: String!
+}
+
+input CreateChecklistInput {
+  cardId: ID!
+  title: String!
+}
+
+input CreateCommentInput {
+  cardId: ID!
+  content: String!
+}
+
+input CreateLabelInput {
+  boardId: ID!
+  color: String!
+  name: String
+}
+
+input CreateListInput {
+  boardId: ID!
+
+  """Optional position. If not provided, will be calculated automatically."""
+  position: Float
+  title: String!
+}
+
 input CreateUserInput {
   avatar: String
+  description: String
   email: String!
   name: String!
   password: String!
 }
 
 input CreateWorkspaceInput {
+  description: String
   logoUrl: String
   name: String!
   visibility: String
@@ -86,6 +267,29 @@ input InviteMemberInput {
   workspaceId: String!
 }
 
+type Label {
+  boardId: ID!
+  color: String!
+  id: ID!
+  name: String
+}
+
+type List {
+  boardId: ID!
+  cards: [Card!]
+  createdAt: DateTime!
+  id: ID!
+  isArchived: Boolean!
+  position: Int!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input ListPosition {
+  id: ID!
+  position: Float!
+}
+
 """Input for user login"""
 input LoginInput {
   """User email address"""
@@ -100,6 +304,7 @@ input LoginInput {
 
 type MemberUser {
   avatar: String
+  description: String
   email: String!
   id: ID!
   name: String!
@@ -111,6 +316,16 @@ type MessageResponse {
   message: String!
 }
 
+input MoveCardInput {
+  cardId: ID!
+
+  """
+  Optional position in target list. If not provided, will be calculated automatically.
+  """
+  position: Float
+  targetListId: ID!
+}
+
 type Mutation {
   """Accept a workspace invitation."""
   acceptInvitation(input: RespondInvitationInput!): WorkspaceInvitation!
@@ -118,18 +333,55 @@ type Mutation {
   """Add a member to a board. Only board ADMIN can add members."""
   addBoardMember(input: AddBoardMemberInput!): BoardMemberWithUser!
 
+  """Add an item to a checklist."""
+  addChecklistItem(input: AddChecklistItemInput!): ChecklistItem!
+
+  """Add a label to a card. User must have access to the board."""
+  addLabelToCard(input: AddLabelToCardInput!): Card!
+
   """Archive a board. User must be ADMIN or MEMBER."""
   archiveBoard(id: ID!): Board!
+
+  """Archive a card. User must have access to the board."""
+  archiveCard(id: ID!): Card!
+
+  """Archive a list. User must have access to the board."""
+  archiveList(id: ID!): List!
+
+  """Assign a member to a card. User must have access to the board."""
+  assignMemberToCard(input: AssignMemberToCardInput!): Card!
 
   """
   Cancel a pending invitation. Only the inviter or workspace admin can cancel.
   """
   cancelInvitation(invitationId: ID!): Boolean!
 
+  """Create an attachment on a card."""
+  createAttachment(input: CreateAttachmentInput!): Attachment!
+
   """
   Create a new board. User must be ADMIN or MEMBER of the workspace (if provided).
   """
   createBoard(input: CreateBoardInput!): Board!
+
+  """
+  Create a new card. Position is calculated automatically if not provided.
+  """
+  createCard(input: CreateCardInput!): Card!
+
+  """Create a new checklist for a card."""
+  createChecklist(input: CreateChecklistInput!): Checklist!
+
+  """Create a comment on a card."""
+  createComment(input: CreateCommentInput!): Comment!
+
+  """Create a new label for a board. User must have access to the board."""
+  createLabel(input: CreateLabelInput!): Label!
+
+  """
+  Create a new list. Position is calculated automatically if not provided.
+  """
+  createList(input: CreateListInput!): List!
 
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
@@ -137,8 +389,29 @@ type Mutation {
   """Create a new workspace. The creator becomes an ADMIN automatically."""
   createWorkspace(input: CreateWorkspaceInput!): Workspace!
 
+  """Delete an attachment. Uploader only."""
+  deleteAttachment(id: ID!): Boolean!
+
   """Delete a board. Only board ADMIN can delete."""
   deleteBoard(id: ID!): Boolean!
+
+  """Delete a card. User must have access to the board."""
+  deleteCard(id: ID!): Boolean!
+
+  """Delete a checklist."""
+  deleteChecklist(id: ID!): Boolean!
+
+  """Delete a checklist item."""
+  deleteChecklistItem(id: ID!): Boolean!
+
+  """Delete a comment. Author only."""
+  deleteComment(id: ID!): Boolean!
+
+  """Delete a label. User must have access to the board."""
+  deleteLabel(id: ID!): Boolean!
+
+  """Delete a list. Cards are automatically deleted via cascade."""
+  deleteList(id: ID!): Boolean!
 
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
@@ -154,6 +427,14 @@ type Mutation {
   """Invite a member to a workspace. Only ADMIN members can invite."""
   inviteMember(input: InviteMemberInput!): WorkspaceInvitation!
 
+  """
+  Join a workspace via invite link. Adds current user as MEMBER if not already a member.
+  """
+  joinWorkspaceByInviteLink(workspaceId: ID!): Boolean!
+
+  """Leave a board. Cannot leave if you are the last admin."""
+  leaveBoard(boardId: ID!): Boolean!
+
   """Leave a workspace. Cannot leave if you are the last admin."""
   leaveWorkspace(workspaceId: ID!): Boolean!
 
@@ -161,6 +442,11 @@ type Mutation {
   Login with email and password. Returns a JWT token for authenticated requests.
   """
   login(input: LoginInput!): AuthPayload!
+
+  """
+  Move a card to a different list within the same board. Position is calculated automatically if not provided.
+  """
+  moveCard(input: MoveCardInput!): Card!
 
   """
   Register a new user account. If companyName is provided, a workspace is automatically created.
@@ -173,8 +459,24 @@ type Mutation {
   """Remove a member from a board. Only board ADMIN can remove members."""
   removeBoardMember(boardId: ID!, userId: ID!): Boolean!
 
+  """Remove a label from a card. User must have access to the board."""
+  removeLabelFromCard(input: RemoveLabelFromCardInput!): Card!
+
   """Remove a member from a workspace. Only ADMIN can remove members."""
   removeMember(input: RemoveMemberInput!): Boolean!
+
+  """
+  Reorder multiple cards within the same list. All cards must belong to the same list.
+  """
+  reorderCards(input: ReorderCardsInput!): [Card!]!
+
+  """Reorder items in a checklist."""
+  reorderChecklistItems(input: ReorderChecklistItemsInput!): [ChecklistItem!]!
+
+  """
+  Reorder multiple lists at once. All lists must belong to the same board.
+  """
+  reorderLists(input: ReorderListsInput!): [List!]!
 
   """
   Reset password using a valid reset token. The token is received via email after requesting a password reset.
@@ -184,11 +486,41 @@ type Mutation {
   """Unarchive a board. User must be ADMIN or MEMBER."""
   unarchiveBoard(id: ID!): Board!
 
+  """Unarchive a card. User must have access to the board."""
+  unarchiveCard(id: ID!): Card!
+
+  """Unarchive a list. User must have access to the board."""
+  unarchiveList(id: ID!): List!
+
+  """Unassign a member from a card. User must have access to the board."""
+  unassignMemberFromCard(input: UnassignMemberFromCardInput!): Card!
+
+  """Update an attachment. Uploader only."""
+  updateAttachment(input: UpdateAttachmentInput!): Attachment!
+
   """Update a board. User must be ADMIN or MEMBER of the board."""
   updateBoard(input: UpdateBoardInput!): Board!
 
   """Update a member role in a board. Only board ADMIN can update roles."""
   updateBoardMemberRole(input: UpdateBoardMemberRoleInput!): Boolean!
+
+  """Update a card. User must have access to the board."""
+  updateCard(input: UpdateCardInput!): Card!
+
+  """Update a checklist title."""
+  updateChecklist(input: UpdateChecklistInput!): Checklist!
+
+  """Update a checklist item (content, checked, position)."""
+  updateChecklistItem(input: UpdateChecklistItemInput!): ChecklistItem!
+
+  """Update a comment. Author only."""
+  updateComment(input: UpdateCommentInput!): Comment!
+
+  """Update a label. User must have access to the board."""
+  updateLabel(input: UpdateLabelInput!): Label!
+
+  """Update a list. User must have access to the board."""
+  updateList(input: UpdateListInput!): List!
 
   """Update a member role in a workspace. Only ADMIN can update roles."""
   updateMemberRole(input: UpdateMemberRoleInput!): Boolean!
@@ -205,12 +537,79 @@ type Mutation {
   verifyEmail(token: String!): MessageResponse!
 }
 
+input MyActivityInput {
+  """Cursor for pagination (activity id). Fetch activities older than this."""
+  cursor: ID
+  limit: Int = 20
+
+  """
+  Filter by workspace IDs. Only activities from boards in these workspaces.
+  """
+  workspaceIds: [ID!]
+}
+
+type MyActivityResult {
+  activities: [Activity!]!
+  hasMore: Boolean!
+
+  """Cursor for next page (last activity id)"""
+  nextCursor: ID
+}
+
 type Query {
+  """
+  Get activity feed from all boards the user has access to (all members). Optional workspace filter.
+  """
+  activityFeed(input: MyActivityInput = {}): MyActivityResult!
+
+  """Get archived cards for a board. User must have access to the board."""
+  archivedCards(boardId: ID!): [Card!]!
+
+  """Get archived lists for a board. User must have access to the board."""
+  archivedLists(boardId: ID!): [List!]!
+
+  """Get an attachment by ID. User must have access to the board."""
+  attachment(id: ID!): Attachment!
+
   """Get a board by ID. Access based on visibility and membership."""
   board(id: ID!): Board!
 
+  """
+  Get activity for a board (all members). User must have access to the board.
+  """
+  boardActivity(boardId: String!, input: BoardActivityInput = {}): MyActivityResult!
+
+  """List all labels for a board. User must have access to the board."""
+  boardLabels(boardId: ID!): [Label!]!
+
+  """Get a card by ID. User must have access to the board."""
+  card(id: ID!): Card!
+
+  """List attachments for a card. User must have access to the board."""
+  cardAttachments(cardId: ID!): [Attachment!]!
+
+  """List all checklists for a card. User must have access to the board."""
+  cardChecklists(cardId: ID!): [Checklist!]!
+
+  """List comments for a card. User must have access to the board."""
+  cardComments(cardId: ID!): [Comment!]!
+
+  """Get a checklist by ID. User must have access to the board."""
+  checklist(id: ID!): Checklist!
+
+  """Get a comment by ID. User must have access to the board."""
+  comment(id: ID!): Comment!
+
+  """Get a list by ID. User must have access to the board."""
+  list(id: ID!): List!
+
   """Get the currently authenticated user information"""
   me: User
+
+  """
+  Get current user activity log with optional workspace filter and pagination.
+  """
+  myActivity(input: MyActivityInput = {}): MyActivityResult!
 
   """Get all pending invitations for the current user."""
   myInvitations: [WorkspaceInvitation!]!
@@ -220,6 +619,9 @@ type Query {
 
   """Get a user by ID (requires authentication)"""
   user(id: ID!): User
+
+  """Get a user by email (for invite flows; requires authentication)"""
+  userByEmail(email: String!): User
 
   """Get all users (requires authentication)"""
   users: [User!]!
@@ -232,6 +634,9 @@ type Query {
 
   """Get pending invitations for a workspace. Only ADMIN can view."""
   workspaceInvitations(workspaceId: ID!): [WorkspaceInvitation!]!
+
+  """Get workspace name/logo for the invite link page. Public."""
+  workspaceInviteInfo(workspaceId: ID!): WorkspaceInviteInfo!
 
   """Get all members of a workspace. User must be a member to view."""
   workspaceMembers(workspaceId: ID!): [WorkspaceMemberWithUser!]!
@@ -252,9 +657,29 @@ input RegisterInput {
   password: String!
 }
 
+input RemoveLabelFromCardInput {
+  cardId: ID!
+  labelId: ID!
+}
+
 input RemoveMemberInput {
   userId: String!
   workspaceId: String!
+}
+
+input ReorderCardsInput {
+  cardPositions: [CardPosition!]!
+  listId: ID!
+}
+
+input ReorderChecklistItemsInput {
+  checklistId: ID!
+  itemPositions: [ChecklistItemPositionInput!]!
+}
+
+input ReorderListsInput {
+  boardId: ID!
+  listPositions: [ListPosition!]!
 }
 
 """Input for resetting password with token"""
@@ -268,6 +693,40 @@ input ResetPasswordInput {
 
 input RespondInvitationInput {
   invitationId: String!
+}
+
+type Subscription {
+  """Subscribe to card create/update/move/delete for a board."""
+  cardUpdated(boardId: ID!): Card!
+
+  """Subscribe to updates for a single card (e.g. card modal)."""
+  cardUpdatedByCardId(cardId: ID!): Card!
+
+  """Subscribe to new comments on a card. Filter by cardId."""
+  commentAdded(cardId: ID!): Comment!
+
+  """
+  Subscribe to comment deletions on a card. Payload has commentId and cardId.
+  """
+  commentDeleted(cardId: ID!): CommentDeletedEvent!
+
+  """Subscribe to comment edits on a card. Filter by cardId."""
+  commentUpdated(cardId: ID!): Comment!
+
+  """Subscribe to list create/update/reorder/delete for a board."""
+  listUpdated(boardId: ID!): List!
+}
+
+input UnassignMemberFromCardInput {
+  cardId: ID!
+  userId: ID!
+}
+
+input UpdateAttachmentInput {
+  filename: String
+  id: ID!
+  size: Int
+  url: String
 }
 
 input UpdateBoardInput {
@@ -284,6 +743,48 @@ input UpdateBoardMemberRoleInput {
   userId: ID!
 }
 
+input UpdateCardInput {
+  background: String
+  completed: Boolean
+
+  """Card description with markdown support"""
+  description: String
+  dueDate: DateTime
+  id: ID!
+  position: Float
+  startDate: DateTime
+  title: String
+}
+
+input UpdateChecklistInput {
+  id: ID!
+  title: String
+}
+
+input UpdateChecklistItemInput {
+  checked: Boolean
+  content: String
+  id: ID!
+  position: Float
+}
+
+input UpdateCommentInput {
+  content: String!
+  id: ID!
+}
+
+input UpdateLabelInput {
+  color: String
+  id: ID!
+  name: String
+}
+
+input UpdateListInput {
+  id: ID!
+  position: Int
+  title: String
+}
+
 input UpdateMemberRoleInput {
   role: String!
   userId: String!
@@ -292,12 +793,14 @@ input UpdateMemberRoleInput {
 
 input UpdateUserInput {
   avatar: String
+  description: String
   email: String
   name: String
   password: String
 }
 
 input UpdateWorkspaceInput {
+  description: String
   logoUrl: String
   name: String
   visibility: String
@@ -306,6 +809,7 @@ input UpdateWorkspaceInput {
 type User {
   avatar: String
   createdAt: DateTime!
+  description: String
   email: String!
   id: ID!
   name: String!
@@ -321,6 +825,7 @@ enum Visibility {
 
 type Workspace {
   createdAt: DateTime!
+  description: String
   id: ID!
   logoUrl: String
   memberCount: Float!
@@ -343,6 +848,12 @@ type WorkspaceInvitation {
   updatedAt: DateTime!
   workspaceId: ID!
   workspaceName: String
+}
+
+type WorkspaceInviteInfo {
+  id: ID!
+  logoUrl: String
+  name: String!
 }
 
 type WorkspaceMember {

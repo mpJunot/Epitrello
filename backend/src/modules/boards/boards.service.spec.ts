@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Role, Visibility } from '@prisma/client';
@@ -108,6 +108,13 @@ describe('BoardsService', () => {
               userId: mockUser.id,
               role: Role.ADMIN,
             },
+          },
+          lists: {
+            create: [
+              { title: 'To Do', position: 0 },
+              { title: 'Doing', position: 1 },
+              { title: 'Done', position: 2 },
+            ],
           },
         },
       });
@@ -357,6 +364,10 @@ describe('BoardsService', () => {
         where: {
           workspaceId: 'workspace-1',
           isArchived: false,
+          OR: [
+            { visibility: 'WORKSPACE' },
+            { members: { some: { userId: mockUser.id } } },
+          ],
         },
         include: {
           members: {
@@ -1005,6 +1016,110 @@ describe('BoardsService', () => {
       await expect(
         service.updateMemberRole(mockBoard.id, 'user-2', Role.ADMIN, mockUser.id),
       ).rejects.toThrow('Only board administrators can update member roles');
+    });
+  });
+
+  describe('leaveBoard', () => {
+    it('should allow a MEMBER to leave a board', async () => {
+      const memberUser = {
+        id: 'user-2',
+        userId: 'user-2',
+        role: Role.MEMBER,
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          ...mockBoard.members,
+          memberUser,
+        ],
+      });
+      mockPrismaService.boardMember.delete.mockResolvedValue(memberUser);
+
+      const result = await service.leaveBoard(mockBoard.id, 'user-2');
+
+      expect(result).toBe(true);
+      expect(prismaService.boardMember.delete).toHaveBeenCalledWith({
+        where: {
+          boardId_userId: {
+            boardId: mockBoard.id,
+            userId: 'user-2',
+          },
+        },
+      });
+    });
+
+    it('should allow an ADMIN to leave if there are other ADMINS', async () => {
+      const adminUser = {
+        id: 'user-2',
+        userId: 'user-2',
+        role: Role.ADMIN,
+      };
+
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          ...mockBoard.members,
+          adminUser,
+        ],
+      });
+      mockPrismaService.boardMember.delete.mockResolvedValue(adminUser);
+
+      const result = await service.leaveBoard(mockBoard.id, 'user-2');
+
+      expect(result).toBe(true);
+      expect(prismaService.boardMember.delete).toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException if user is the last ADMIN', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          {
+            id: 'member-1',
+            userId: 'user-1',
+            role: Role.ADMIN,
+          },
+        ],
+      });
+
+      await expect(service.leaveBoard(mockBoard.id, 'user-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.leaveBoard(mockBoard.id, 'user-1')).rejects.toThrow(
+        'You are the last admin. Please assign another admin before leaving',
+      );
+    });
+
+    it('should throw NotFoundException if board not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.leaveBoard('invalid-id', 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.leaveBoard('invalid-id', 'user-1')).rejects.toThrow(
+        'Board not found',
+      );
+    });
+
+    it('should throw NotFoundException if user is not a member', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...mockBoard,
+        members: [
+          {
+            id: 'member-1',
+            userId: 'user-1',
+            role: Role.ADMIN,
+          },
+        ],
+      });
+
+      await expect(service.leaveBoard(mockBoard.id, 'non-existent-user')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.leaveBoard(mockBoard.id, 'non-existent-user')).rejects.toThrow(
+        'You are not a member of this board',
+      );
     });
   });
 });

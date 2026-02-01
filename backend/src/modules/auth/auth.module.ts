@@ -15,6 +15,7 @@ import { EmailModule } from '../email/email.module';
 
 // Build providers array conditionally based on environment variables
 const buildOAuthProviders = () => {
+  const logger = new Logger('AuthModule');
   const providers: any[] = [
     AuthService,
     AuthResolver,
@@ -24,6 +25,9 @@ const buildOAuthProviders = () => {
   // Only add OAuth strategies if credentials are configured (non-empty)
   if (process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim()) {
     providers.push(GoogleStrategy);
+    logger.log('Google OAuth strategy registered');
+  } else {
+    logger.warn('Google OAuth disabled: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable');
   }
 
   if (
@@ -33,14 +37,19 @@ const buildOAuthProviders = () => {
     process.env.APPLE_PRIVATE_KEY?.trim()
   ) {
     providers.push(AppleStrategy);
+    logger.log('Apple OAuth strategy registered');
   }
 
   if (process.env.MICROSOFT_CLIENT_ID?.trim() && process.env.MICROSOFT_CLIENT_SECRET?.trim()) {
     providers.push(MicrosoftStrategy);
+    logger.log('Microsoft OAuth strategy registered');
   }
 
   if (process.env.SLACK_CLIENT_ID?.trim() && process.env.SLACK_CLIENT_SECRET?.trim()) {
     providers.push(SlackStrategy);
+    logger.log('Slack OAuth strategy registered');
+  } else {
+    logger.warn('Slack OAuth disabled: set SLACK_CLIENT_ID and SLACK_CLIENT_SECRET to enable');
   }
   return providers;
 };
@@ -71,7 +80,7 @@ const buildOAuthProviders = () => {
   ],
   controllers: [AuthController],
   providers: buildOAuthProviders(),
-  exports: [AuthService],
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
 

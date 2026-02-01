@@ -1,0 +1,51 @@
+spectaql:
+  targetDir: ./docs/graphql
+  oneFile: false
+  displayAllServers: true
+
+introspection:
+  removeTrailingPeriodFromDescriptions: false
+  schemaFile: ./src/graphql/schema.gql
+  queryNameStrategy: capitalizeFirst
+  fieldExpansionDepth: 2
+
+  spectaqlDirective:
+    enable: true
+  headers:
+    Authorization: Bearer your-token-here
+
+extensions:
+  graphqlScalarExamples: true
+
+info:
+  title: Epitrello API Documentation
+  description: Welcome to the GraphQL API documentation for Epitrello
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  x-introItems:
+    - title: Getting Started
+      description: |
+        ## Getting Started
+
+        1. **Authentication**: Most operations require authentication. Use the `login` or `register` mutations to obtain a JWT token.
+        2. **Authorization**: Include the JWT token in the `Authorization` header: `Bearer YOUR_JWT_TOKEN`
+        3. **Base URL**: `https://staging-epitrello-backend-940386127836.europe-west1.run.app/graphql`
+
+    - title: Features
+      description: |
+        - **Boards**: Create and manage project boards
+        - **Lists**: Organize tasks into lists within boards
+        - **Cards**: Create and manage tasks with position tracking
+        - **Workspaces**: Organize boards into workspaces
+        - **Authentication**: Secure JWT-based authentication
+        - **OAuth**: Support for Google, Microsoft, Apple, and Slack
+
+servers:
+  - url: https://staging-epitrello-backend-940386127836.europe-west1.run.app/graphql
+    description: Staging
+    production: false
+    headers:
+      - name: Authorization
+        example: Bearer <YOUR_TOKEN_HERE>
+        comment: Your foo from bar

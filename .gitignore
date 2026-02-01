@@ -45,3 +45,28 @@ bower_components/
 
 # Optional npm cache directory
 .npm/cache/
+
+# GCP Service Account Keys (NEVER COMMIT THESE!)
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!tsconfig.*.json
+!nest-cli.json
+*-sa-key*.json
+gcp-key*.json
+service-account*.json
+
+# Terraform
+**/github-actions/env/*.tfvars
+!**/github-actions/env/*.tfvars.example
+**/terraform/env/*.tfvars
+!**/terraform/env/*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+!*.tfvars.example
+!terraform/variables.tf

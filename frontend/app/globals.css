@@ -1,26 +1,637 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Trello-inspired color scheme */
+
+  /* Trello brand colors */
+  --trello-blue: #0079bf;
+  --trello-blue-hover: #026aa7;
+  --trello-blue-light: #e4f0f6;
+  --trello-text: #172b4d;
+  --trello-text-secondary: #5e6c84;
+  --trello-border: #f1f3f5;
+  --trello-card-bg: #ffffff;
+  --trello-hover: #f4f5f7;
+  --radius: 0.65rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.35 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.35 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.35 0.02 250);
+  --primary: oklch(0.5 0.15 240);
+  --primary-foreground: oklch(0.98 0.01 250);
+  --secondary: oklch(0.97 0.002 250);
+  --secondary-foreground: oklch(0.35 0.02 250);
+  --muted: oklch(0.97 0.002 250);
+  --muted-foreground: oklch(0.5 0.015 250);
+  --accent: oklch(0.97 0.002 250);
+  --accent-foreground: oklch(0.35 0.02 250);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.98 0.01 250);
+  --border: oklch(0.96 0.003 250);
+  --input: oklch(0.96 0.003 250);
+  --ring: oklch(0.5 0.15 240);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  /* Sidebar: Trello blue (aligné avec le Topbar), valeurs HSL pour compatibilité */
+  --sidebar: 214 100% 50%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 214 100% 50%;
+  --sidebar-accent: 214 100% 45%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 214 100% 45%;
+  --sidebar-ring: 0 0% 100% / 0.5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-secondary: 0 0% 96%;
+  --color-secondary-foreground: 23 13% 30%;
+  --color-muted: 0 0% 96%;
+  --color-muted-foreground: 23 13% 50%;
+  --color-ring: 214 100% 50%;
+  --color-border: 0 0% 91%;
+
+  --color-trello-blue: 214 100% 50%;
+  --color-trello-blue-hover: 214 100% 45%;
+  --color-trello-text: 214 50% 20%;
+  --color-trello-text-secondary: 214 20% 50%;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-input: var(--input);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: oklch(0.25 0.005 250);
+  --foreground: oklch(0.95 0.002 250);
+  --card: oklch(0.28 0.006 250);
+  --card-foreground: oklch(0.95 0.002 250);
+  --popover: oklch(0.28 0.006 250);
+  --popover-foreground: oklch(0.95 0.002 250);
+  --primary: oklch(0.55 0.18 240);
+  --primary-foreground: oklch(0.98 0.01 250);
+  --secondary: oklch(0.32 0.006 250);
+  --secondary-foreground: oklch(0.95 0.002 250);
+  --muted: oklch(0.32 0.006 250);
+  --muted-foreground: oklch(0.7 0.015 250);
+  --accent: oklch(0.32 0.006 250);
+  --accent-foreground: oklch(0.95 0.002 250);
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 250);
+  --border: oklch(0.35 0.005 250);
+  --input: oklch(0.38 0.005 250);
+  --ring: oklch(0.55 0.18 240);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  /* Sidebar: Trello blue (aligné avec le Topbar), valeurs HSL pour compatibilité */
+  --sidebar: 214 100% 50%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 214 100% 50%;
+  --sidebar-accent: 214 100% 45%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 214 100% 45%;
+  --sidebar-ring: 0 0% 100% / 0.5;
+
+  /* Trello dark mode colors */
+  --trello-blue: #0079bf;
+  --trello-blue-hover: #026aa7;
+  --trello-blue-light: #1e3a5f;
+  --trello-text: #e4e6eb;
+  --trello-text-secondary: #b0b3b8;
+  --trello-border: #4a4b4c;
+  --trello-card-bg: #242526;
+  --trello-hover: #3a3b3c;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes dragPlaceholder {
+
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scaleX(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scaleX(0.98);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-scale-in {
+  animation: fadeScaleIn 0.25s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.2s ease-out;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-drag-placeholder {
+  animation: dragPlaceholder 1s ease-in-out infinite;
+}
+
+/* Flou du board quand la modale est ouverte */
+.modal-blur {
+  filter: blur(3px);
+  transition: filter 0.2s ease-out;
+  pointer-events: none;
+}
+
+/* Custom focus for inputs */
+input:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #818cf8;
+}
+
+[data-slot='command-input']:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+[data-slot='command-input-wrapper']:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scroll style for columns */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Smooth scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* On mobile, optimize single-column display */
+@media (max-width: 640px) {
+  .custom-scrollbar {
+    scroll-padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Hide scrollbar on mobile for cleaner look while keeping functionality */
+@media (max-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+  }
+}
+
+/* Toast animations */
+@keyframes slide-in-from-top {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-out-to-right-full {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-in {
+  animation: fade-in 0.2s ease-out, slide-in-from-top 0.2s ease-out;
+}
+
+.sm\:slide-in-from-bottom {
+  @media (min-width: 640px) {
+    animation: fade-in 0.2s ease-out, slide-in-from-bottom 0.2s ease-out;
+  }
+}
+
+.fade-out-80 {
+  animation: fade-out 0.2s ease-out;
+  opacity: 0.8;
+}
+
+.slide-out-to-right-full {
+  animation: slide-out-to-right-full 0.2s ease-out;
+}
+
+/* Trello theme utility classes */
+.bg-trello-blue {
+  background-color: var(--trello-blue);
+}
+
+.bg-trello-blue-hover {
+  background-color: var(--trello-blue-hover);
+}
+
+.bg-trello-blue-light {
+  background-color: var(--trello-blue-light);
+}
+
+.bg-trello-hover {
+  background-color: var(--trello-hover);
+}
+
+.bg-trello-card {
+  background-color: var(--trello-card-bg);
+}
+
+.bg-trello-card-bg {
+  background-color: var(--trello-card-bg);
+}
+
+.bg-trello-border {
+  background-color: var(--trello-border);
+}
+
+.text-trello {
+  color: var(--trello-text);
+}
+
+.text-trello-secondary {
+  color: var(--trello-text-secondary);
+}
+
+.text-trello-text-secondary {
+  color: var(--trello-text-secondary);
+}
+
+.text-trello-border {
+  color: var(--trello-border);
+}
+
+.border-trello {
+  border-color: var(--trello-border);
+}
+
+.border-trello-border {
+  border-color: var(--trello-border);
+}
+
+.border-trello-blue {
+  border-color: var(--trello-blue);
+}
+
+.border-trello-blue-hover {
+  border-color: var(--trello-blue-hover);
+}
+
+.hover\:bg-trello-blue-hover:hover {
+  background-color: var(--trello-blue-hover);
+}
+
+.hover\:bg-trello-hover:hover {
+  background-color: var(--trello-hover);
+}
+
+.hover\:bg-trello-border:hover {
+  background-color: var(--trello-border);
+}
+
+.focus\:ring-trello-blue:focus {
+  --tw-ring-color: var(--trello-blue);
+}
+
+.focus\:border-trello-blue:focus {
+  border-color: var(--trello-blue);
+}
+
+.ring-trello-blue {
+  --tw-ring-color: var(--trello-blue);
+}
+
+.text-trello-blue {
+  color: var(--trello-blue);
+}
+
+.border-t-trello {
+  border-top-color: var(--trello-text);
+}
+
+.focus\:ring-trello-secondary:focus {
+  --tw-ring-color: var(--trello-text-secondary);
+}
+
+.ring-trello-secondary {
+  --tw-ring-color: var(--trello-text-secondary);
+}
+
+@layer base {
+  * {
+    @apply outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html,
+  body {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  #__next,
+  [data-slot="sidebar-wrapper"] {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  [data-slot="sidebar-wrapper"]>div:first-child {
+    width: 100%;
+  }
+
+  [data-slot="dialog-content"] {
+    border-color: var(--accent) !important;
+  }
+
+  [data-slot="dropdown-menu-separator"] {
+    background-color: var(--accent) !important;
+  }
+
+  [data-slot="dropdown-menu-content"] {
+    border-color: var(--accent) !important;
+  }
+
+  [data-slot="select-content"] {
+    border-color: var(--accent) !important;
+  }
+
+  [data-slot="sheet-content"] {
+    border-color: var(--accent) !important;
+  }
+
+  [data-slot="dialog-content"] {
+    background-color: var(--trello-card-bg) !important;
+  }
+
+  [data-slot="sheet-content"] {
+    background-color: var(--trello-card-bg) !important;
+  }
+
+  [data-sidebar="rail"],
+  [data-slot="sidebar-rail"] {
+    display: none !important;
+  }
+
+  [data-slot="sidebar-container"] {
+    border-right: none !important;
+    border-left: none !important;
+  }
+
+  /* Sidebar sous le Topbar quand .topbar-above est sur le parent */
+  .topbar-above [data-slot="sidebar-container"] {
+    top: 3.5rem;
+    height: calc(100svh - 3.5rem);
+  }
+
+  [data-sidebar="sidebar"][data-slot="sidebar-inner"] {
+    border-right: none !important;
+    border-left: none !important;
+  }
+
+  [data-slot="sidebar-container"] * {
+    border-right: none !important;
+  }
+
+  header {
+    position: relative;
+    z-index: 30;
+  }
+
+  [data-slot="sidebar-inset"] {
+    position: relative;
+    z-index: 1;
+  }
+
+  [data-sidebar="trigger"],
+  [data-slot="sidebar-trigger"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Sidebar items: bleu Trello hover/active + cursor pointer */
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"],
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"] {
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"]:hover,
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"]:hover {
+    background-color: var(--trello-blue-hover) !important;
+    color: hsl(0 0% 100%) !important;
+  }
+
+  [data-slot="sidebar-container"] [data-sidebar="menu-button"][data-active="true"],
+  [data-slot="sidebar-container"] [data-sidebar="menu-sub-button"][data-active="true"] {
+    background-color: var(--trello-blue-hover) !important;
+    color: hsl(0 0% 100%) !important;
+  }
 }
