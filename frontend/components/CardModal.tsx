@@ -85,6 +85,7 @@ import {
   deleteChecklistItem as deleteChecklistItemAPI,
 } from '@/lib/actions/checklists';
 import { boardQueryKey, useBoardQuery } from '@/app/boards/[id]/queries';
+import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
 import { useWorkspaceQuery } from '@/lib/queries/workspaces';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
@@ -913,6 +914,8 @@ export default function CardModal({
         cardCommentsQueryKey(card.id),
         (prev) => (prev ? [...prev, created] : [created])
       );
+      await queryClient.invalidateQueries({ queryKey: activityInvalidateKey });
+      await queryClient.invalidateQueries({ queryKey: activityBoardInvalidateKey });
       setNewComment('');
       emitEvent('epitrello:card-comments-updated', {
         cardId: card.id,
@@ -984,9 +987,9 @@ export default function CardModal({
     card.listId || ''
   );
   const [selectedPosition, setSelectedPosition] = useState<string>('1');
-  // Menu de déplacement dans le header
+  // Move menu in the header
   const [isHeaderMoveOpen, setIsHeaderMoveOpen] = useState(false);
-  // Popover de déplacement utilisé dans la section Dates (overdue)
+  // Move popover used in the Dates section (overdue)
   const [isMovePopoverOpen, setIsMovePopoverOpen] = useState(false);
 
   const handleMoveCard = () => {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { CardsResolver } from './cards.resolver';
 import { CardsService } from './cards.service';
 import { CardsDataLoader } from './dataloaders/cards.dataloader';
+import { ActivityService } from '../activity/activity.service';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -15,7 +16,16 @@ describe('CardsResolver', () => {
 
   const mockPrismaService = {
     list: {
-      findUnique: jest.fn().mockResolvedValue({ boardId: 'board-1' }),
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'list-1',
+        title: 'List',
+        boardId: 'board-1',
+        board: { id: 'board-1', title: 'Board' },
+      }),
+      findFirst: jest.fn(),
+    },
+    user: {
+      findUnique: jest.fn().mockResolvedValue({ id: 'user-2', name: 'Other User' }),
     },
   };
 
@@ -51,6 +61,10 @@ describe('CardsResolver', () => {
     createLabelsByCardLoader: jest.fn(() => mockLabelsLoader),
     createChecklistsByCardLoader: jest.fn(() => mockChecklistsLoader),
     createAssigneesByCardLoader: jest.fn(() => mockAssigneesLoader),
+  };
+
+  const mockActivityService = {
+    create: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockUser = {
@@ -92,6 +106,10 @@ describe('CardsResolver', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: ActivityService,
+          useValue: mockActivityService,
         },
       ],
     }).compile();
