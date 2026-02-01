@@ -21,6 +21,7 @@ import { boardQueryKey } from './queries';
 import { updateBoard } from '@/lib/actions/boards';
 import { toast } from '@/lib/toast';
 import { useCurrentUserQuery } from '@/lib/queries/users';
+import { useBoardCardSubscription } from '@/lib/hooks/use-board-card-subscription';
 
 export default function BoardPage({
   params,
@@ -33,6 +34,7 @@ export default function BoardPage({
   const { data: currentUser } = useCurrentUserQuery();
 
   useEventListeners(boardId, setLists, () => lists, queryClient);
+  useBoardCardSubscription(boardId, queryClient, !!boardId && !loading);
 
   const canEdit = useMemo(() => {
     if (!board?.members || !currentUser?.id) return false;
