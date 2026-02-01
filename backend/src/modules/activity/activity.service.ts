@@ -76,6 +76,56 @@ export class ActivityService {
   }
 
   /**
+   * Get activity feed: all activity from boards the user has access to (all members).
+   * Optionally filtered by workspaceIds. Used for Activity page and workspace activity page.
+   */
+  async findActivityFeed(userId: string, input: MyActivityInput): Promise<MyActivityResult> {
+    const limit = Math.min(input.limit ?? 20, 50);
+    const take = limit + 1;
+
+    let boardIds: string[] = (
+      await this.prisma.boardMember.findMany({
+        where: { userId },
+        select: { boardId: true },
+      })
+    ).map((m) => m.boardId);
+
+    if (input.workspaceIds?.length && boardIds.length > 0) {
+      const boardsInWorkspaces = await this.prisma.board.findMany({
+        where: {
+          id: { in: boardIds },
+          workspaceId: { in: input.workspaceIds },
+        },
+        select: { id: true },
+      });
+      boardIds = boardsInWorkspaces.map((b) => b.id);
+    }
+
+    if (boardIds.length === 0) {
+      return { activities: [], hasMore: false, nextCursor: null };
+    }
+
+    const rows = await this.prisma.activity.findMany({
+      where: { boardId: { in: boardIds } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
+      skip: input.cursor ? 1 : 0,
+      cursor: input.cursor ? { id: input.cursor } : undefined,
+    });
+
+    const hasMore = rows.length > limit;
+    const activities = rows.slice(0, limit).map((r) => this.toActivity(r));
+    const nextCursor =
+      hasMore && activities.length > 0 ? activities[activities.length - 1].id : null;
+
+    return {
+      activities,
+      hasMore,
+      nextCursor,
+    };
+  }
+
+  /**
    * Get activity for a board (all members). User must have access to the board.
    */
   async findBoardActivity(
