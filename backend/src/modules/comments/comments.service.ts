@@ -4,15 +4,19 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Comment } from './entities/comment.entity';
 import { CreateCommentInput } from './dto/create-comment.input';
 import { UpdateCommentInput } from './dto/update-comment.input';
 
 @Injectable()
 export class CommentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Check if user has access to the board
@@ -99,13 +103,33 @@ export class CommentsService {
 
     const content = this.validateContent(input.content);
 
-    return this.prisma.comment.create({
+    const comment = await this.prisma.comment.create({
       data: {
         cardId: input.cardId,
         authorId: userId,
         content,
       },
     });
+
+    const assignees = await this.prisma.cardAssignee.findMany({
+      where: {
+        cardId: input.cardId,
+        userId: { not: userId },
+      },
+      select: { userId: true },
+    });
+    for (const { userId: assigneeId } of assignees) {
+      await this.notificationsService.create({
+        userId: assigneeId,
+        type: NotificationType.COMMENT_ADDED,
+        payload: JSON.stringify({
+          cardId: input.cardId,
+          commentId: comment.id,
+        }),
+      });
+    }
+
+    return comment;
   }
 
   async findOne(id: string, userId: string): Promise<Comment> {

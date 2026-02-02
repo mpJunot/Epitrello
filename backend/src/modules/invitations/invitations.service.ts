@@ -6,13 +6,14 @@ import {
   Logger,
   ConflictException,
 } from '@nestjs/common';
+import { NotificationType, Role, InvitationStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { InviteMemberInput } from './dto/invite-member.input';
 import { UpdateMemberRoleInput } from './dto/update-member-role.input';
 import { RemoveMemberInput } from './dto/remove-member.input';
 import { WorkspaceInvitation } from './entities/invitation.entity';
-import { Role, InvitationStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class InvitationsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -100,6 +102,14 @@ export class InvitationsService {
     });
 
     this.logger.log(`Invitation created for ${input.inviteeEmail}`);
+
+    if (invitee?.id) {
+      await this.notificationsService.create({
+        userId: invitee.id,
+        type: NotificationType.WORKSPACE_INVITATION,
+        payload: JSON.stringify({ invitationId: invitation.id }),
+      });
+    }
 
     // Send invitation email (optional, won't fail if email service is disabled)
     try {
