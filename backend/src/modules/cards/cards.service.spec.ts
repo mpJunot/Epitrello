@@ -467,6 +467,10 @@ describe('CardsService', () => {
           ...mockCard,
           list: { boardId: 'board-1' },
         })
+        .mockResolvedValueOnce({
+          listId: 'list-1',
+          list: { boardId: 'board-1' },
+        })
         .mockResolvedValueOnce(mockCard);
       mockPrismaService.board.findUnique.mockResolvedValue(mockBoard);
       mockPrismaService.user.findUnique.mockResolvedValue({

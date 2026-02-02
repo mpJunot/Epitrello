@@ -5,7 +5,9 @@ import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 import { Inject } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
 import { Notification, MyNotificationsResult } from './entities/notification.entity';
+import { NotificationPreferences } from './entities/notification-preferences.entity';
 import { MyNotificationsInput } from './dto/my-notifications.input';
+import { UpdateNotificationPreferencesInput } from './dto/update-notification-preferences.input';
 import { TRIGGER_NOTIFICATION_RECEIVED } from './notification-subscription.resolver';
 
 export type CreateNotificationData = {
@@ -45,6 +47,10 @@ export class NotificationsService {
     });
     const notification = this.toNotification(row);
     this.pubSub.publish(TRIGGER_NOTIFICATION_RECEIVED, { notificationReceived: notification });
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.debug('[Notifications] Published', notification.type, 'for user', notification.userId);
+    }
     return notification;
   }
 
@@ -106,5 +112,50 @@ export class NotificationsService {
       data: { read: true },
     });
     return result.count;
+  }
+
+  /**
+   * Get current user's notification preferences. Creates default if none exist.
+   */
+  async getPreferences(userId: string): Promise<NotificationPreferences> {
+    let prefs = await this.prisma.userNotificationPreferences.findUnique({
+      where: { userId },
+    });
+    if (!prefs) {
+      prefs = await this.prisma.userNotificationPreferences.create({
+        data: { userId },
+      });
+    }
+    return {
+      emailFrequency: prefs.emailFrequency,
+      allowDesktopNotifications: prefs.allowDesktopNotifications,
+    };
+  }
+
+  /**
+   * Update current user's notification preferences.
+   */
+  async updatePreferences(
+    userId: string,
+    input: UpdateNotificationPreferencesInput,
+  ): Promise<NotificationPreferences> {
+    const prefs = await this.prisma.userNotificationPreferences.upsert({
+      where: { userId },
+      create: {
+        userId,
+        emailFrequency: input.emailFrequency ?? 'PERIODICALLY',
+        allowDesktopNotifications: input.allowDesktopNotifications ?? false,
+      },
+      update: {
+        ...(input.emailFrequency != null && { emailFrequency: input.emailFrequency }),
+        ...(input.allowDesktopNotifications != null && {
+          allowDesktopNotifications: input.allowDesktopNotifications,
+        }),
+      },
+    });
+    return {
+      emailFrequency: prefs.emailFrequency,
+      allowDesktopNotifications: prefs.allowDesktopNotifications,
+    };
   }
 }

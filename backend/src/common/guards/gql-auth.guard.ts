@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable, Logger } from '@nestjs/common';
+import { ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
@@ -22,15 +22,24 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
       return context.switchToHttp().getRequest();
     }
     const ctx = GqlExecutionContext.create(context);
-    const req = ctx.getContext().req;
+    const gqlContext = ctx.getContext();
+    let req = gqlContext?.req;
+
+    // Subscription/WebSocket: context.user may be set by onConnect even when req is undefined or req.user is missing
+    const user = gqlContext?.user ?? (req as { user?: unknown } | undefined)?.user;
+    if (user && (!req || !(req as { user?: unknown }).user)) {
+      req = req ? { ...req, user } : { user };
+    }
 
     if (req?.headers?.authorization) {
       this.logger.debug('Authentication attempt with Bearer token');
+    } else if (user) {
+      this.logger.debug('Subscription or pre-authenticated context (user from connection)');
     } else {
       this.logger.debug('No authorization header found');
     }
 
-    return req;
+    return req ?? {};
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,10 +55,15 @@ export class GqlAuthGuard extends AuthGuard('jwt') {
     }
 
     const req = this.getRequest(context);
-    // Subscription context: user already set in onConnect (WebSocket auth)
-    if (req?.user) {
+    // Subscription context: user already set in onConnect (WebSocket auth) or from context.user
+    if ((req as { user?: unknown })?.user) {
       this.logger.debug('Subscription or pre-authenticated context');
       return true;
+    }
+    const gqlContext = context.getType() === 'http' ? null : GqlExecutionContext.create(context).getContext();
+    if (gqlContext && gqlContext.req === undefined && gqlContext.res === undefined) {
+      this.logger.warn('WebSocket subscription rejected: no user in context');
+      throw new UnauthorizedException('WebSocket subscription: authentication required');
     }
 
     try {

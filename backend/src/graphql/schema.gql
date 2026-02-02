@@ -533,6 +533,9 @@ type Mutation {
   """Update a member role in a workspace. Only ADMIN can update roles."""
   updateMemberRole(input: UpdateMemberRoleInput!): Boolean!
 
+  """Update current user notification preferences."""
+  updateMyNotificationPreferences(input: UpdateNotificationPreferencesInput!): NotificationPreferences!
+
   """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
 
@@ -592,6 +595,19 @@ type Notification {
   read: Boolean!
   type: NotificationType!
   userId: ID!
+}
+
+"""How often to receive notification emails."""
+enum NotificationEmailFrequency {
+  DAILY
+  INSTANT
+  NEVER
+  PERIODICALLY
+}
+
+type NotificationPreferences {
+  allowDesktopNotifications: Boolean!
+  emailFrequency: NotificationEmailFrequency!
 }
 
 """
@@ -662,6 +678,11 @@ type Query {
 
   """Get all pending invitations for the current user."""
   myInvitations: [WorkspaceInvitation!]!
+
+  """
+  Get current user notification preferences (email frequency, desktop notifications).
+  """
+  myNotificationPreferences: NotificationPreferences!
 
   """
   Get current user notifications with pagination and optional unread filter.
@@ -846,6 +867,11 @@ input UpdateMemberRoleInput {
   role: String!
   userId: String!
   workspaceId: String!
+}
+
+input UpdateNotificationPreferencesInput {
+  allowDesktopNotifications: Boolean
+  emailFrequency: NotificationEmailFrequency
 }
 
 input UpdateUserInput {

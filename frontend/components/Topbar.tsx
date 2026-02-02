@@ -22,7 +22,16 @@ import {
   clearEpitrelloLocalStorage,
 } from '@/lib/graphql-client';
 import { getCurrentUser } from '@/lib/actions/users';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import {
+  getMyNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  notificationMessage,
+  type Notification,
+} from '@/lib/actions/notifications';
+import { useNotificationSubscription } from '@/lib/hooks/use-notification-subscription';
+import NotificationsDropdownContent from './NotificationsDropdownContent';
 
 import {
   DropdownMenu,
@@ -39,26 +48,78 @@ export default function Topbar() {
   const pathname = usePathname();
   const isAuthPage = pathname?.startsWith('/auth');
 
-  const [notifications, setNotifications] = useState<
-    Array<{ id: string; message: string; read?: boolean }>
-  >(() => {
+  const queryClient = useQueryClient();
+  const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(() => {
+    if (typeof window === 'undefined') return false;
     try {
-      const raw = localStorage.getItem('epitrello_notifications');
-      const notes = raw ? JSON.parse(raw) : [];
-      return Array.isArray(notes) ? notes : [];
+      return (
+        localStorage.getItem('epitrello_notifications_unread_only') === 'true'
+      );
     } catch {
-      return [];
+      return false;
     }
   });
-
+  const handleUnreadOnlyChange = (value: boolean) => {
+    setNotificationsUnreadOnly(value);
+    try {
+      localStorage.setItem(
+        'epitrello_notifications_unread_only',
+        value ? 'true' : 'false'
+      );
+    } catch {
+      // ignore
+    }
+  };
+  const { data: notificationsData, refetch: refetchNotifications } = useQuery({
+    queryKey: ['notifications', notificationsUnreadOnly],
+    queryFn: () =>
+      getMyNotifications({
+        limit: 50,
+        unreadOnly: notificationsUnreadOnly || undefined,
+      }),
+    enabled: !isAuthPage,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15_000,
+  });
+  const notifications = notificationsData?.notifications ?? [];
   const notificationsCount = notifications.filter((n) => !n.read).length;
+
+  useNotificationSubscription(
+    {
+      onNotification: (notification) => {
+        toast.info(notificationMessage(notification), 'Notification');
+        [true, false].forEach((unreadOnly) => {
+          queryClient.setQueryData<{
+            notifications: Notification[];
+            hasMore: boolean;
+            nextCursor?: string | null;
+          }>(['notifications', unreadOnly], (prev) => {
+            if (!prev) return prev;
+            const exists = prev.notifications.some(
+              (n) => n.id === notification.id
+            );
+            if (exists) return prev;
+            if (unreadOnly && notification.read) return prev;
+            return {
+              ...prev,
+              notifications: [notification, ...prev.notifications],
+            };
+          });
+        });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.refetchQueries({ queryKey: ['notifications'] });
+      },
+    },
+    !isAuthPage
+  );
+
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showSearchDialog, setShowSearchDialog] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -78,6 +139,10 @@ export default function Topbar() {
   }, []);
 
   useEffect(() => {
+    if (notificationsOpen && !isAuthPage) refetchNotifications();
+  }, [notificationsOpen, isAuthPage, refetchNotifications]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -88,53 +153,53 @@ export default function Topbar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const raw = localStorage.getItem('epitrello_notifications');
-        const notes = raw ? JSON.parse(raw) : [];
-        if (Array.isArray(notes)) {
-          setNotifications((prevNotifications) => {
-            const previousUnread = prevNotifications.filter(
-              (n) => !n.read
-            ).length;
-            const newUnread = notes.filter(
-              (n: { read?: boolean }) => !n.read
-            ).length;
-            if (newUnread > previousUnread) {
-              const newNotifications = notes.filter(
-                (n: { read?: boolean; id: string; message: string }) =>
-                  !n.read &&
-                  !prevNotifications.find((existing) => existing.id === n.id)
-              );
-              newNotifications.forEach((notification: { message: string }) => {
-                toast.info(notification.message, 'Notification');
-              });
-            }
+  const handleMarkNotificationRead = async (id: string) => {
+    try {
+      await markNotificationRead(id);
+      [true, false].forEach((unreadOnly) => {
+        queryClient.setQueryData<{
+          notifications: Notification[];
+          hasMore: boolean;
+          nextCursor?: string | null;
+        }>(['notifications', unreadOnly], (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notifications: prev.notifications.map((n) =>
+              n.id === id ? { ...n, read: true } : n
+            ),
+          };
+        });
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    } catch (e) {
+      console.error('Failed to mark notification read', e);
+      toast.error('Failed to update notification');
+    }
+  };
 
-            return notes;
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load notifications', error);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener(
-      'epitrello:notification-added',
-      handleStorageChange
-    );
-    handleStorageChange();
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener(
-        'epitrello:notification-added',
-        handleStorageChange
-      );
-    };
-  }, []);
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      [true, false].forEach((unreadOnly) => {
+        queryClient.setQueryData<{
+          notifications: Notification[];
+          hasMore: boolean;
+          nextCursor?: string | null;
+        }>(['notifications', unreadOnly], (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+          };
+        });
+      });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    } catch (e) {
+      console.error('Failed to mark all read', e);
+      toast.error('Failed to update notifications');
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -278,46 +343,41 @@ export default function Topbar() {
             onCreate={(p) => createBoard(p)}
           />
 
-          {/* Notifications */}
-          <Button
-            aria-label={`Notifications, ${notificationsCount} unread`}
-            variant='ghost'
-            size='icon'
-            className='relative'
-            title='Notifications'
-            onClick={() => {
-              const unreadNotifications = notifications.filter((n) => !n.read);
-              if (unreadNotifications.length === 0) {
-                toast.info('No new notifications');
-                return;
-              }
-
-              unreadNotifications.forEach((notification) => {
-                toast.info(notification.message);
-              });
-
-              const updatedNotifications = notifications.map((n) => ({
-                ...n,
-                read: true,
-              }));
-              setNotifications(updatedNotifications);
-              try {
-                localStorage.setItem(
-                  'epitrello_notifications',
-                  JSON.stringify(updatedNotifications)
-                );
-              } catch (error) {
-                console.error('Failed to update notifications', error);
-              }
-            }}
+          <DropdownMenu
+            open={notificationsOpen}
+            onOpenChange={setNotificationsOpen}
           >
-            <Bell className='h-5 w-5' />
-            {notificationsCount > 0 && (
-              <span className='absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full'>
-                {notificationsCount}
-              </span>
-            )}
-          </Button>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label={`Notifications, ${notificationsCount} unread`}
+                variant='ghost'
+                size='icon'
+                className='relative'
+                title='Notifications'
+              >
+                <Bell className='h-5 w-5' />
+                {notificationsCount > 0 && (
+                  <span className='absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium leading-none text-white bg-red-600 rounded-full min-w-5'>
+                    {notificationsCount > 99 ? '99+' : notificationsCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align='end'
+              className='w-96 min-w-96 max-w-[calc(100vw-2rem)] p-0 border-accent'
+            >
+              <NotificationsDropdownContent
+                notifications={notifications}
+                unreadCount={notificationsCount}
+                unreadOnly={notificationsUnreadOnly}
+                onUnreadOnlyChange={handleUnreadOnlyChange}
+                onMarkRead={handleMarkNotificationRead}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+                onNotificationClick={() => setNotificationsOpen(false)}
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* Theme Toggle */}
           <ThemeToggle />

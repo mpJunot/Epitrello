@@ -358,10 +358,17 @@ export class CardsService {
       },
     });
 
+    const cardWithList = await this.prisma.card.findUnique({
+      where: { id: input.cardId },
+      select: { listId: true, list: { select: { boardId: true } } },
+    });
     await this.notificationsService.create({
       userId: input.userId,
       type: NotificationType.CARD_ASSIGNED,
-      payload: JSON.stringify({ cardId: input.cardId }),
+      payload: JSON.stringify({
+        cardId: input.cardId,
+        boardId: cardWithList?.list?.boardId ?? undefined,
+      }),
     });
 
     const card = await this.prisma.card.findUnique({

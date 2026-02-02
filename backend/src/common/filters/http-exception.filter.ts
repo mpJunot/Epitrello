@@ -2,6 +2,7 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { GqlExceptionFilter } from '@nestjs/graphql';
 import { GraphQLError } from 'graphql';
@@ -40,6 +41,17 @@ export class AllExceptionsFilter implements GqlExceptionFilter {
       return new GraphQLError('Record not found', {
         extensions: { code: HttpStatus.NOT_FOUND },
       });
+    }
+
+    const logger = new Logger(AllExceptionsFilter.name);
+    if (process.env.NODE_ENV === 'development') {
+      const name = exception instanceof Error ? exception.constructor?.name : typeof exception;
+      const msg = exception instanceof Error ? exception.message : String(exception);
+      const stack = exception instanceof Error ? exception.stack : undefined;
+      logger.warn(
+        `Unhandled exception [${name}] (returning Internal server error): ${msg}`,
+        stack ?? '',
+      );
     }
 
     return new GraphQLError('Internal server error', {

@@ -263,10 +263,17 @@ export default function CardModal({
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
-  const comments: Comment[] = useMemo(
-    () => (commentsData ?? []).map(mapGqlCommentToComment),
-    [commentsData]
-  );
+  const comments: Comment[] = useMemo(() => {
+    const raw = commentsData ?? [];
+    const seen = new Set<string>();
+    return raw
+      .filter((c) => {
+        if (seen.has(c.id)) return false;
+        seen.add(c.id);
+        return true;
+      })
+      .map(mapGqlCommentToComment);
+  }, [commentsData]);
 
   const { data: attachmentsData } = useQuery({
     queryKey: cardAttachmentsQueryKey(card.id),
@@ -1062,7 +1069,11 @@ export default function CardModal({
       });
       queryClient.setQueryData<Awaited<ReturnType<typeof getCardComments>>>(
         cardCommentsQueryKey(card.id),
-        (prev) => (prev ? [...prev, created] : [created])
+        (prev) => {
+          if (!prev) return [created];
+          if (prev.some((x) => x.id === created.id)) return prev;
+          return [...prev, created];
+        }
       );
       await queryClient.invalidateQueries({ queryKey: activityInvalidateKey });
       await queryClient.invalidateQueries({ queryKey: activityBoardInvalidateKey });
