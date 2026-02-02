@@ -18,9 +18,11 @@ export class LoggingInterceptor implements NestInterceptor {
     const ctx = GqlExecutionContext.create(context);
     const { req } = ctx.getContext();
 
-    const method = req.method;
-    const url = req.url;
-    const userAgent = req.get('user-agent') || '';
+    // WebSocket/subscription context: req may be a plain object { user } without .get/.method/.url
+    const isHttpRequest = req && typeof (req as { get?: unknown }).get === 'function';
+    const method = isHttpRequest ? (req as { method?: string }).method ?? '?' : 'SUB';
+    const url = isHttpRequest ? (req as { url?: string }).url ?? '?' : 'subscription';
+    const userAgent = isHttpRequest ? (req as { get: (name: string) => string }).get('user-agent') || '' : '';
 
     const info = ctx.getInfo();
     const operationName = info?.fieldName || 'unknown';
@@ -29,7 +31,7 @@ export class LoggingInterceptor implements NestInterceptor {
     this.logger.log(
       `→ ${method} ${url} | Operation: ${parentType}.${operationName}`,
     );
-    this.logger.debug(`User-Agent: ${userAgent}`);
+    if (userAgent) this.logger.debug(`User-Agent: ${userAgent}`);
 
     return next.handle().pipe(
       tap({

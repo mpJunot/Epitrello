@@ -94,8 +94,10 @@ export function useBoardCardSubscription(
       url: wsUrl,
       connectionParams: {
         Authorization: `Bearer ${token}`,
+        authToken: token,
       },
       retryAttempts: 5,
+      shouldRetry: () => true,
     });
 
     const unsub = client.subscribe(

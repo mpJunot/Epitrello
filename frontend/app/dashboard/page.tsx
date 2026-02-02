@@ -74,7 +74,7 @@ export default function DashboardPage() {
   >({});
   const [newBoardVisibilityByWorkspace, setNewBoardVisibilityByWorkspace] =
     useState<Record<string, 'personal' | 'workspace' | 'public' | undefined>>(
-      {},
+      {}
     );
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean;
@@ -123,7 +123,7 @@ export default function DashboardPage() {
     workspaceId?: string,
     name?: string,
     desc?: string,
-    visibility?: 'personal' | 'workspace' | 'public',
+    visibility?: 'personal' | 'workspace' | 'public'
   ) => {
     const boardName = (name ?? newBoardName).trim();
     if (!boardName) return;
@@ -158,7 +158,7 @@ export default function DashboardPage() {
       queryClient.setQueryData(
         workspaceBoardsQueryKey(wsId),
         (old: { id: string }[] | undefined) =>
-          (old || []).filter((b) => b.id !== boardId),
+          (old || []).filter((b) => b.id !== boardId)
       );
       setFeedback(`Board "${deleteConfirm.boardName}" has been deleted`);
       setTimeout(() => setFeedback(null), 3000);
@@ -211,167 +211,101 @@ export default function DashboardPage() {
               const wsBoardsError = br?.error?.message ?? null;
               return (
                 <div key={ws.id} className='p-2'>
-                  <div className='flex items-start justify-between gap-4 mb-3'>
-                    <div>
-                      <h3 className='text-lg font-semibold text-trello'>
-                        {ws.title}
-                      </h3>
-                    </div>
-                    <div className='flex items-center gap-2'>
-                      <Button
-                        onClick={() =>
-                          router.push(`/workspaces/${ws.id}/boards`)
-                        }
-                        variant='secondary'
-                        size='sm'
-                      >
-                        Boards
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          router.push(`/workspaces/${ws.id}/members`)
-                        }
-                        variant='secondary'
-                        size='sm'
-                      >
-                        Members
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          router.push(`/workspaces/${ws.id}/settings`)
-                        }
-                        variant='secondary'
-                        size='sm'
-                      >
-                        Settings
-                      </Button>
-                      <Button onClick={() => setCreatingFor(ws.id)} size='sm'>
-                        New board
-                      </Button>
-                    </div>
-                  </div>
+                  <h3 className='text-lg font-semibold text-trello mb-3'>
+                    {ws.title}
+                  </h3>
 
-                  <div className='overflow-x-auto'>
-                    <div className='flex gap-4 pb-2'>
-                      {creatingFor === ws.id && (
-                        <div className='min-w-[280px] p-3 bg-trello-card-bg rounded border border-accent shrink-0'>
-                          <Input
-                            value={newBoardNameByWorkspace[ws.id] ?? ''}
-                            onChange={(e) =>
-                              setNewBoardNameByWorkspace((s) => ({
-                                ...s,
-                                [ws.id]: e.target.value,
-                              }))
-                            }
-                            placeholder='Board name'
-                            className='w-full mb-2'
-                          />
-                          <Input
-                            value={newBoardDescByWorkspace[ws.id] ?? ''}
-                            onChange={(e) =>
-                              setNewBoardDescByWorkspace((s) => ({
-                                ...s,
-                                [ws.id]: e.target.value,
-                              }))
-                            }
-                            placeholder='Description (optional)'
-                            className='w-full mb-2'
-                          />
-                          <div className='mb-2'>
-                            <Label className='text-xs mb-1'>Visibility</Label>
-                            <div className='flex gap-2'>
-                              <Button
-                                onClick={() =>
-                                  setNewBoardVisibilityByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: 'personal',
-                                  }))
-                                }
-                                variant={
-                                  newBoardVisibilityByWorkspace[ws.id] ===
-                                  'personal'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                                size='sm'
-                              >
-                                Personal
-                              </Button>
-                              <Button
-                                onClick={() =>
-                                  setNewBoardVisibilityByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: 'workspace',
-                                  }))
-                                }
-                                variant={
-                                  newBoardVisibilityByWorkspace[ws.id] ===
-                                  'workspace'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                                size='sm'
-                              >
-                                Workspace
-                              </Button>
-                              <Button
-                                onClick={() =>
-                                  setNewBoardVisibilityByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: 'public',
-                                  }))
-                                }
-                                variant={
-                                  newBoardVisibilityByWorkspace[ws.id] ===
-                                  'public'
-                                    ? 'default'
-                                    : 'secondary'
-                                }
-                                size='sm'
-                              >
-                                Public
-                              </Button>
-                            </div>
-                          </div>
+                  <div className='flex flex-wrap gap-4 pb-2'>
+                    {creatingFor === ws.id && (
+                      <div className='min-w-[280px] p-3 bg-trello-card-bg rounded border border-accent shrink-0'>
+                        <Input
+                          value={newBoardNameByWorkspace[ws.id] ?? ''}
+                          onChange={(e) =>
+                            setNewBoardNameByWorkspace((s) => ({
+                              ...s,
+                              [ws.id]: e.target.value,
+                            }))
+                          }
+                          placeholder='Board name'
+                          className='w-full mb-2'
+                        />
+                        <Input
+                          value={newBoardDescByWorkspace[ws.id] ?? ''}
+                          onChange={(e) =>
+                            setNewBoardDescByWorkspace((s) => ({
+                              ...s,
+                              [ws.id]: e.target.value,
+                            }))
+                          }
+                          placeholder='Description (optional)'
+                          className='w-full mb-2'
+                        />
+                        <div className='mb-2'>
+                          <Label className='text-xs mb-1'>Visibility</Label>
                           <div className='flex gap-2'>
                             <Button
-                              onClick={async () => {
-                                try {
-                                  await createBoard(
-                                    ws.id,
-                                    newBoardNameByWorkspace[ws.id],
-                                    newBoardDescByWorkspace[ws.id],
-                                    newBoardVisibilityByWorkspace[ws.id],
-                                  );
-                                  setNewBoardNameByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: '',
-                                  }));
-                                  setNewBoardDescByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: '',
-                                  }));
-                                  setNewBoardVisibilityByWorkspace((s) => ({
-                                    ...s,
-                                    [ws.id]: undefined,
-                                  }));
-                                  setCreatingFor(null);
-                                } catch (err) {
-                                  const msg =
-                                    err instanceof Error
-                                      ? err.message
-                                      : 'Failed to create board';
-                                  setFeedback(msg);
-                                  setTimeout(() => setFeedback(null), 3000);
-                                }
-                              }}
+                              onClick={() =>
+                                setNewBoardVisibilityByWorkspace((s) => ({
+                                  ...s,
+                                  [ws.id]: 'personal',
+                                }))
+                              }
+                              variant={
+                                newBoardVisibilityByWorkspace[ws.id] ===
+                                'personal'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
                               size='sm'
                             >
-                              Create
+                              Personal
                             </Button>
                             <Button
-                              onClick={() => {
-                                setCreatingFor(null);
+                              onClick={() =>
+                                setNewBoardVisibilityByWorkspace((s) => ({
+                                  ...s,
+                                  [ws.id]: 'workspace',
+                                }))
+                              }
+                              variant={
+                                newBoardVisibilityByWorkspace[ws.id] ===
+                                'workspace'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
+                              size='sm'
+                            >
+                              Workspace
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                setNewBoardVisibilityByWorkspace((s) => ({
+                                  ...s,
+                                  [ws.id]: 'public',
+                                }))
+                              }
+                              variant={
+                                newBoardVisibilityByWorkspace[ws.id] ===
+                                'public'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
+                              size='sm'
+                            >
+                              Public
+                            </Button>
+                          </div>
+                        </div>
+                        <div className='flex gap-2'>
+                          <Button
+                            onClick={async () => {
+                              try {
+                                await createBoard(
+                                  ws.id,
+                                  newBoardNameByWorkspace[ws.id],
+                                  newBoardDescByWorkspace[ws.id],
+                                  newBoardVisibilityByWorkspace[ws.id]
+                                );
                                 setNewBoardNameByWorkspace((s) => ({
                                   ...s,
                                   [ws.id]: '',
@@ -384,100 +318,126 @@ export default function DashboardPage() {
                                   ...s,
                                   [ws.id]: undefined,
                                 }));
-                              }}
-                              variant='secondary'
-                              size='sm'
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      {wsBoardsLoading && (
-                        <div className='text-trello-secondary text-sm flex items-center gap-2'>
-                          <span className='h-4 w-4 border-2 border-accent border-t-transparent rounded-full animate-spin' />
-                          Loading boards...
-                        </div>
-                      )}
-                      {!wsBoardsLoading && wsBoardsError && (
-                        <div className='text-sm text-red-600 bg-red-50 border border-accent rounded px-3 py-2 flex items-center gap-3'>
-                          <span className='font-semibold'>Backend error:</span>
-                          <span className='whitespace-pre-wrap wrap-break-word'>
-                            {wsBoardsError}
-                          </span>
-                          <Button
-                            onClick={() => br?.refetch()}
-                            variant='destructive'
+                                setCreatingFor(null);
+                              } catch (err) {
+                                const msg =
+                                  err instanceof Error
+                                    ? err.message
+                                    : 'Failed to create board';
+                                setFeedback(msg);
+                                setTimeout(() => setFeedback(null), 3000);
+                              }
+                            }}
                             size='sm'
                           >
-                            Retry
+                            Create
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setCreatingFor(null);
+                              setNewBoardNameByWorkspace((s) => ({
+                                ...s,
+                                [ws.id]: '',
+                              }));
+                              setNewBoardDescByWorkspace((s) => ({
+                                ...s,
+                                [ws.id]: '',
+                              }));
+                              setNewBoardVisibilityByWorkspace((s) => ({
+                                ...s,
+                                [ws.id]: undefined,
+                              }));
+                            }}
+                            variant='secondary'
+                            size='sm'
+                          >
+                            Cancel
                           </Button>
                         </div>
+                      </div>
+                    )}
+                    {wsBoardsLoading && (
+                      <div className='text-trello-secondary text-sm flex items-center gap-2'>
+                        <span className='h-4 w-4 border-2 border-accent border-t-transparent rounded-full animate-spin' />
+                        Loading boards...
+                      </div>
+                    )}
+                    {!wsBoardsLoading && wsBoardsError && (
+                      <div className='text-sm text-red-600 bg-red-50 border border-accent rounded px-3 py-2 flex items-center gap-3'>
+                        <span className='font-semibold'>Backend error:</span>
+                        <span className='whitespace-pre-wrap wrap-break-word'>
+                          {wsBoardsError}
+                        </span>
+                        <Button
+                          onClick={() => br?.refetch()}
+                          variant='destructive'
+                          size='sm'
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    )}
+                    {!wsBoardsLoading &&
+                      !wsBoardsError &&
+                      wsBoards.length === 0 && (
+                        <Empty className='py-6 gap-4 rounded-lg border border-dashed'>
+                          <EmptyHeader>
+                            <EmptyMedia variant='icon'>
+                              <LayoutGrid className='size-5' />
+                            </EmptyMedia>
+                            <EmptyTitle className='text-sm font-medium'>
+                              No boards in this workspace
+                            </EmptyTitle>
+                            <EmptyDescription className='text-xs'>
+                              Create a board to get started
+                            </EmptyDescription>
+                          </EmptyHeader>
+                        </Empty>
                       )}
-                      {!wsBoardsLoading &&
-                        !wsBoardsError &&
-                        wsBoards.length === 0 && (
-                          <Empty className='py-6 gap-4 rounded-lg border border-dashed'>
-                            <EmptyHeader>
-                              <EmptyMedia variant='icon'>
-                                <LayoutGrid className='size-5' />
-                              </EmptyMedia>
-                              <EmptyTitle className='text-sm font-medium'>
-                                No boards in this workspace
-                              </EmptyTitle>
-                              <EmptyDescription className='text-xs'>
-                                Create a board to get started
-                              </EmptyDescription>
-                            </EmptyHeader>
-                          </Empty>
-                        )}
-                      {!wsBoardsLoading &&
-                        !wsBoardsError &&
-                        wsBoards.length > 0 &&
-                        wsBoards.map((board) => {
-                          const isImageBackground =
-                            !!board.background &&
-                            (board.background.startsWith('data:image') ||
-                              board.background.startsWith('http') ||
-                              board.background.startsWith('https'));
+                    {!wsBoardsLoading &&
+                      !wsBoardsError &&
+                      wsBoards.length > 0 &&
+                      wsBoards.map((board) => {
+                        const isImageBackground =
+                          !!board.background &&
+                          (board.background.startsWith('data:image') ||
+                            board.background.startsWith('http') ||
+                            board.background.startsWith('https'));
 
-                          return (
-                            <div
-                              key={board.id}
-                              onClick={() => router.push(`/boards/${board.id}`)}
-                              className={`min-w-[300px] h-36 rounded-lg overflow-hidden cursor-pointer ${
-                                !isImageBackground
-                                  ? board.background || 'bg-primary'
-                                  : 'bg-primary'
-                              }`}
-                            >
-                              <div className='relative h-full'>
-                                {isImageBackground && (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={board.background as string}
-                                    alt={board.name}
-                                    className='absolute inset-0 w-full h-full object-contain'
-                                  />
-                                )}
-                                <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
-                                  <div className='text-sm font-semibold truncate'>
-                                    {board.name}
-                                  </div>
-                                  {board.members ? (
-                                    <div className='text-xs opacity-90'>
-                                      {board.members}{' '}
-                                      {board.members === 1
-                                        ? 'member'
-                                        : 'members'}
-                                    </div>
-                                  ) : null}
+                        return (
+                          <div
+                            key={board.id}
+                            onClick={() => router.push(`/boards/${board.id}`)}
+                            className={`min-w-[300px] h-36 rounded-lg overflow-hidden cursor-pointer ${
+                              !isImageBackground
+                                ? board.background || 'bg-primary'
+                                : 'bg-primary'
+                            }`}
+                          >
+                            <div className='relative h-full'>
+                              {isImageBackground && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={board.background as string}
+                                  alt={board.name}
+                                  className='absolute inset-0 w-full h-full object-contain'
+                                />
+                              )}
+                              <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>
+                                <div className='text-sm font-semibold truncate'>
+                                  {board.name}
                                 </div>
+                                {board.members ? (
+                                  <div className='text-xs opacity-90'>
+                                    {board.members}{' '}
+                                    {board.members === 1 ? 'member' : 'members'}
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
-                          );
-                        })}
-                    </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               );

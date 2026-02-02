@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
@@ -29,6 +30,7 @@ import { HealthController } from './common/controllers/health.controller';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       expandVariables: true,
@@ -61,17 +63,32 @@ import { HealthController } from './common/controllers/health.controller';
                 prisma,
               );
               if (c.extra) c.extra.user = user ?? undefined;
-              // Reject unauthenticated connections so only JWT-valid users can use subscriptions
               if (!user) return false;
-              return true;
+              return { user };
             },
           },
         },
-        context: (ctx: unknown) => {
-          const c = ctx as { req?: { user?: unknown }; res?: unknown; extra?: { user?: unknown } };
-          if (c?.extra?.user != null)
-            return { req: { ...c.req, user: c.extra.user }, res: c.res, user: c.extra.user };
-          return { req: c?.req, res: c?.res, user: c?.req?.user };
+        context: (connectionCtxOrReq: unknown) => {
+          try {
+            const c = connectionCtxOrReq as {
+              req?: { user?: unknown };
+              res?: unknown;
+              extra?: { user?: unknown };
+              connection?: { context?: { user?: unknown } };
+              context?: { user?: unknown };
+            };
+            const user =
+              c?.extra?.user ??
+              c?.connection?.context?.user ??
+              c?.context?.user ??
+              (c?.req as { user?: unknown } | undefined)?.user;
+            if (user != null) {
+              return { req: { ...(c?.req as object), user }, res: c?.res, user };
+            }
+            return { req: c?.req, res: c?.res, user: (c?.req as { user?: unknown } | undefined)?.user };
+          } catch (err) {
+            return { req: {}, res: undefined, user: undefined };
+          }
         },
       }),
     }),

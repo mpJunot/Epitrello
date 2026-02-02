@@ -118,14 +118,26 @@ export class CommentsService {
       },
       select: { userId: true },
     });
-    for (const { userId: assigneeId } of assignees) {
+
+    const recipientIds = new Set<string>(assignees.map((a) => a.userId));
+    if (recipientIds.size === 0) {
+      const boardMembers = await this.prisma.boardMember.findMany({
+        where: { boardId, userId: { not: userId } },
+        select: { userId: true },
+      });
+      boardMembers.forEach((m) => recipientIds.add(m.userId));
+    }
+
+    const payload = JSON.stringify({
+      cardId: input.cardId,
+      commentId: comment.id,
+      boardId,
+    });
+    for (const recipientId of recipientIds) {
       await this.notificationsService.create({
-        userId: assigneeId,
+        userId: recipientId,
         type: NotificationType.COMMENT_ADDED,
-        payload: JSON.stringify({
-          cardId: input.cardId,
-          commentId: comment.id,
-        }),
+        payload,
       });
     }
 

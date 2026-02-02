@@ -38,6 +38,7 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.2",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/schedule": "^6.1.0",
     "@prisma/client": "^5.6.0",
     "apollo-server-express": "^3.12.1",
     "bcryptjs": "^2.4.3",

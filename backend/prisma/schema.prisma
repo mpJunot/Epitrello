@@ -61,6 +61,13 @@ enum OAuthProvider {
   SLACK
 }
 
+enum NotificationEmailFrequency {
+  PERIODICALLY
+  INSTANT
+  DAILY
+  NEVER
+}
+
 enum ActivityType {
   CARD_CREATED
   CARD_COMPLETED
@@ -135,8 +142,27 @@ model User {
   sentInvitations      WorkspaceInvitation[] @relation("InvitationInviter")
   receivedInvitations  WorkspaceInvitation[] @relation("InvitationInvitee")
   activities           Activity[]
+  notificationPreferences UserNotificationPreferences?
 
   @@map("users")
+}
+
+// ----------------------------------------------------------------------------
+// UserNotificationPreferences
+// ----------------------------------------------------------------------------
+// Per-user notification settings (email frequency, desktop notifications).
+
+model UserNotificationPreferences {
+  id                      String                    @id @default(uuid())
+  userId                  String                    @unique
+  emailFrequency          NotificationEmailFrequency @default(PERIODICALLY)
+  allowDesktopNotifications Boolean                 @default(false)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
 }
 
 // ============================================================================

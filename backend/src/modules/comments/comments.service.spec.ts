@@ -25,6 +25,9 @@ describe('CommentsService', () => {
     cardAssignee: {
       findMany: jest.fn(),
     },
+    boardMember: {
+      findMany: jest.fn(),
+    },
   };
 
   const mockNotificationsService = {
@@ -42,6 +45,7 @@ describe('CommentsService', () => {
 
   beforeEach(async () => {
     mockPrismaService.cardAssignee.findMany.mockResolvedValue([]);
+    mockPrismaService.boardMember.findMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommentsService,
