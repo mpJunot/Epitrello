@@ -5,8 +5,9 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { Role } from '@prisma/client';
+import { NotificationType, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateCardInput } from './dto/create-card.input';
 import { UpdateCardInput } from './dto/update-card.input';
 import { MoveCardInput } from './dto/move-card.input';
@@ -17,7 +18,10 @@ import { Card } from './entities/card.entity';
 
 @Injectable()
 export class CardsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Check if user has access to view the board
@@ -352,6 +356,12 @@ export class CardsService {
         cardId: input.cardId,
         userId: input.userId,
       },
+    });
+
+    await this.notificationsService.create({
+      userId: input.userId,
+      type: NotificationType.CARD_ASSIGNED,
+      payload: JSON.stringify({ cardId: input.cardId }),
     });
 
     const card = await this.prisma.card.findUnique({

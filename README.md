@@ -1,6 +1,6 @@
 # Epitrello
-[![Deploy Production](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-production.yml/badge.svg?branch=master)](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-production.yml)
-[![Deploy Staging](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-staging.yml/badge.svg?branch=dev)](https://github.com/mpJunot/Epitrello/actions/workflows/deploy-staging.yml)
+
+[![Deploy to GCP](https://github.com/mpJunot/Epitrello/actions/workflows/deploy.yml/badge.svg)](https://github.com/mpJunot/Epitrello/actions/workflows/deploy.yml)
 [![codecov master](https://codecov.io/gh/mpJunot/Epitrello/branch/master/graph/badge.svg)](https://codecov.io/gh/mpJunot/Epitrello)
 [![codecov dev](https://codecov.io/gh/mpJunot/Epitrello/branch/dev/graph/badge.svg)](https://codecov.io/gh/mpJunot/Epitrello)
 
@@ -195,12 +195,12 @@ For more details, see [.github/workflows/README.md](./.github/workflows/README.m
 
 ## Documentation
 
-| Document                                          | Description                               |
-| ------------------------------------------------- | ----------------------------------------- |
-| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html)                | GraphQL API reference and examples        |
-| [Docker Setup](./DOCKER.md)                       | Docker configuration and deployment guide |
-| [Development Tasks](./TASKS.md)                   | Prioritized development task list         |
-| [Backend Architecture](./backend/ARCHITECTURE.md) | Backend architecture overview             |
+| Document                                                                                               | Description                               |
+| ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html) | GraphQL API reference and examples        |
+| [Docker Setup](./DOCKER.md)                                                                            | Docker configuration and deployment guide |
+| [Development Tasks](./TASKS.md)                                                                        | Prioritized development task list         |
+| [Backend Architecture](./backend/ARCHITECTURE.md)                                                      | Backend architecture overview             |
 
 ## License
 

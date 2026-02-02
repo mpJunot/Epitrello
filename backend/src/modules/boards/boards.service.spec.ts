@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
 import { BoardsService } from './boards.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Role, Visibility } from '@prisma/client';
 
 describe('BoardsService', () => {
@@ -30,6 +31,10 @@ describe('BoardsService', () => {
     workspaceMember: {
       findUnique: jest.fn(),
     },
+  };
+
+  const mockNotificationsService = {
+    create: jest.fn().mockResolvedValue({ id: 'notif-1', userId: 'user-1', type: 'BOARD_INVITATION', read: false, createdAt: new Date() }),
   };
 
   const mockUser = {
@@ -67,6 +72,10 @@ describe('BoardsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
