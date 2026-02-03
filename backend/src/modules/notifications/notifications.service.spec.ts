@@ -27,6 +27,11 @@ describe('NotificationsService', () => {
       update: jest.fn(),
       updateMany: jest.fn(),
     },
+    userNotificationPreferences: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      upsert: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -234,6 +239,93 @@ describe('NotificationsService', () => {
       const result = await service.markAllAsRead('user-1');
 
       expect(result).toBe(0);
+    });
+  });
+
+  describe('getPreferences', () => {
+    it('should return existing preferences', async () => {
+      const prefs = {
+        userId: 'user-1',
+        emailFrequency: 'DAILY',
+        allowDesktopNotifications: true,
+      };
+      mockPrismaService.userNotificationPreferences.findUnique.mockResolvedValue(prefs);
+
+      const result = await service.getPreferences('user-1');
+
+      expect(result.emailFrequency).toBe('DAILY');
+      expect(result.allowDesktopNotifications).toBe(true);
+      expect(prismaService.userNotificationPreferences.findUnique).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+      expect(prismaService.userNotificationPreferences.create).not.toHaveBeenCalled();
+    });
+
+    it('should create default preferences when none exist', async () => {
+      mockPrismaService.userNotificationPreferences.findUnique.mockResolvedValue(null);
+      mockPrismaService.userNotificationPreferences.create.mockResolvedValue({
+        userId: 'user-1',
+        emailFrequency: 'PERIODICALLY',
+        allowDesktopNotifications: false,
+      });
+
+      const result = await service.getPreferences('user-1');
+
+      expect(result.emailFrequency).toBe('PERIODICALLY');
+      expect(result.allowDesktopNotifications).toBe(false);
+      expect(prismaService.userNotificationPreferences.create).toHaveBeenCalledWith({
+        data: { userId: 'user-1' },
+      });
+    });
+  });
+
+  describe('updatePreferences', () => {
+    it('should upsert and return updated preferences', async () => {
+      mockPrismaService.userNotificationPreferences.upsert.mockResolvedValue({
+        userId: 'user-1',
+        emailFrequency: 'INSTANT',
+        allowDesktopNotifications: true,
+      });
+
+      const result = await service.updatePreferences('user-1', {
+        emailFrequency: 'INSTANT',
+        allowDesktopNotifications: true,
+      });
+
+      expect(result.emailFrequency).toBe('INSTANT');
+      expect(result.allowDesktopNotifications).toBe(true);
+      expect(prismaService.userNotificationPreferences.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        create: {
+          userId: 'user-1',
+          emailFrequency: 'INSTANT',
+          allowDesktopNotifications: true,
+        },
+        update: {
+          emailFrequency: 'INSTANT',
+          allowDesktopNotifications: true,
+        },
+      });
+    });
+
+    it('should use defaults when creating via upsert with partial input', async () => {
+      mockPrismaService.userNotificationPreferences.upsert.mockResolvedValue({
+        userId: 'user-1',
+        emailFrequency: 'PERIODICALLY',
+        allowDesktopNotifications: false,
+      });
+
+      await service.updatePreferences('user-1', {});
+
+      expect(prismaService.userNotificationPreferences.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        create: {
+          userId: 'user-1',
+          emailFrequency: 'PERIODICALLY',
+          allowDesktopNotifications: false,
+        },
+        update: {},
+      });
     });
   });
 });

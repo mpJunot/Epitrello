@@ -11,6 +11,8 @@ describe('NotificationsResolver', () => {
     findForUser: jest.fn(),
     markAsRead: jest.fn(),
     markAllAsRead: jest.fn(),
+    getPreferences: jest.fn(),
+    updatePreferences: jest.fn(),
   };
 
   const mockUser = { id: 'user-1' };
@@ -105,6 +107,37 @@ describe('NotificationsResolver', () => {
 
       expect(result).toBe(5);
       expect(notificationsService.markAllAsRead).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('myNotificationPreferences', () => {
+    it('should return current user notification preferences', async () => {
+      const prefs = {
+        emailFrequency: 'DAILY',
+        allowDesktopNotifications: true,
+      };
+      mockNotificationsService.getPreferences.mockResolvedValue(prefs);
+
+      const result = await resolver.myNotificationPreferences(mockUser);
+
+      expect(result).toEqual(prefs);
+      expect(notificationsService.getPreferences).toHaveBeenCalledWith('user-1');
+    });
+  });
+
+  describe('updateMyNotificationPreferences', () => {
+    it('should call service updatePreferences with user id and input', async () => {
+      const input = { emailFrequency: 'INSTANT' as const, allowDesktopNotifications: true };
+      const prefs = {
+        emailFrequency: 'INSTANT',
+        allowDesktopNotifications: true,
+      };
+      mockNotificationsService.updatePreferences.mockResolvedValue(prefs);
+
+      const result = await resolver.updateMyNotificationPreferences(input, mockUser);
+
+      expect(result).toEqual(prefs);
+      expect(notificationsService.updatePreferences).toHaveBeenCalledWith('user-1', input);
     });
   });
 });
