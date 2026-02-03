@@ -169,5 +169,77 @@ describe('GqlAuthGuard', () => {
       expect(result).toEqual(mockRequest);
       expect(Logger.prototype.debug).toHaveBeenCalledWith('No authorization header found');
     });
+
+    it('should use user from connection context when req has no user (WebSocket)', () => {
+      const mockUser = { id: 'user-1', email: 'ws@test.com' };
+      const mockContext = {
+        req: undefined,
+        user: mockUser,
+      };
+
+      const mockExecutionContext = {
+        switchToHttp: jest.fn(),
+        getType: jest.fn().mockReturnValue('graphql'),
+      } as unknown as ExecutionContext;
+
+      jest.spyOn(GqlExecutionContext, 'create').mockReturnValue({
+        getContext: jest.fn().mockReturnValue(mockContext),
+      } as any);
+
+      const result = guard.getRequest(mockExecutionContext);
+
+      expect(result).toEqual({ user: mockUser });
+      expect(Logger.prototype.debug).toHaveBeenCalledWith(
+        'Subscription or pre-authenticated context (user from connection)',
+      );
+    });
+  });
+
+  describe('canActivate (WebSocket / subscription)', () => {
+    it('should throw UnauthorizedException when WebSocket context has no user', async () => {
+      const mockExecutionContext = {
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        getType: jest.fn().mockReturnValue('graphql'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => ({}) }),
+      } as unknown as ExecutionContext;
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      jest.spyOn(GqlExecutionContext, 'create').mockReturnValue({
+        getContext: jest.fn().mockReturnValue({
+          req: undefined,
+          res: undefined,
+          user: undefined,
+        }),
+      } as any);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        'WebSocket subscription: authentication required',
+      );
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'WebSocket subscription rejected: no user in context',
+      );
+    });
+
+    it('should log and rethrow when parent guard throws', async () => {
+      const mockRequest = { user: null, headers: {} };
+      const mockExecutionContext = {
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        getType: jest.fn().mockReturnValue('http'),
+        switchToHttp: jest.fn().mockReturnValue({ getRequest: () => mockRequest }),
+      } as unknown as ExecutionContext;
+
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+      const parentPrototype = Object.getPrototypeOf(GqlAuthGuard.prototype) as {
+        canActivate: (c: ExecutionContext) => Promise<boolean>;
+      };
+      jest.spyOn(parentPrototype, 'canActivate').mockRejectedValue(new Error('Invalid token'));
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow('Invalid token');
+      expect(Logger.prototype.warn).toHaveBeenCalledWith(
+        'Authentication failed: Invalid token',
+      );
+    });
   });
 });

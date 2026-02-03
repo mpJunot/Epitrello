@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AllExceptionsFilter } from './http-exception.filter';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { GraphQLError } from 'graphql';
 
 describe('AllExceptionsFilter', () => {
   let filter: AllExceptionsFilter;
+  const envNodeEnv = process.env.NODE_ENV;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -12,6 +13,10 @@ describe('AllExceptionsFilter', () => {
     }).compile();
 
     filter = module.get<AllExceptionsFilter>(AllExceptionsFilter);
+  });
+
+  afterEach(() => {
+    process.env.NODE_ENV = envNodeEnv;
   });
 
   it('should be defined', () => {
@@ -38,6 +43,10 @@ describe('AllExceptionsFilter', () => {
 
     expect(result).toBeInstanceOf(GraphQLError);
     expect((result as GraphQLError).message).toBe('Validation failed');
+    expect((result as GraphQLError).extensions?.response).toEqual({
+      message: 'Validation failed',
+      error: 'Bad Request',
+    });
   });
 
   it('should handle HTTP exception with array message in response', () => {
@@ -96,5 +105,34 @@ describe('AllExceptionsFilter', () => {
     expect((result as GraphQLError).extensions?.code).toBe(
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
+  });
+
+  it('should log unhandled exception in development', () => {
+    process.env.NODE_ENV = 'development';
+    const exception = new Error('Some internal error');
+    const warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+    const result = filter.catch(exception);
+
+    expect(result).toBeInstanceOf(GraphQLError);
+    expect((result as GraphQLError).message).toBe('Internal server error');
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unhandled exception [Error]'),
+      expect.any(String),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it('should not log stack when exception is not Error in development', () => {
+    process.env.NODE_ENV = 'development';
+    const warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+    filter.catch('string error');
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Unhandled exception [string]'),
+      '',
+    );
+    warnSpy.mockRestore();
   });
 });
