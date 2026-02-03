@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { NotificationType, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBoardInput } from './dto/create-board.input';
 import { UpdateBoardInput } from './dto/update-board.input';
 import { AddBoardMemberInput } from './dto/add-board-member.input';
 import { Board } from './entities/board.entity';
 import { BoardMemberWithUser } from './entities/board-member.entity';
-import { Role } from '@prisma/client';
 
 @Injectable()
 export class BoardsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Create a new board
@@ -362,6 +366,12 @@ export class BoardsService {
           },
         },
       },
+    });
+
+    await this.notificationsService.create({
+      userId: input.userId,
+      type: NotificationType.BOARD_INVITATION,
+      payload: JSON.stringify({ boardId: input.boardId }),
     });
 
     return {

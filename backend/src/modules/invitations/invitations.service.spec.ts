@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { InvitationsService } from './invitations.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ForbiddenException, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { Role, InvitationStatus } from '@prisma/client';
 
@@ -38,6 +39,10 @@ describe('InvitationsService', () => {
     sendWorkspaceInvitationEmail: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockNotificationsService = {
+    create: jest.fn().mockResolvedValue({ id: 'notif-1', userId: 'invitee-1', type: 'WORKSPACE_INVITATION', read: false, createdAt: new Date() }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -49,6 +54,10 @@ describe('InvitationsService', () => {
         {
           provide: EmailService,
           useValue: mockEmailService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();

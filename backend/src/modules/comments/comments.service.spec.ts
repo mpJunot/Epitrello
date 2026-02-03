@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommentsService } from './comments.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Visibility } from '@prisma/client';
 
 describe('CommentsService', () => {
@@ -21,6 +22,16 @@ describe('CommentsService', () => {
     board: {
       findUnique: jest.fn(),
     },
+    cardAssignee: {
+      findMany: jest.fn(),
+    },
+    boardMember: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const mockNotificationsService = {
+    create: jest.fn().mockResolvedValue({ id: 'notif-1', userId: 'user-1', type: 'COMMENT_ADDED', read: false, createdAt: new Date() }),
   };
 
   const mockUser = { id: 'user-1' };
@@ -33,12 +44,18 @@ describe('CommentsService', () => {
   };
 
   beforeEach(async () => {
+    mockPrismaService.cardAssignee.findMany.mockResolvedValue([]);
+    mockPrismaService.boardMember.findMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommentsService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
@@ -68,6 +85,7 @@ describe('CommentsService', () => {
       authorId: 'user-1',
       content: 'Hello',
     });
+    mockPrismaService.cardAssignee.findMany.mockResolvedValue([]);
 
     const result = await service.create(
       { cardId: 'card-1', content: 'Hello' },

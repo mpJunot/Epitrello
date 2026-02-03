@@ -5,9 +5,10 @@ import { CommentsResolver } from './comments.resolver';
 import { CommentsDataLoader } from './dataloaders/comments.dataloader';
 import { CommentSubscriptionResolver } from './comment-subscription.resolver';
 import { ActivityModule } from '../activity/activity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, ActivityModule],
+  imports: [PrismaModule, ActivityModule, NotificationsModule],
   providers: [
     CommentsService,
     CommentsResolver,

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CardsService } from './cards.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Visibility } from '@prisma/client';
 
 describe('CardsService', () => {
@@ -47,6 +48,10 @@ describe('CardsService', () => {
       delete: jest.fn(),
     },
     $transaction: jest.fn(),
+  };
+
+  const mockNotificationsService = {
+    create: jest.fn().mockResolvedValue({ id: 'notif-1', userId: 'user-1', type: 'CARD_ASSIGNED', read: false, createdAt: new Date() }),
   };
 
   const mockUser = {
@@ -96,6 +101,10 @@ describe('CardsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: mockNotificationsService,
         },
       ],
     }).compile();
@@ -456,6 +465,10 @@ describe('CardsService', () => {
       mockPrismaService.card.findUnique
         .mockResolvedValueOnce({
           ...mockCard,
+          list: { boardId: 'board-1' },
+        })
+        .mockResolvedValueOnce({
+          listId: 'list-1',
           list: { boardId: 'board-1' },
         })
         .mockResolvedValueOnce(mockCard);

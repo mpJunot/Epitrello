@@ -35,14 +35,22 @@ async function registerNewUser(page: Page): Promise<{ email: string; password: s
   const submitBtn = page.getByRole('button', { name: /sign up|register|create/i });
   await submitBtn.click();
 
-  // Wait for form submission to complete
-  await page.waitForLoadState('networkidle');
-  
-  // May land on success page or directly authenticated
-  // Try to navigate to dashboard after short delay
-  await page.waitForTimeout(500);
-  await page.goto(`${baseUrl}/dashboard`);
-  await page.waitForLoadState('networkidle');
+  // App redirects to /auth/register/success after register; wait for that (or dashboard) so we don't race
+  await page.waitForURL(
+    (url) => {
+      const p = new URL(url).pathname;
+      return p.includes('register/success') || /^\/(dashboard|boards|workspaces)/.test(p);
+    },
+    { timeout: 15000 }
+  );
+  await page.waitForLoadState('domcontentloaded');
+
+  // If we're on success page, navigate to dashboard (token is already in localStorage as auth_token)
+  const pathname = new URL(page.url()).pathname;
+  if (pathname.includes('register/success')) {
+    await page.goto(`${baseUrl}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.waitForLoadState('domcontentloaded');
+  }
 
   return { email, password };
 }
@@ -51,7 +59,7 @@ async function registerNewUser(page: Page): Promise<{ email: string; password: s
 
 /**
  * CRITICAL E2E TESTS - Authentication & Session
- * 
+ *
  * SCOPE: User identity and session management
  * REASON: Without working auth, nothing else matters
  */
@@ -59,7 +67,7 @@ async function registerNewUser(page: Page): Promise<{ email: string; password: s
 test.describe('Authentication - Critical Paths Only', () => {
   test('User can register new account and auto-login', async ({ page }) => {
     await registerNewUser(page);
-    
+
     // Should be authenticated after registration
     await expect(page).toHaveURL(/\/(dashboard|boards|workspaces)/, { timeout: 5000 });
   });
@@ -77,7 +85,7 @@ test.describe('Authentication - Critical Paths Only', () => {
 
     const submitBtn = page.getByRole('button', { name: /sign in|login/i });
     await submitBtn.click();
-    
+
     // Should stay on login or show error
     await page.waitForTimeout(500);
     const stayedOnLogin = page.url().includes('/auth/login');
@@ -89,22 +97,22 @@ test.describe('Authentication - Critical Paths Only', () => {
 
   test('User session persists after page refresh', async ({ page }) => {
     await registerNewUser(page);
-    
+
     // Refresh and verify still logged in
     await page.reload();
     await page.waitForLoadState('networkidle');
-    
+
     // Should not redirect to login
     expect(page.url()).not.toContain('/auth/login');
   });
 
   test('User can log out and is redirected to login', async ({ page }) => {
     await registerNewUser(page);
-    
-    // Navigate to dashboard to ensure topbar is visible
-    await page.goto(`${baseUrl}/dashboard`);
-    await page.waitForLoadState('networkidle');
-    
+    if (!/\/(dashboard|boards|workspaces)/.test(new URL(page.url()).pathname)) {
+      await page.goto(`${baseUrl}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 10000 }).catch(() => {});
+    }
+    await page.waitForLoadState('domcontentloaded');
+
     // Look for profile/avatar button to open dropdown menu
     const profileButtons = [
       page.locator('button[aria-label*="profile" i]').first(),
@@ -132,7 +140,7 @@ test.describe('Authentication - Critical Paths Only', () => {
     // Look for logout button
     const logoutBtn = page.locator('text=/^log out$/i, text=/sign out/i').first();
     const hasLogout = await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false);
-    
+
     if (hasLogout) {
       await logoutBtn.click();
       await page.waitForLoadState('networkidle');
@@ -146,15 +154,10 @@ test.describe('Authentication - Critical Paths Only', () => {
   });
 
   test('User can log in with valid credentials', async ({ page }) => {
-    // Register a new user
+    // Register a new user (helper waits for post-submit navigation)
     await registerNewUser(page);
-    
-    // Now just verify we're authenticated by checking we can access dashboard
-    // without the complex logout flow
-    await page.goto(`${baseUrl}/dashboard`);
-    await page.waitForLoadState('networkidle');
-    
-    // Verify we're still authenticated (no redirect to /auth)
-    expect(!page.url().includes('/auth/login')).toBeTruthy();
+    // Verify we're authenticated (no redirect to login)
+    await expect(page).not.toHaveURL(/\/auth\/login/);
+    await expect(page).toHaveURL(/\/(dashboard|boards|workspaces)/, { timeout: 3000 });
   });
 });
