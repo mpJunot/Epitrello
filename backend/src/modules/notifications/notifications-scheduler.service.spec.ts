@@ -67,7 +67,6 @@ describe('NotificationsSchedulerService', () => {
     });
 
     it('should create CARD_DUE_SOON for each assignee when not already notified', async () => {
-      const now = new Date();
       const card = {
         id: 'card-1',
         assignees: [{ userId: 'user-1' }, { userId: 'user-2' }],
