@@ -226,7 +226,7 @@ describe('AuthService', () => {
 
       mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
       mockPrismaService.user.update.mockResolvedValue(mockUser);
-      mockEmailService.sendPasswordResetEmail.mockResolvedValue(undefined);
+      mockEmailService.sendPasswordResetEmail.mockResolvedValue(true);
 
       const result = await service.forgotPassword(input);
 

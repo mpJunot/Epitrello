@@ -16,6 +16,7 @@ import {
   EmptyContent,
   EmptyMedia,
 } from '@/components/ui/empty';
+import Image from 'next/image';
 import { LayoutGrid, Star, User, Pencil, Lock, Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -108,11 +109,12 @@ function BoardCard({
       }`}
     >
       {isImageBackground && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={board.background as string}
           alt={board.name}
-          className='absolute inset-0 w-full h-full object-cover'
+          fill
+          className='object-cover'
+          unoptimized
         />
       )}
       <div className='absolute inset-0 p-3 flex flex-col justify-between text-white'>

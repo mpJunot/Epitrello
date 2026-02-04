@@ -95,7 +95,7 @@ export function BoardMenu({
     members.some((m) => m.userId === currentUserId && m.role === 'ADMIN');
 
   const otherBoardMembersToPromote = members.filter(
-    (m) => m.userId !== currentUserId && m.role !== 'ADMIN',
+    (m) => m.userId !== currentUserId && m.role !== 'ADMIN'
   );
 
   const handleCopyBoard = async () => {
@@ -153,7 +153,7 @@ export function BoardMenu({
       setShowLeaveBoardDialog(true);
     } else if (isOnlyAdmin && otherBoardMembersToPromote.length === 0) {
       toast.error(
-        'You are the last admin. Add another member to the board and assign them as admin before leaving.',
+        'You are the last admin. Add another member to the board and assign them as admin before leaving.'
       );
     } else {
       if (!confirm('Are you sure you want to leave this board?')) return;
@@ -187,7 +187,9 @@ export function BoardMenu({
       router.push('/dashboard');
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to assign admin or leave board';
+        error instanceof Error
+          ? error.message
+          : 'Failed to assign admin or leave board';
       toast.error(message);
     } finally {
       setLeavingBoard(false);
@@ -208,15 +210,23 @@ export function BoardMenu({
     toast.info('Stickers feature coming soon');
   };
 
-
   const handlePrintExportShare = () => {
-    // Print functionality
+    const escapeHtml = (s: string) =>
+      String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const title = escapeHtml(board.title);
+    const description = escapeHtml(board.description || 'No description');
+    const visibility = escapeHtml(getVisibilityLabel(board.visibility));
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       printWindow.document.write(`
         <html>
           <head>
-            <title>${board.title}</title>
+            <title>${title}</title>
             <style>
               body { font-family: Arial, sans-serif; padding: 20px; }
               h1 { color: #333; }
@@ -224,10 +234,10 @@ export function BoardMenu({
             </style>
           </head>
           <body>
-            <h1>${board.title}</h1>
+            <h1>${title}</h1>
             <div class="board-info">
-              <p><strong>Description:</strong> ${board.description || 'No description'}</p>
-              <p><strong>Visibility:</strong> ${getVisibilityLabel(board.visibility)}</p>
+              <p><strong>Description:</strong> ${description}</p>
+              <p><strong>Visibility:</strong> ${visibility}</p>
               <p><strong>Members:</strong> ${members.length}</p>
             </div>
           </body>

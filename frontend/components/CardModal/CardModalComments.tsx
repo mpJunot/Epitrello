@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,11 +107,13 @@ export function CardModalComments({
                 className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-xs font-medium text-white ${getAvatarColor(comment.author?.name || comment.author?.email)}`}
               >
                 {comment.author?.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={comment.author.avatar}
-                    alt={comment.author.name}
+                    alt={comment.author.name ?? ''}
+                    width={32}
+                    height={32}
                     className='w-full h-full object-cover rounded-full'
+                    unoptimized
                   />
                 ) : (
                   (comment.author?.name ||
