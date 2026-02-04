@@ -68,7 +68,7 @@ export default function RegisterPage() {
 
       const json = await res.json();
       if (json.errors && json.errors.length) {
-        throw new Error(json.errors[0].message || "Erreur GraphQL");
+        throw new Error(json.errors[0].message || "GraphQL error");
       }
 
       const token = json.data?.register?.token;

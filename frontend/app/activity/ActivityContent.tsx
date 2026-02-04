@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useActivityInfiniteQuery } from '@/lib/queries/activity';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 import type { ActivityItem } from '@/lib/actions/activity';
@@ -57,11 +58,13 @@ function ActivityEntry({
         className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${avatarColor}`}
       >
         {item.user?.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element -- user avatar URL, size fixed
-          <img
+          <Image
             src={item.user.avatar}
             alt=''
+            width={32}
+            height={32}
             className='w-full h-full rounded-full object-cover'
+            unoptimized
           />
         ) : (
           (userName.charAt(0) ?? '?').toUpperCase()

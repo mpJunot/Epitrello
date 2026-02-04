@@ -11,11 +11,42 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import Image from 'next/image';
 import { Image as ImageIcon, X } from 'lucide-react';
 import { updateBoard } from '@/lib/actions/boards';
 import { toast } from '@/lib/toast';
 import { BACKGROUND_COLORS } from '@/components/CardModal/constants';
 import type { Board } from '../../types';
+
+function getSafeImageSrc(url: string | undefined): string | undefined {
+  if (!url || typeof url !== 'string') return undefined;
+  const s = url.trim();
+  if (s.startsWith('data:image')) return s;
+  if (s.startsWith('https://') || s.startsWith('http://')) {
+    try {
+      const parsed = new URL(s);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.href;
+      }
+      return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function BackgroundPreviewImg({ src }: { src: string }) {
+  return (
+    <Image
+      src={src}
+      alt='Background preview'
+      fill
+      className='object-cover'
+      unoptimized
+    />
+  );
+}
 
 interface ChangeBackgroundDialogProps {
   open: boolean;
@@ -109,14 +140,7 @@ export function ChangeBackgroundDialog({
     }
   };
 
-  /** URL safe for img src (CodeQL: avoid "DOM text reinterpreted as HTML"). Only allow data:image or http(s). No regex to avoid ReDoS. */
-  const safePreviewUrl =
-    localBackground &&
-    (localBackground.startsWith('data:image') ||
-      localBackground.startsWith('https://') ||
-      localBackground.startsWith('http://'))
-      ? localBackground
-      : undefined;
+  const safePreviewUrl = getSafeImageSrc(localBackground);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,12 +176,7 @@ export function ChangeBackgroundDialog({
             </div>
             {safePreviewUrl && (
               <div className='relative w-full h-32 rounded-lg overflow-hidden border border-accent'>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={safePreviewUrl}
-                  alt='Background preview'
-                  className='w-full h-full object-cover'
-                />
+                <BackgroundPreviewImg src={safePreviewUrl} />
                 <Button
                   variant='destructive'
                   size='icon'

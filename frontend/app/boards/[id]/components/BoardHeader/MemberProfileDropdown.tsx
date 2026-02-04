@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Activity, Crown, User, X } from 'lucide-react';
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ export function MemberProfileDropdown({ member }: MemberProfileDropdownProps) {
           <Avatar className='h-8 w-8'>
             <AvatarImage
               src={member.user?.avatar ? member.user.avatar : undefined}
+              className='object-cover'
             />
             <AvatarFallback className={`text-xs text-white ${avatarColor}`}>
               {initials}
@@ -69,6 +71,7 @@ export function MemberProfileDropdown({ member }: MemberProfileDropdownProps) {
             <Avatar className='h-16 w-16 shrink-0'>
               <AvatarImage
                 src={member.user?.avatar ? member.user.avatar : undefined}
+                className='object-cover'
               />
               <AvatarFallback className={`text-xl text-white ${avatarColor}`}>
                 {initials}
@@ -97,14 +100,26 @@ export function MemberProfileDropdown({ member }: MemberProfileDropdownProps) {
             {member.user?.description || ''}
           </p>
           <DropdownMenuSeparator className='my-0' />
-          <DropdownMenuItem className='flex items-center gap-3 px-4 py-3 hover:bg-trello-hover rounded-none focus:bg-trello-hover cursor-pointer'>
-            <User className='w-5 h-5 text-trello-text-secondary shrink-0' />
-            <span>View profile</span>
-          </DropdownMenuItem>
+          {member.user?.id && (
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/users/${member.user.id}`}
+                className='flex items-center gap-3 px-4 py-3 hover:bg-trello-hover rounded-none focus:bg-trello-hover cursor-pointer'
+              >
+                <User className='w-5 h-5 text-trello-text-secondary shrink-0' />
+                <span>View profile</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator className='my-0' />
-          <DropdownMenuItem className='flex items-center gap-3 px-4 py-3 hover:bg-trello-hover rounded-none focus:bg-trello-hover cursor-pointer'>
-            <Activity className='w-5 h-5 text-trello-text-secondary shrink-0' />
-            <span>View member&apos;s board activity</span>
+          <DropdownMenuItem asChild>
+            <Link
+              href='/activity'
+              className='flex items-center gap-3 px-4 py-3 hover:bg-trello-hover rounded-none focus:bg-trello-hover cursor-pointer'
+            >
+              <Activity className='w-5 h-5 text-trello-text-secondary shrink-0' />
+              <span>View activity</span>
+            </Link>
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

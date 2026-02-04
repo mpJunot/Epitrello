@@ -5,6 +5,7 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +14,7 @@ export interface UpdateUserInput {
   name?: string;
   email?: string;
   avatar?: string;
+  description?: string;
   password?: string;
 }
 
@@ -27,6 +29,7 @@ export async function getCurrentUser(options?: GraphQLRequestOptions): Promise<U
         email
         name
         avatar
+        description
         createdAt
         updatedAt
       }
@@ -56,6 +59,7 @@ export async function getUser(id: string): Promise<User | null> {
         email
         name
         avatar
+        description
         createdAt
         updatedAt
       }
@@ -80,6 +84,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
         email
         name
         avatar
+        description
         createdAt
         updatedAt
       }
@@ -104,6 +109,7 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
         email
         name
         avatar
+        description
         createdAt
         updatedAt
       }
@@ -112,4 +118,41 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
 
   const result = await graphqlRequest<{ updateUser: User }>(mutation, { id, input });
   return result.updateUser;
+}
+
+/**
+ * Upload avatar image. Backend saves the file and updates the user's avatar. Returns the new avatar URL.
+ */
+export async function uploadAvatar(file: File): Promise<{ url: string }> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
+  const baseUrl = apiUrl.replace(/\/graphql\/?$/, '') || 'http://localhost:4000';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const formData = new FormData();
+  formData.append('avatar', file);
+  const res = await fetch(`${baseUrl}/api/upload/avatar`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    const msg = err?.message;
+    const text = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : 'Upload failed';
+    throw new Error(text);
+  }
+  return res.json();
+}
+
+/**
+ * Delete the current user account. Caller should clear auth and redirect after.
+ */
+export async function deleteUser(id: string): Promise<boolean> {
+  const mutation = `
+    mutation DeleteUser($id: ID!) {
+      deleteUser(id: $id)
+    }
+  `;
+  const result = await graphqlRequest<{ deleteUser: boolean }>(mutation, { id });
+  return result.deleteUser;
 }

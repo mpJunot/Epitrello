@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Paperclip, Link as LinkIcon, Upload, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -320,13 +321,14 @@ export function CardModalAttachments({
                       href={openUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 w-14 h-14 rounded-md overflow-hidden border border-accent bg-muted flex items-center justify-center"
+                      className="shrink-0 w-14 h-14 rounded-md overflow-hidden border border-accent bg-muted flex items-center justify-center relative"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={openUrl}
                         alt=""
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        unoptimized
                       />
                     </a>
                   ) : (

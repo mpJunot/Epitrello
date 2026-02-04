@@ -64,7 +64,7 @@ export default function Topbar() {
     try {
       localStorage.setItem(
         'epitrello_notifications_unread_only',
-        value ? 'true' : 'false'
+        value ? 'true' : 'false',
       );
     } catch {
       // ignore
@@ -96,7 +96,7 @@ export default function Topbar() {
           }>(['notifications', unreadOnly], (prev) => {
             if (!prev) return prev;
             const exists = prev.notifications.some(
-              (n) => n.id === notification.id
+              (n) => n.id === notification.id,
             );
             if (exists) return prev;
             if (unreadOnly && notification.read) return prev;
@@ -110,7 +110,7 @@ export default function Topbar() {
         queryClient.refetchQueries({ queryKey: ['notifications'] });
       },
     },
-    !isAuthPage
+    !isAuthPage,
   );
 
   const [userName, setUserName] = useState<string>('');
@@ -166,7 +166,7 @@ export default function Topbar() {
           return {
             ...prev,
             notifications: prev.notifications.map((n) =>
-              n.id === id ? { ...n, read: true } : n
+              n.id === id ? { ...n, read: true } : n,
             ),
           };
         });
@@ -190,7 +190,10 @@ export default function Topbar() {
           if (!prev) return prev;
           return {
             ...prev,
-            notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+            notifications: prev.notifications.map((n) => ({
+              ...n,
+              read: true,
+            })),
           };
         });
       });
@@ -391,17 +394,21 @@ export default function Topbar() {
                 aria-label='Open profile menu'
               >
                 <Avatar className='h-8 w-8'>
-                  <AvatarImage src={userAvatar} alt={userName} />
+                  <AvatarImage
+                    src={userAvatar}
+                    alt={userName}
+                    className='object-cover'
+                  />
                   <AvatarFallback
                     className={`text-white ${getAvatarColor(
-                      userName || userEmail
+                      userName || userEmail,
                     )}`}
                   >
                     {userName
                       ? getInitials(userName)
                       : userEmail
-                      ? userEmail.charAt(0).toUpperCase()
-                      : 'U'}
+                        ? userEmail.charAt(0).toUpperCase()
+                        : 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -410,17 +417,21 @@ export default function Topbar() {
               <DropdownMenuLabel>
                 <div className='flex items-center gap-3'>
                   <Avatar className='h-10 w-10'>
-                    <AvatarImage src={userAvatar} alt={userName} />
+                    <AvatarImage
+                      src={userAvatar}
+                      alt={userName}
+                      className='object-cover'
+                    />
                     <AvatarFallback
                       className={`text-sm text-white ${getAvatarColor(
-                        userName || userEmail
+                        userName || userEmail,
                       )}`}
                     >
                       {userName
                         ? getInitials(userName)
                         : userEmail
-                        ? userEmail.charAt(0).toUpperCase()
-                        : 'U'}
+                          ? userEmail.charAt(0).toUpperCase()
+                          : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className='flex flex-col'>

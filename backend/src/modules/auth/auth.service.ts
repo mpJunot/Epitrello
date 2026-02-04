@@ -201,13 +201,19 @@ export class AuthService {
     this.logger.log(`Password reset token generated for user: ${user.email}`);
 
     // Send password reset email
-    await this.emailService.sendPasswordResetEmail({
+    const sent = await this.emailService.sendPasswordResetEmail({
       email: user.email,
       token: resetToken,
       userName: user.name,
     });
 
-    this.logger.log(`Password reset email sent to: ${user.email}`);
+    if (!sent) {
+      this.logger.warn(
+        `Password reset email was NOT sent to ${user.email}. Check RESEND_API_KEY in .env and backend logs.`,
+      );
+    } else {
+      this.logger.log(`Password reset email sent to: ${user.email}`);
+    }
 
     return {
       message: 'If an account with that email exists, a password reset link has been sent.',

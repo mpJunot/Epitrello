@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LayoutGrid } from 'lucide-react';
 import { useBoardActivityQuery } from '@/lib/queries/activity';
 import { useCurrentUserQuery } from '@/lib/queries/users';
@@ -13,8 +14,7 @@ import {
   getActivityActionParts,
 } from '@/lib/activity-utils';
 
-const linkClass =
-  'font-medium text-blue-600 underline hover:text-blue-700';
+const linkClass = 'font-medium text-blue-600 underline hover:text-blue-700';
 
 function ActivityEntry({
   item,
@@ -30,12 +30,12 @@ function ActivityEntry({
   const parts = getActivityActionParts(
     item.type,
     userName,
-    item.payload ?? undefined
+    item.payload ?? undefined,
   );
   const actionText = getActivityActionText(
     item.type,
     userName,
-    item.payload ?? undefined
+    item.payload ?? undefined,
   );
   const cardHref = item.cardId
     ? `/boards/${boardId}?cardId=${item.cardId}`
@@ -53,11 +53,13 @@ function ActivityEntry({
         className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium ${avatarColor}`}
       >
         {item.user?.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element -- user avatar URL
-          <img
+          <Image
             src={item.user.avatar}
             alt=''
+            width={28}
+            height={28}
             className='w-full h-full rounded-full object-cover'
+            unoptimized
           />
         ) : (
           (userName.charAt(0) ?? '?').toUpperCase()
@@ -105,7 +107,7 @@ export function BoardActivityList({
 }: BoardActivityListProps) {
   const { data, isLoading, isError, error } = useBoardActivityQuery(
     boardId,
-    enabled
+    enabled,
   );
   const { data: currentUser } = useCurrentUserQuery();
   const activities = data?.activities ?? [];
@@ -120,7 +122,7 @@ export function BoardActivityList({
           </h3>
         </div>
         <Link
-          href='/activity'
+          href={`/activity?boardId=${boardId}`}
           className='text-xs text-primary hover:underline shrink-0'
         >
           View all

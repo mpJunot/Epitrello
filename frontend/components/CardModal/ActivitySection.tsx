@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Comment, UserRef } from './types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -48,11 +49,13 @@ export default function ActivitySection({
         <div className='flex gap-2 items-start'>
           <div className='shrink-0 w-8 h-8 rounded-full bg-trello-blue text-white flex items-center justify-center text-xs font-medium'>
             {currentUser.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={currentUser.avatar}
                 alt={currentUser.name || 'User'}
+                width={32}
+                height={32}
                 className='w-full h-full rounded-full object-cover'
+                unoptimized
               />
             ) : (
               (currentUser.name || 'User')
@@ -104,11 +107,13 @@ export default function ActivitySection({
             <div key={comment.id} className='flex gap-2 items-start group'>
               <div className='shrink-0 w-8 h-8 rounded-full bg-trello-blue text-white flex items-center justify-center text-xs font-medium'>
                 {comment.author.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={comment.author.avatar}
                     alt={comment.author.name || 'User'}
+                    width={32}
+                    height={32}
                     className='w-full h-full rounded-full object-cover'
+                    unoptimized
                   />
                 ) : (
                   (comment.author.name || 'User')

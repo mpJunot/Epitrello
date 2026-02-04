@@ -41,6 +41,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
 
+# Fail at build time if express is missing (used by main.ts for static files)
+RUN node -e "require('express')"
+
 RUN chmod +x ./scripts/docker-entrypoint.sh
 
 EXPOSE 8080
