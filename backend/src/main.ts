@@ -41,7 +41,11 @@ async function bootstrap() {
     const matchesWildcard = (origin: string, pattern: string): boolean => {
       if (pattern === origin) return true;
       if (!pattern.includes('*')) return false;
-      const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+      // Escape all regex metacharacters, then turn '*' wildcards into '.*'
+      const escapeRegex = (value: string): string =>
+        value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escapedPattern = escapeRegex(pattern);
+      const regexPattern = escapedPattern.replace(/\\\*/g, '.*');
       return new RegExp(`^${regexPattern}$`).test(origin);
     };
 
