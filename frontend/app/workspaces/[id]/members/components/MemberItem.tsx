@@ -72,8 +72,8 @@ export function MemberItem({
           ? 'Leaving...'
           : 'Removing...'
         : isCurrentUser
-        ? 'Leave...'
-        : 'Remove...'}
+          ? 'Leave...'
+          : 'Remove...'}
     </Button>
   );
 
@@ -84,10 +84,11 @@ export function MemberItem({
           <AvatarImage
             src={member.user.avatar || undefined}
             alt={member.user.name}
+            className='object-cover'
           />
           <AvatarFallback
             className={`text-white ${getAvatarColor(
-              member.user.name || member.user.email
+              member.user.name || member.user.email,
             )}`}
           >
             {getInitials(member.user.name)}

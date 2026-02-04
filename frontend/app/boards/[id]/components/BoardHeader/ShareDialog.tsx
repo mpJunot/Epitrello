@@ -25,7 +25,10 @@ import { Separator } from '@/components/ui/separator';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { getUserByEmail } from '@/lib/actions/users';
 import { addBoardMember } from '@/lib/actions/boards';
-import { activityInvalidateKey, activityBoardInvalidateKey } from '@/lib/queries/activity';
+import {
+  activityInvalidateKey,
+  activityBoardInvalidateKey,
+} from '@/lib/queries/activity';
 import { toast } from '@/lib/toast';
 import type { BoardMember } from '../../types';
 
@@ -55,7 +58,7 @@ export function ShareDialog({
       typeof window !== 'undefined'
         ? `${window.location.origin}/boards/${boardId}`
         : '',
-    [boardId]
+    [boardId],
   );
 
   const handleCopyLink = async () => {
@@ -90,7 +93,9 @@ export function ShareDialog({
       }
       await addBoardMember(boardId, user.id, inviteRole);
       await queryClient.invalidateQueries({ queryKey: activityInvalidateKey });
-      await queryClient.invalidateQueries({ queryKey: activityBoardInvalidateKey });
+      await queryClient.invalidateQueries({
+        queryKey: activityBoardInvalidateKey,
+      });
       toast.success(`${user.name || user.email} has been added to the board`);
       setInviteEmail('');
       onMemberAdded?.();
@@ -209,6 +214,7 @@ export function ShareDialog({
                           src={
                             member.user?.avatar ? member.user.avatar : undefined
                           }
+                          className='object-cover'
                         />
                         <AvatarFallback
                           className={`text-xs text-white ${avatarColor}`}

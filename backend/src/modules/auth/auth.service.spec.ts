@@ -149,6 +149,65 @@ describe('AuthService', () => {
         },
       });
     });
+
+    it('should still register user when verification email fails to send', async () => {
+      const input = {
+        email: 'test@example.com',
+        name: 'Test User',
+        password: 'password123',
+      };
+
+      const mockUser = {
+        id: 'user-1',
+        email: input.email,
+        name: input.name,
+        avatar: null,
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockUser);
+      mockJwtService.sign.mockReturnValue('jwt-token');
+      (bcryptjs.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockEmailService.sendEmailVerificationEmail.mockRejectedValue(new Error('SMTP error'));
+
+      const result = await service.register(input);
+
+      expect(result.token).toBe('jwt-token');
+      expect(result.user.email).toBe(input.email);
+      expect(prismaService.user.create).toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when create fails with P2002 (unique email)', async () => {
+      const input = {
+        email: 'test@example.com',
+        name: 'Test User',
+        password: 'password123',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      (bcryptjs.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockPrismaService.user.create.mockRejectedValue({ code: 'P2002' });
+
+      await expect(service.register(input)).rejects.toThrow(ConflictException);
+      await expect(service.register(input)).rejects.toThrow('Email already in use');
+    });
+
+    it('should rethrow when user create fails with non-P2002 error', async () => {
+      const input = {
+        email: 'test@example.com',
+        name: 'Test User',
+        password: 'password123',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      (bcryptjs.hash as jest.Mock).mockResolvedValue('hashed-password');
+      mockPrismaService.user.create.mockRejectedValue(new Error('Database connection lost'));
+
+      await expect(service.register(input)).rejects.toThrow('Database connection lost');
+    });
   });
 
   describe('login', () => {
@@ -212,6 +271,36 @@ describe('AuthService', () => {
       await expect(service.login(input)).rejects.toThrow(UnauthorizedException);
       await expect(service.login(input)).rejects.toThrow('Invalid email or password');
     });
+
+    it('should use 30d expiry when rememberMe is true', async () => {
+      const input = {
+        email: 'test@example.com',
+        password: 'password123',
+        rememberMe: true,
+      };
+
+      const mockUser = {
+        id: 'user-1',
+        email: input.email,
+        name: 'Test User',
+        password: 'hashed-password',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      (bcryptjs.compare as jest.Mock).mockResolvedValue(true);
+      mockJwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(input);
+
+      expect(result.token).toBe('jwt-token');
+      expect(mockJwtService.sign).toHaveBeenCalledWith(
+        { userId: mockUser.id, email: mockUser.email },
+        { expiresIn: '30d' },
+      );
+    });
   });
 
   describe('forgotPassword', () => {
@@ -244,6 +333,25 @@ describe('AuthService', () => {
 
       expect(result.message).toContain('password reset');
       expect(prismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should return success message when reset email is not sent (e.g. RESEND_API_KEY missing)', async () => {
+      const input = { email: 'test@example.com' };
+
+      const mockUser = {
+        id: 'user-1',
+        email: input.email,
+        name: 'Test User',
+      };
+
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.user.update.mockResolvedValue(mockUser);
+      mockEmailService.sendPasswordResetEmail.mockResolvedValue(false);
+
+      const result = await service.forgotPassword(input);
+
+      expect(result.message).toContain('password reset');
+      expect(emailService.sendPasswordResetEmail).toHaveBeenCalled();
     });
   });
 
@@ -360,6 +468,28 @@ describe('AuthService', () => {
       expect(result.message).toContain('already verified');
       expect(prismaService.user.update).not.toHaveBeenCalled();
     });
+
+    it('should still succeed when welcome email fails to send', async () => {
+      const token = 'valid-verification-token';
+
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Test User',
+        emailVerified: false,
+        emailVerificationToken: token,
+        emailVerificationExpires: new Date(Date.now() + 3600000),
+      };
+
+      mockPrismaService.user.findFirst.mockResolvedValue(mockUser);
+      mockPrismaService.user.update.mockResolvedValue({ ...mockUser, emailVerified: true });
+      mockEmailService.sendWelcomeEmail.mockRejectedValue(new Error('SMTP error'));
+
+      const result = await service.verifyEmail(token);
+
+      expect(result.message).toContain('verified successfully');
+      expect(prismaService.user.update).toHaveBeenCalled();
+    });
   });
 
   describe('oauthLogin', () => {
@@ -426,6 +556,76 @@ describe('AuthService', () => {
       expect(result.user.email).toBe('newuser@example.com');
       expect(prismaService.user.create).toHaveBeenCalled();
       expect(prismaService.oAuthAccount.create).toHaveBeenCalled();
+    });
+
+    it('should use placeholder email when OAuth profile has no email', async () => {
+      const oauthProfile = {
+        provider: 'SLACK',
+        providerId: 'slack-456',
+        email: '',
+        name: 'Slack User',
+      };
+
+      const mockNewUser = {
+        id: 'user-oauth',
+        email: 'oauth-SLACK-slack-456@epitrello.oauth',
+        name: 'Slack User',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.oAuthAccount.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockNewUser);
+      mockPrismaService.oAuthAccount.create.mockResolvedValue({});
+      mockJwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.oauthLogin(oauthProfile);
+
+      expect(result.user.email).toBe('oauth-SLACK-slack-456@epitrello.oauth');
+      expect(prismaService.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            email: 'oauth-SLACK-slack-456@epitrello.oauth',
+          }),
+        }),
+      );
+    });
+
+    it('should use email as name when OAuth profile has no name for new user', async () => {
+      const oauthProfile = {
+        provider: 'GOOGLE',
+        providerId: 'google-no-name',
+        email: 'noname@example.com',
+        name: '',
+      };
+
+      const mockNewUser = {
+        id: 'user-new',
+        email: 'noname@example.com',
+        name: 'noname@example.com',
+        avatar: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.oAuthAccount.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue(mockNewUser);
+      mockPrismaService.oAuthAccount.create.mockResolvedValue({});
+      mockJwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.oauthLogin(oauthProfile);
+
+      expect(result.user.name).toBe('noname@example.com');
+      expect(prismaService.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'noname@example.com',
+          }),
+        }),
+      );
     });
   });
 });

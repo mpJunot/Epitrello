@@ -14,8 +14,7 @@ import {
   getActivityActionParts,
 } from '@/lib/activity-utils';
 
-const linkClass =
-  'font-medium text-blue-600 underline hover:text-blue-700';
+const linkClass = 'font-medium text-blue-600 underline hover:text-blue-700';
 
 function ActivityEntry({
   item,
@@ -31,12 +30,12 @@ function ActivityEntry({
   const parts = getActivityActionParts(
     item.type,
     userName,
-    item.payload ?? undefined
+    item.payload ?? undefined,
   );
   const actionText = getActivityActionText(
     item.type,
     userName,
-    item.payload ?? undefined
+    item.payload ?? undefined,
   );
   const cardHref = item.cardId
     ? `/boards/${boardId}?cardId=${item.cardId}`
@@ -108,7 +107,7 @@ export function BoardActivityList({
 }: BoardActivityListProps) {
   const { data, isLoading, isError, error } = useBoardActivityQuery(
     boardId,
-    enabled
+    enabled,
   );
   const { data: currentUser } = useCurrentUserQuery();
   const activities = data?.activities ?? [];
@@ -123,7 +122,7 @@ export function BoardActivityList({
           </h3>
         </div>
         <Link
-          href='/activity'
+          href={`/activity?boardId=${boardId}`}
           className='text-xs text-primary hover:underline shrink-0'
         >
           View all
