@@ -292,6 +292,7 @@ export function BoardMenu({
                         src={
                           member.user?.avatar ? member.user.avatar : undefined
                         }
+                        className='object-cover'
                       />
                       <AvatarFallback
                         className={`text-xs text-white ${avatarColor}`}

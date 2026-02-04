@@ -20,6 +20,7 @@ import { LabelsModule } from './modules/labels/labels.module';
 import { ChecklistsModule } from './modules/checklists/checklists.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { AttachmentsModule } from './modules/attachments/attachments.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SubscriptionsModule } from './common/subscriptions/subscriptions.module';
@@ -106,6 +107,7 @@ import { HealthController } from './common/controllers/health.controller';
     ChecklistsModule,
     CommentsModule,
     AttachmentsModule,
+    UploadModule,
     ActivityModule,
     NotificationsModule,
   ],

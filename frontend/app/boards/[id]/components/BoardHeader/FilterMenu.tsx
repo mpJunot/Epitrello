@@ -266,7 +266,10 @@ export function FilterMenu({
                     const avatarColor = getAvatarColor(displayName);
                     return (
                       <Avatar className='size-6 shrink-0'>
-                        <AvatarImage src={me?.user?.avatar ?? undefined} />
+                        <AvatarImage
+                          src={me?.user?.avatar ?? undefined}
+                          className='object-cover'
+                        />
                         <AvatarFallback
                           className={cn('text-[10px] text-white', avatarColor)}
                         >

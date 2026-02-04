@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger, LogLevel } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import * as express from 'express';
 import { AppModule } from './app.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -20,21 +23,15 @@ async function bootstrap() {
       : ['log', 'error', 'warn'];
 
     logger.log('Creating NestJS application...');
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
       logger: logLevels,
     });
     logger.log('NestJS application created successfully');
 
-    // Parse Cookie header so JWT can be read from auth_token cookie (fallback to Bearer header)
-    app.use(cookieParser());
-    // Enable global logging interceptor for all requests
-    app.useGlobalInterceptors(new LoggingInterceptor());
-
     /**
-     * Enable CORS.
-     * Supports CORS_ORIGINS environment variable (comma-separated, supports wildcards like *.run.app)
-     * Falls back to FRONTEND_URL if CORS_ORIGINS is not set.
-     * In development, reflects the request origin (origin: true).
+     * Enable CORS first so preflight (OPTIONS) and all requests get correct headers.
+     * Supports CORS_ORIGINS env (comma-separated, wildcards like *.run.app).
+     * In development, reflects the request origin.
      */
     const isProduction = process.env.NODE_ENV === 'production';
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -44,52 +41,36 @@ async function bootstrap() {
     const matchesWildcard = (origin: string, pattern: string): boolean => {
       if (pattern === origin) return true;
       if (!pattern.includes('*')) return false;
-
-      const regexPattern = pattern
-        .replace(/\./g, '\\.')
-        .replace(/\*/g, '.*');
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(origin);
+      const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '.*');
+      return new RegExp(`^${regexPattern}$`).test(origin);
     };
 
     let allowedOrigins: string[] | boolean | ((origin: string, callback: (err: Error | null, allow?: boolean) => void) => void);
 
     if (isProduction) {
       if (corsOrigins) {
-        // Parse CORS_ORIGINS (comma-separated, supports wildcards)
         const origins = corsOrigins.split(',').map((o) => o.trim()).filter(Boolean);
         logger.log(`CORS origins configured: ${origins.join(', ')}`);
-
-        // Create a function that checks against both exact matches and wildcards
         allowedOrigins = (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
           if (!origin) {
             callback(null, false);
             return;
           }
-
-          // Check exact matches first
           if (origins.includes(origin)) {
-            logger.debug(`CORS: Origin ${origin} matched exactly`);
             callback(null, true);
             return;
           }
-
-          // Check wildcard patterns
-          const matches = origins.some((pattern) => matchesWildcard(origin, pattern));
-          if (matches) {
-            logger.debug(`CORS: Origin ${origin} matched wildcard pattern`);
-          } else {
-            logger.warn(`CORS: Origin ${origin} not allowed. Allowed patterns: ${origins.join(', ')}`);
+          const matches = origins.some((p) => matchesWildcard(origin, p));
+          if (!matches) {
+            logger.warn(`CORS: Origin ${origin} not allowed. Allowed: ${origins.join(', ')}`);
           }
           callback(null, matches);
         };
       } else {
-        // Fallback to FRONTEND_URL if CORS_ORIGINS is not set
         logger.log(`CORS: Using FRONTEND_URL fallback: ${frontendUrl}`);
         allowedOrigins = [frontendUrl, `http://localhost:${backendPort}`];
       }
     } else {
-      // In development, reflect request origin
       logger.log('CORS: Development mode - reflecting request origin');
       allowedOrigins = true;
     }
@@ -97,7 +78,18 @@ async function bootstrap() {
     app.enableCors({
       origin: allowedOrigins,
       credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     });
+
+    // Serve uploaded files (e.g. avatars) under /uploads
+    const uploadsPath = join(process.cwd(), 'uploads');
+    app.use('/uploads', express.static(uploadsPath));
+
+    // Parse Cookie header so JWT can be read from auth_token cookie (fallback to Bearer header)
+    app.use(cookieParser());
+    // Enable global logging interceptor for all requests
+    app.useGlobalInterceptors(new LoggingInterceptor());
 
     /**
      * Global validation pipe.
