@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
   const onSubmit = async (data: Form) => {
     const token = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("token") : null;
     if (!token) {
-      toast.error("Lien invalide ou expiré (token manquant).");
+      toast.error("Invalid or expired link (token missing).");
       return;
     }
 
@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
 
       if (!res.ok) {
         const text = await res.text();
-        throw new Error(text || `Erreur serveur: ${res.status}`);
+        throw new Error(text || `Server error: ${res.status}`);
       }
 
       const json = await res.json();

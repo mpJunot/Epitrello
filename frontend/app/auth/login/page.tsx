@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,6 +47,13 @@ function LoginFormContent() {
   const nextUrl = searchParams.get('next');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('verified') === '1') {
+      toast.success('Email verified. You can sign in.');
+      window.history.replaceState({}, '', '/auth/login' + (nextUrl ? `?next=${encodeURIComponent(nextUrl)}` : ''));
+    }
+  }, [searchParams, nextUrl]);
 
   const {
     register,
@@ -110,7 +117,7 @@ function LoginFormContent() {
           statusText: res.statusText,
           body: text,
         });
-        throw new Error(text || 'Erreur réseau');
+        throw new Error(text || 'Network error');
       }
 
       const json = await res.json();

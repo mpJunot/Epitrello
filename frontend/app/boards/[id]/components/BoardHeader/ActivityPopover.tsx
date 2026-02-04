@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { LayoutGrid } from 'lucide-react';
 import { useBoardActivityQuery } from '@/lib/queries/activity';
 import { useCurrentUserQuery } from '@/lib/queries/users';
@@ -53,11 +54,13 @@ function ActivityEntry({
         className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium ${avatarColor}`}
       >
         {item.user?.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element -- user avatar URL
-          <img
+          <Image
             src={item.user.avatar}
             alt=''
+            width={28}
+            height={28}
             className='w-full h-full rounded-full object-cover'
+            unoptimized
           />
         ) : (
           (userName.charAt(0) ?? '?').toUpperCase()

@@ -38,12 +38,14 @@ export function BoardHeader({
 
   return (
     <header
-      className={`flex items-center justify-between p-3 text-white ${
+      className={`relative flex items-center justify-between p-3 text-white ${
         board.background || 'bg-primary'
-      } shadow-lg`}
+      } shadow-lg overflow-hidden`}
     >
+      {/* Overlay to reduce color intensity so the difference is clearly visible */}
+      <div className='absolute inset-0 bg-white/30 pointer-events-none' aria-hidden />
       {/* Left side: Board title */}
-      <div className='flex items-center gap-3'>
+      <div className='relative z-10 flex items-center gap-3'>
         <h1 className='text-lg font-semibold text-white'>{board.title}</h1>
         {!canEdit && (
           <span className='text-xs text-white/80 bg-white/10 px-2 py-0.5 rounded'>
@@ -53,7 +55,7 @@ export function BoardHeader({
       </div>
 
       {/* Right side: Members, actions */}
-      <div className='flex items-center gap-2'>
+      <div className='relative z-10 flex items-center gap-2'>
         <MemberAvatars members={boardMembers} />
 
         <FilterMenu

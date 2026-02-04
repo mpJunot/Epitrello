@@ -7,6 +7,7 @@ import {
   createBoard as createBoardAction,
   Visibility,
 } from '@/lib/actions/boards';
+import Image from 'next/image';
 import { AlertTriangle, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -416,11 +417,12 @@ export default function DashboardPage() {
                           >
                             <div className='relative h-full'>
                               {isImageBackground && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
+                                <Image
                                   src={board.background as string}
                                   alt={board.name}
-                                  className='absolute inset-0 w-full h-full object-contain'
+                                  fill
+                                  className='object-contain'
+                                  unoptimized
                                 />
                               )}
                               <div className='absolute inset-0 p-3 text-white flex flex-col justify-between'>

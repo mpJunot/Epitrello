@@ -35,30 +35,33 @@ export class EmailService {
     this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   }
 
-  async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<void> {
+  /**
+   * Send password reset email. Returns true if sent, false if skipped (e.g. RESEND_API_KEY not set).
+   */
+  async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
     const { email, token, userName } = data;
 
     if (!process.env.RESEND_API_KEY) {
       this.logger.warn(
-        `Email sending disabled. Password reset token for ${email}: ${token}`,
+        `[EMAIL NOT SENT] RESEND_API_KEY is not set. Add it to .env to receive password reset emails.`,
       );
       this.logger.warn(
-        `Reset link: ${this.frontendUrl}/reset-password?token=${token}`,
+        `Reset link for ${email}: ${this.frontendUrl}/auth/reset?token=${token}`,
       );
-      return;
+      return false;
     }
 
     if (!this.resend) {
       this.logger.warn(
-        `Email sending disabled. Password reset token for ${email}: ${token}`,
+        `[EMAIL NOT SENT] Resend client not initialized. Check RESEND_API_KEY.`,
       );
       this.logger.warn(
-        `Reset link: ${this.frontendUrl}/reset-password?token=${token}`,
+        `Reset link for ${email}: ${this.frontendUrl}/auth/reset?token=${token}`,
       );
-      return;
+      return false;
     }
 
-    const resetLink = `${this.frontendUrl}/reset-password?token=${token}`;
+    const resetLink = `${this.frontendUrl}/auth/reset?token=${token}`;
     const { html, text } = getPasswordResetTemplate({
       userName: userName || 'User',
       resetLink,
@@ -74,6 +77,7 @@ export class EmailService {
       });
 
       this.logger.log(`Password reset email sent to ${email}`);
+      return true;
     } catch (error) {
       this.logger.error(`Failed to send password reset email to ${email}`, error);
       throw error;

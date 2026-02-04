@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Label, UserRef, DueDate } from './types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -91,11 +92,13 @@ export default function AddToCardMenu({
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium text-white ${getAvatarColor(member.name || member.email)}`}
                       >
                         {member.avatar ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={member.avatar}
-                            alt={member.name}
+                            alt={member.name ?? ''}
+                            width={32}
+                            height={32}
                             className='w-full h-full object-cover rounded-full'
+                            unoptimized
                           />
                         ) : (
                           initials
