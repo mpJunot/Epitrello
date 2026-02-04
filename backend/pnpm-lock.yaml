@@ -56,6 +56,9 @@ importers:
       dataloader:
         specifier: ^2.2.3
         version: 2.2.3
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
       graphql:
         specifier: ^16.8.1
         version: 16.12.0
