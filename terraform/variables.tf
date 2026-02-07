@@ -168,15 +168,15 @@ variable "microsoft_client_secret" {
   default     = ""
 }
 
-variable "apple_client_id" {
-  description = "Apple OAuth client ID (optional)"
+variable "github_client_id" {
+  description = "GitHub OAuth client ID (optional)"
   type        = string
   sensitive   = true
   default     = ""
 }
 
-variable "apple_client_secret" {
-  description = "Apple OAuth client secret (optional)"
+variable "github_client_secret" {
+  description = "GitHub OAuth client secret (optional)"
   type        = string
   sensitive   = true
   default     = ""
@@ -213,8 +213,8 @@ variable "microsoft_callback_url" {
   default     = ""
 }
 
-variable "apple_callback_url" {
-  description = "Apple OAuth callback URL. Format: https://{backend-url}/auth/apple/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
+variable "github_callback_url" {
+  description = "GitHub OAuth callback URL. Format: https://{backend-url}/auth/github/callback. Can be left empty and set manually after first deployment using terraform output backend_url."
   type        = string
   sensitive   = false
   default     = ""

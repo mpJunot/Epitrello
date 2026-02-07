@@ -57,6 +57,7 @@ enum InvitationStatus {
 enum OAuthProvider {
   GOOGLE
   APPLE
+  GITHUB
   MICROSOFT
   SLACK
 }
