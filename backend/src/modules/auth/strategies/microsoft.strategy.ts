@@ -21,12 +21,13 @@ export class MicrosoftStrategy extends PassportStrategy(Strategy, 'microsoft') {
     done: VerifyCallback,
   ): Promise<any> {
     const { id, displayName, emails, photos } = profile;
+    const email = emails?.[0]?.value ?? '';
     const user = {
       provider: 'MICROSOFT',
-      providerId: id,
-      email: emails[0].value,
-      name: displayName,
-      avatar: photos[0]?.value,
+      providerId: id ?? '',
+      email,
+      name: displayName ?? (email || 'Microsoft User'),
+      avatar: photos?.[0]?.value,
       accessToken,
       refreshToken,
     };
