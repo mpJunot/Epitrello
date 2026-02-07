@@ -31,7 +31,7 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
       provider: 'GITHUB',
       providerId: profile.id ?? '',
       email,
-      name: (profile.displayName ?? profile.username ?? email || 'GitHub User').trim() || 'GitHub User',
+      name: ((profile.displayName ?? profile.username ?? email) || 'GitHub User').trim() || 'GitHub User',
       avatar: profile.photos?.[0]?.value,
       accessToken,
       refreshToken,
