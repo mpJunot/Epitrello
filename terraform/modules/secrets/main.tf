@@ -251,10 +251,10 @@ resource "google_secret_manager_secret_iam_member" "microsoft_client_secret_acce
 # ===================================
 # Apple OAuth Secrets (optional)
 # ===================================
-resource "google_secret_manager_secret" "apple_client_id" {
-  count = var.apple_client_id != "" ? 1 : 0
+resource "google_secret_manager_secret" "github_client_id" {
+  count = var.github_client_id != "" ? 1 : 0
 
-  secret_id = "${var.project_id}-apple-client-id"
+  secret_id = "${var.project_id}-github-client-id"
   project   = var.project_id
 
   replication {
@@ -264,33 +264,33 @@ resource "google_secret_manager_secret" "apple_client_id" {
   labels = var.labels
 }
 
-resource "google_secret_manager_secret_version" "apple_client_id_version" {
-  count = var.apple_client_id != "" ? 1 : 0
+resource "google_secret_manager_secret_version" "github_client_id_version" {
+  count = var.github_client_id != "" ? 1 : 0
 
-  secret      = google_secret_manager_secret.apple_client_id[0].id
-  secret_data = var.apple_client_id
+  secret      = google_secret_manager_secret.github_client_id[0].id
+  secret_data = var.github_client_id
 
-  depends_on = [google_secret_manager_secret.apple_client_id]
+  depends_on = [google_secret_manager_secret.github_client_id]
 
   lifecycle {
     ignore_changes = [secret_data]
   }
 }
 
-resource "google_secret_manager_secret_iam_member" "apple_client_id_access" {
-  count = var.apple_client_id != "" ? 1 : 0
+resource "google_secret_manager_secret_iam_member" "github_client_id_access" {
+  count = var.github_client_id != "" ? 1 : 0
 
-  secret_id = google_secret_manager_secret.apple_client_id[0].id
+  secret_id = google_secret_manager_secret.github_client_id[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.backend_service_account_email}"
 
-  depends_on = [google_secret_manager_secret.apple_client_id]
+  depends_on = [google_secret_manager_secret.github_client_id]
 }
 
-resource "google_secret_manager_secret" "apple_client_secret" {
-  count = var.apple_client_secret != "" ? 1 : 0
+resource "google_secret_manager_secret" "github_client_secret" {
+  count = var.github_client_secret != "" ? 1 : 0
 
-  secret_id = "${var.project_id}-apple-client-secret"
+  secret_id = "${var.project_id}-github-client-secret"
   project   = var.project_id
 
   replication {
@@ -300,27 +300,27 @@ resource "google_secret_manager_secret" "apple_client_secret" {
   labels = var.labels
 }
 
-resource "google_secret_manager_secret_version" "apple_client_secret_version" {
-  count = var.apple_client_secret != "" ? 1 : 0
+resource "google_secret_manager_secret_version" "github_client_secret_version" {
+  count = var.github_client_secret != "" ? 1 : 0
 
-  secret      = google_secret_manager_secret.apple_client_secret[0].id
-  secret_data = var.apple_client_secret
+  secret      = google_secret_manager_secret.github_client_secret[0].id
+  secret_data = var.github_client_secret
 
-  depends_on = [google_secret_manager_secret.apple_client_secret]
+  depends_on = [google_secret_manager_secret.github_client_secret]
 
   lifecycle {
     ignore_changes = [secret_data]
   }
 }
 
-resource "google_secret_manager_secret_iam_member" "apple_client_secret_access" {
-  count = var.apple_client_secret != "" ? 1 : 0
+resource "google_secret_manager_secret_iam_member" "github_client_secret_access" {
+  count = var.github_client_secret != "" ? 1 : 0
 
-  secret_id = google_secret_manager_secret.apple_client_secret[0].id
+  secret_id = google_secret_manager_secret.github_client_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.backend_service_account_email}"
 
-  depends_on = [google_secret_manager_secret.apple_client_secret]
+  depends_on = [google_secret_manager_secret.github_client_secret]
 }
 
 # ===================================
@@ -473,10 +473,10 @@ resource "google_secret_manager_secret_iam_member" "microsoft_callback_url_acces
   depends_on = [google_secret_manager_secret.microsoft_callback_url]
 }
 
-resource "google_secret_manager_secret" "apple_callback_url" {
-  count = var.apple_callback_url != "" ? 1 : 0
+resource "google_secret_manager_secret" "github_callback_url" {
+  count = var.github_callback_url != "" ? 1 : 0
 
-  secret_id = "${var.project_id}-apple-callback-url"
+  secret_id = "${var.project_id}-github-callback-url"
   project   = var.project_id
 
   replication {
@@ -486,27 +486,27 @@ resource "google_secret_manager_secret" "apple_callback_url" {
   labels = var.labels
 }
 
-resource "google_secret_manager_secret_version" "apple_callback_url_version" {
-  count = var.apple_callback_url != "" ? 1 : 0
+resource "google_secret_manager_secret_version" "github_callback_url_version" {
+  count = var.github_callback_url != "" ? 1 : 0
 
-  secret      = google_secret_manager_secret.apple_callback_url[0].id
-  secret_data = var.apple_callback_url
+  secret      = google_secret_manager_secret.github_callback_url[0].id
+  secret_data = var.github_callback_url
 
-  depends_on = [google_secret_manager_secret.apple_callback_url]
+  depends_on = [google_secret_manager_secret.github_callback_url]
 
   lifecycle {
     ignore_changes = [secret_data]
   }
 }
 
-resource "google_secret_manager_secret_iam_member" "apple_callback_url_access" {
-  count = var.apple_callback_url != "" ? 1 : 0
+resource "google_secret_manager_secret_iam_member" "github_callback_url_access" {
+  count = var.github_callback_url != "" ? 1 : 0
 
-  secret_id = google_secret_manager_secret.apple_callback_url[0].id
+  secret_id = google_secret_manager_secret.github_callback_url[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${var.backend_service_account_email}"
 
-  depends_on = [google_secret_manager_secret.apple_callback_url]
+  depends_on = [google_secret_manager_secret.github_callback_url]
 }
 
 resource "google_secret_manager_secret" "slack_callback_url" {

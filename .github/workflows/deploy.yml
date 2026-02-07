@@ -273,13 +273,13 @@ jobs:
           google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
           microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
-          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
-          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          github_client_id: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+          github_client_secret: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
           slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
           google_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/google/callback
           microsoft_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/microsoft/callback
-          apple_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/apple/callback
+          github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
       - name: Terraform Plan
@@ -378,13 +378,13 @@ jobs:
           google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           microsoft_client_id: ${{ secrets.MICROSOFT_CLIENT_ID }}
           microsoft_client_secret: ${{ secrets.MICROSOFT_CLIENT_SECRET }}
-          apple_client_id: ${{ secrets.APPLE_CLIENT_ID }}
-          apple_client_secret: ${{ secrets.APPLE_CLIENT_SECRET }}
+          github_client_id: ${{ secrets.OAUTH_GITHUB_CLIENT_ID }}
+          github_client_secret: ${{ secrets.OAUTH_GITHUB_CLIENT_SECRET }}
           slack_client_id: ${{ secrets.SLACK_CLIENT_ID }}
           slack_client_secret: ${{ secrets.SLACK_CLIENT_SECRET }}
           google_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/google/callback
           microsoft_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/microsoft/callback
-          apple_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/apple/callback
+          github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
       - name: Import existing Terraform state bucket if needed

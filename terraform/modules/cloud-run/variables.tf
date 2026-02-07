@@ -84,14 +84,14 @@ variable "microsoft_client_secret_secret_name" {
   default     = null
 }
 
-variable "apple_client_id_secret_name" {
-  description = "Apple OAuth client ID secret name in Secret Manager (optional)"
+variable "github_client_id_secret_name" {
+  description = "GitHub OAuth client ID secret name in Secret Manager (optional)"
   type        = string
   default     = null
 }
 
-variable "apple_client_secret_secret_name" {
-  description = "Apple OAuth client secret secret name in Secret Manager (optional)"
+variable "github_client_secret_secret_name" {
+  description = "GitHub OAuth client secret secret name in Secret Manager (optional)"
   type        = string
   default     = null
 }
@@ -120,8 +120,8 @@ variable "microsoft_callback_url" {
   default     = null
 }
 
-variable "apple_callback_url" {
-  description = "Apple OAuth callback URL (optional)"
+variable "github_callback_url" {
+  description = "GitHub OAuth callback URL (optional)"
   type        = string
   default     = null
 }
