@@ -262,16 +262,15 @@ resource "google_cloud_run_v2_service" "backend" {
       # ===================================
       # Health Checks
       # ===================================
-
+      # TCP startup: ready as soon as the app listens on 8080 (Nest/Node cold start can be slow).
       startup_probe {
-        http_get {
-          path = "/health"
+        tcp_socket {
           port = 8080
         }
-        initial_delay_seconds = 15
-        timeout_seconds       = 3
+        initial_delay_seconds = 20
+        timeout_seconds       = 5
         period_seconds        = 5
-        failure_threshold     = 24
+        failure_threshold     = 30
       }
 
       liveness_probe {

@@ -285,6 +285,15 @@ jobs:
           github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
+      - name: Import existing Terraform state bucket if needed
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          source /tmp/terraform_vars.sh
+          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            terraform import "${TF_VARS[@]}" \
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
+          fi
+
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
@@ -392,15 +401,6 @@ jobs:
           github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
-      - name: Import existing Terraform state bucket if needed
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          source /tmp/terraform_vars.sh
-          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
-            terraform import "${TF_VARS[@]}" \
-              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
-          fi
-
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
@@ -484,19 +484,28 @@ jobs:
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
           FRONTEND_URL="${{ steps.frontend-url.outputs.url }}"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          REGION="${{ env.GCP_REGION }}"
+
+          if ! gcloud run services describe $SERVICE_NAME --region $REGION --project $PROJECT_ID &>/dev/null; then
+            echo "::warning::Service $SERVICE_NAME does not exist yet (Terraform may not have created it). Skipping backend deploy. Re-run after Terraform apply creates the service."
+            exit 0
+          fi
 
           if [ -n "$FRONTEND_URL" ]; then
             echo "Updating backend with frontend URL: $FRONTEND_URL"
             gcloud run services update $SERVICE_NAME \
               --image $IMAGE \
               --update-env-vars FRONTEND_URL=$FRONTEND_URL \
-              --region ${{ env.GCP_REGION }} \
+              --region $REGION \
+              --project $PROJECT_ID \
               --platform managed
           else
             echo "Warning: Frontend URL not available, deploying without FRONTEND_URL update"
             gcloud run services update $SERVICE_NAME \
               --image $IMAGE \
-              --region ${{ env.GCP_REGION }} \
+              --region $REGION \
+              --project $PROJECT_ID \
               --platform managed
           fi
 
@@ -562,12 +571,19 @@ jobs:
           ENV=${{ needs.changes.outputs.environment }}
           BACKEND_SERVICE_NAME="${ENV}-epitrello-backend"
           FRONTEND_URL="${{ steps.frontend-url.outputs.url }}"
+          REGION="${{ env.GCP_REGION }}"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
 
+          if ! gcloud run services describe $BACKEND_SERVICE_NAME --region $REGION --project $PROJECT_ID &>/dev/null; then
+            echo "::warning::Backend service $BACKEND_SERVICE_NAME not found, skipping FRONTEND_URL update"
+            exit 0
+          fi
           if [ -n "$FRONTEND_URL" ]; then
             echo "Updating backend with frontend URL: $FRONTEND_URL"
             gcloud run services update $BACKEND_SERVICE_NAME \
               --update-env-vars FRONTEND_URL=$FRONTEND_URL \
-              --region ${{ env.GCP_REGION }} \
+              --region $REGION \
+              --project $PROJECT_ID \
               --platform managed
           else
             echo "Warning: Frontend URL not available, skipping backend update"
