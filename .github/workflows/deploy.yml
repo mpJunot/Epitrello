@@ -404,9 +404,11 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          set -o pipefail
           source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
+              echo "::notice::Plan was stale (state changed since plan). Re-planning and applying..."
               terraform refresh "${TF_VARS[@]}" || true
               terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
               terraform apply -auto-approve tfplan || exit 1
@@ -583,7 +585,7 @@ jobs:
 
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
-            --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
+            --update-env-vars NEXT_PUBLIC_API_URL=${BACKEND_URL}/graphql \
             --region ${{ env.GCP_REGION }} \
             --platform managed
 
