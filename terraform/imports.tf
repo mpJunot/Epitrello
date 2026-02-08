@@ -48,6 +48,12 @@ import {
   id = "${var.project_id}/${var.project_id}-${local.app_name}-docs"
 }
 
+# Cloud SQL instance (import id: project_id/instance_name)
+import {
+  to = module.cloud_sql.google_sql_database_instance.main
+  id = "${var.project_id}/${local.app_name}-db"
+}
+
 # Service accounts module: backend + docs
 import {
   to = module.service_accounts.google_service_account.backend
