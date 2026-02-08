@@ -73,10 +73,10 @@ import {
   id = "${local.secret_prefix}-slack-client-secret"
 }
 
-import {
-  to = module.secrets.google_secret_manager_secret.google_callback_url[0]
-  id = "${local.secret_prefix}-google-callback-url"
-}
+# import {
+#   to = module.secrets.google_secret_manager_secret.google_callback_url[0]
+#   id = "${local.secret_prefix}-google-callback-url"
+# }
 
 import {
   to = module.secrets.google_secret_manager_secret.microsoft_callback_url[0]
