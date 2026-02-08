@@ -51,10 +51,17 @@ runs:
           else
             URL="${{ inputs.staging_api_url }}"
           fi
-          if [ -z "$URL" ]; then
-            echo "ERROR: Backend URL is not available from Cloud Run or secrets"
-            exit 1
-          fi
+        fi
+
+        if [ -z "$URL" ]; then
+          REGION_SUFFIX="${{ inputs.region }}"
+          case "$REGION_SUFFIX" in
+            europe-west1) REGION_SUFFIX="ew" ;;
+            us-central1)  REGION_SUFFIX="uc" ;;
+            *) REGION_SUFFIX=$(echo "$REGION_SUFFIX" | sed 's/-[a-z]*$//' | tr -d '-') ;;
+          esac
+          URL="https://${SERVICE_NAME}-placeholder-${REGION_SUFFIX}.a.run.app"
+          echo "::warning::Backend service not found and no secret set. Using placeholder URL. After first deploy, set PRODUCTION_API_URL (or STAGING_API_URL) in GitHub secrets with the real URL from GCP Console, then re-run to update OAuth callbacks."
         fi
 
         echo "url=$URL" >> $GITHUB_OUTPUT
