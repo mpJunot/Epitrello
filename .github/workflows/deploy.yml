@@ -19,6 +19,7 @@ env:
   TF_VERSION: '1.6.0'
   TF_WORKING_DIR: ./terraform
   GCP_REGION: europe-west1
+  # Deploy triggers on backend/, frontend/, or terraform/ changes
 
 jobs:
   changes:
