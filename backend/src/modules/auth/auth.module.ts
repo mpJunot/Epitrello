@@ -7,7 +7,7 @@ import { AuthResolver } from './auth.resolver';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { AppleStrategy } from './strategies/apple.strategy';
+import { GitHubStrategy } from './strategies/github.strategy';
 import { MicrosoftStrategy } from './strategies/microsoft.strategy';
 import { SlackStrategy } from './strategies/slack.strategy';
 import { UsersModule } from '../users/users.module';
@@ -30,14 +30,11 @@ const buildOAuthProviders = () => {
     logger.warn('Google OAuth disabled: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable');
   }
 
-  if (
-    process.env.APPLE_CLIENT_ID?.trim() &&
-    process.env.APPLE_TEAM_ID?.trim() &&
-    process.env.APPLE_KEY_ID?.trim() &&
-    process.env.APPLE_PRIVATE_KEY?.trim()
-  ) {
-    providers.push(AppleStrategy);
-    logger.log('Apple OAuth strategy registered');
+  if (process.env.GITHUB_CLIENT_ID?.trim() && process.env.GITHUB_CLIENT_SECRET?.trim()) {
+    providers.push(GitHubStrategy);
+    logger.log('GitHub OAuth strategy registered');
+  } else {
+    logger.warn('GitHub OAuth disabled: set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to enable');
   }
 
   if (process.env.MICROSOFT_CLIENT_ID?.trim() && process.env.MICROSOFT_CLIENT_SECRET?.trim()) {

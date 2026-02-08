@@ -51,9 +51,9 @@ module "secrets" {
   microsoft_client_id           = var.microsoft_client_id
   microsoft_client_secret       = var.microsoft_client_secret
   microsoft_callback_url        = var.microsoft_callback_url
-  apple_client_id               = var.apple_client_id
-  apple_client_secret           = var.apple_client_secret
-  apple_callback_url            = var.apple_callback_url
+  github_client_id              = var.github_client_id
+  github_client_secret          = var.github_client_secret
+  github_callback_url           = var.github_callback_url
   slack_client_id               = var.slack_client_id
   slack_client_secret           = var.slack_client_secret
   slack_callback_url            = var.slack_callback_url
@@ -143,8 +143,8 @@ module "cloud_run" {
   google_client_secret_secret_name    = module.secrets.google_client_secret_secret_name
   microsoft_client_id_secret_name     = module.secrets.microsoft_client_id_secret_name
   microsoft_client_secret_secret_name = module.secrets.microsoft_client_secret_secret_name
-  apple_client_id_secret_name         = module.secrets.apple_client_id_secret_name
-  apple_client_secret_secret_name     = module.secrets.apple_client_secret_secret_name
+  github_client_id_secret_name        = module.secrets.github_client_id_secret_name
+  github_client_secret_secret_name    = module.secrets.github_client_secret_secret_name
   slack_client_id_secret_name         = module.secrets.slack_client_id_secret_name
   slack_client_secret_secret_name     = module.secrets.slack_client_secret_secret_name
   storage_bucket                      = module.cloud_storage.bucket_name
@@ -152,7 +152,7 @@ module "cloud_run" {
   frontend_url                        = ""
   google_callback_url                 = var.google_callback_url != "" ? var.google_callback_url : null
   microsoft_callback_url              = var.microsoft_callback_url != "" ? var.microsoft_callback_url : null
-  apple_callback_url                  = var.apple_callback_url != "" ? var.apple_callback_url : null
+  github_callback_url                 = var.github_callback_url != "" ? var.github_callback_url : null
   slack_callback_url                  = var.slack_callback_url != "" ? var.slack_callback_url : null
 
   labels = local.common_labels

@@ -109,17 +109,17 @@ describe('AuthController', () => {
     });
   });
 
-  describe('appleAuth', () => {
+  describe('githubAuth', () => {
     it('should return undefined', async () => {
-      const result = await controller.appleAuth();
+      const result = await controller.githubAuth();
       expect(result).toBeUndefined();
     });
   });
 
-  describe('appleAuthCallback', () => {
+  describe('githubAuthCallback', () => {
     it('should handle successful OAuth callback', async () => {
       const mockUser = {
-        provider: 'apple',
+        provider: 'GITHUB',
         providerId: '123',
         email: 'test@example.com',
       };
@@ -132,7 +132,7 @@ describe('AuthController', () => {
         user: { id: '1', email: 'test@example.com' },
       });
 
-      await controller.appleAuthCallback(req, res);
+      await controller.githubAuthCallback(req, res);
 
       expect(authService.oauthLogin).toHaveBeenCalledWith(mockUser);
       expect(res.redirect).toHaveBeenCalled();

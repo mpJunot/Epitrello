@@ -47,17 +47,18 @@ export class AuthController {
   }
 
   @Public()
-  @Get('apple')
-  @UseGuards(AuthGuard('apple'))
-  async appleAuth() {
+  @Get('github')
+  @UseGuards(AuthGuard('github'))
+  async githubAuth() {
+    this.logger.log('GET /auth/github - redirecting to GitHub');
     return;
   }
 
   @Public()
-  @Get('apple/callback')
-  @UseGuards(AuthGuard('apple'))
-  async appleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    return this.handleOAuthCallback(req, res, 'apple');
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubAuthCallback(@Req() req: Request, @Res() res: Response) {
+    return this.handleOAuthCallback(req, res, 'github');
   }
 
   @Public()

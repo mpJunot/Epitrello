@@ -25,7 +25,7 @@ resource "google_cloud_run_v2_service" "backend" {
           memory = var.memory
         }
         cpu_idle          = false # Keep CPU allocated for WebSocket
-        startup_cpu_boost = false
+        startup_cpu_boost = true  # Faster cold start for Nest/Node
       }
 
       # Container port (Cloud Run standard is 8080)
@@ -125,10 +125,10 @@ resource "google_cloud_run_v2_service" "backend" {
 
       # Apple OAuth Callback URL
       dynamic "env" {
-        for_each = var.apple_callback_url != null && var.apple_callback_url != "" ? [1] : []
+        for_each = var.github_callback_url != null && var.github_callback_url != "" ? [1] : []
         content {
-          name  = "APPLE_CALLBACK_URL"
-          value = var.apple_callback_url
+          name  = "GITHUB_CALLBACK_URL"
+          value = var.github_callback_url
         }
       }
 
@@ -170,12 +170,12 @@ resource "google_cloud_run_v2_service" "backend" {
 
       # Apple OAuth from Secret Manager (optional)
       dynamic "env" {
-        for_each = var.apple_client_id_secret_name != null ? [1] : []
+        for_each = var.github_client_id_secret_name != null ? [1] : []
         content {
-          name = "APPLE_CLIENT_ID"
+          name = "GITHUB_CLIENT_ID"
           value_source {
             secret_key_ref {
-              secret  = var.apple_client_id_secret_name
+              secret  = var.github_client_id_secret_name
               version = "latest"
             }
           }
@@ -183,12 +183,12 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       dynamic "env" {
-        for_each = var.apple_client_secret_secret_name != null ? [1] : []
+        for_each = var.github_client_secret_secret_name != null ? [1] : []
         content {
-          name = "APPLE_CLIENT_SECRET"
+          name = "GITHUB_CLIENT_SECRET"
           value_source {
             secret_key_ref {
-              secret  = var.apple_client_secret_secret_name
+              secret  = var.github_client_secret_secret_name
               version = "latest"
             }
           }
@@ -268,10 +268,10 @@ resource "google_cloud_run_v2_service" "backend" {
           path = "/health"
           port = 8080
         }
-        initial_delay_seconds = 5
-        timeout_seconds       = 1
-        period_seconds        = 3
-        failure_threshold     = 20
+        initial_delay_seconds = 15
+        timeout_seconds       = 3
+        period_seconds        = 5
+        failure_threshold     = 24
       }
 
       liveness_probe {

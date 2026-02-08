@@ -43,14 +43,14 @@ output "microsoft_client_secret_secret_name" {
   value       = length(google_secret_manager_secret.microsoft_client_secret) > 0 ? google_secret_manager_secret.microsoft_client_secret[0].name : null
 }
 
-output "apple_client_id_secret_name" {
-  description = "Apple OAuth client ID secret full name"
-  value       = length(google_secret_manager_secret.apple_client_id) > 0 ? google_secret_manager_secret.apple_client_id[0].name : null
+output "github_client_id_secret_name" {
+  description = "GitHub OAuth client ID secret full name"
+  value       = length(google_secret_manager_secret.github_client_id) > 0 ? google_secret_manager_secret.github_client_id[0].name : null
 }
 
-output "apple_client_secret_secret_name" {
-  description = "Apple OAuth client secret secret full name"
-  value       = length(google_secret_manager_secret.apple_client_secret) > 0 ? google_secret_manager_secret.apple_client_secret[0].name : null
+output "github_client_secret_secret_name" {
+  description = "GitHub OAuth client secret secret full name"
+  value       = length(google_secret_manager_secret.github_client_secret) > 0 ? google_secret_manager_secret.github_client_secret[0].name : null
 }
 
 output "slack_client_id_secret_name" {

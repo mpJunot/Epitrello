@@ -39,11 +39,11 @@ inputs:
   microsoft_client_secret:
     description: 'Microsoft OAuth client secret'
     required: false
-  apple_client_id:
-    description: 'Apple OAuth client ID'
+  github_client_id:
+    description: 'GitHub OAuth client ID'
     required: false
-  apple_client_secret:
-    description: 'Apple OAuth client secret'
+  github_client_secret:
+    description: 'GitHub OAuth client secret'
     required: false
   slack_client_id:
     description: 'Slack OAuth client ID'
@@ -57,8 +57,8 @@ inputs:
   microsoft_callback_url:
     description: 'Microsoft OAuth callback URL'
     required: false
-  apple_callback_url:
-    description: 'Apple OAuth callback URL'
+  github_callback_url:
+    description: 'GitHub OAuth callback URL'
     required: false
   slack_callback_url:
     description: 'Slack OAuth callback URL'
@@ -89,8 +89,8 @@ runs:
           -var="google_client_secret=${{ inputs.google_client_secret }}"
           -var="microsoft_client_id=${{ inputs.microsoft_client_id }}"
           -var="microsoft_client_secret=${{ inputs.microsoft_client_secret }}"
-          -var="apple_client_id=${{ inputs.apple_client_id }}"
-          -var="apple_client_secret=${{ inputs.apple_client_secret }}"
+          -var="github_client_id=${{ inputs.github_client_id }}"
+          -var="github_client_secret=${{ inputs.github_client_secret }}"
           -var="slack_client_id=${{ inputs.slack_client_id }}"
           -var="slack_client_secret=${{ inputs.slack_client_secret }}"
         )
@@ -101,8 +101,8 @@ runs:
         if [ -n "${{ inputs.microsoft_callback_url }}" ]; then
           TF_VARS+=(-var="microsoft_callback_url=${{ inputs.microsoft_callback_url }}")
         fi
-        if [ -n "${{ inputs.apple_callback_url }}" ]; then
-          TF_VARS+=(-var="apple_callback_url=${{ inputs.apple_callback_url }}")
+        if [ -n "${{ inputs.github_callback_url }}" ]; then
+          TF_VARS+=(-var="github_callback_url=${{ inputs.github_callback_url }}")
         fi
         if [ -n "${{ inputs.slack_callback_url }}" ]; then
           TF_VARS+=(-var="slack_callback_url=${{ inputs.slack_callback_url }}")

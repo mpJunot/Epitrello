@@ -344,6 +344,7 @@ Configure the following secrets in repository settings:
 - `STAGING_API_URL` - Staging environment API URL
 - `PRODUCTION_API_URL` - Production environment API URL
 - `DATABASE_URL` - Database connection string (for migrations)
+- `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET` - GitHub OAuth (optional; do not use `GITHUB_` prefix, reserved by GitHub)
 
 **Location:** `Settings > Secrets and variables > Actions`
 
