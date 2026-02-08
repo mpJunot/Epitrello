@@ -23,11 +23,20 @@ output "database_name" {
   value       = google_sql_database.database.name
 }
 
+locals {
+  # Support both public_ip_address and ip_address[].ip_address (provider version differences)
+  db_host_public   = google_sql_database_instance.main.public_ip_address
+  db_host_from_list = try([for ip in google_sql_database_instance.main.ip_address : ip.ip_address if ip.type == "PRIMARY"][0], try(google_sql_database_instance.main.ip_address[0].ip_address, ""), "")
+  db_host = coalesce(
+    var.enable_private_ip ? google_sql_database_instance.main.private_ip_address : null,
+    local.db_host_public != null && local.db_host_public != "" ? local.db_host_public : null,
+    local.db_host_from_list != "" ? local.db_host_from_list : null
+  )
+}
+
 output "connection_string" {
   description = "PostgreSQL connection string"
-  value = var.enable_private_ip && google_sql_database_instance.main.private_ip_address != null && google_sql_database_instance.main.private_ip_address != "" ? "postgresql://${var.db_user}:${nonsensitive(var.db_password)}@${google_sql_database_instance.main.private_ip_address}:5432/${var.db_name}?sslmode=require" : (
-    google_sql_database_instance.main.public_ip_address != null && google_sql_database_instance.main.public_ip_address != "" ? "postgresql://${var.db_user}:${nonsensitive(var.db_password)}@${google_sql_database_instance.main.public_ip_address}:5432/${var.db_name}?sslmode=require" : null
-  )
+  value = local.db_host != null && local.db_host != "" ? "postgresql://${var.db_user}:${nonsensitive(var.db_password)}@${local.db_host}:5432/${var.db_name}?sslmode=require" : null
   sensitive = true
 }
 
