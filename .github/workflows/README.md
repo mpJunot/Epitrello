@@ -168,8 +168,8 @@ Unified deployment workflow for staging and production with automatic change det
 3. **`terraform-validate`** - Validate Terraform configuration
 4. **`build-backend`** - Build and push Docker image to GCR
 5. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
-6. **`terraform-plan`** - Generate Terraform plan
-7. **`terraform-apply`** - Apply Terraform changes
+6. **`terraform-plan`** - Generate Terraform plan (state prefix `terraform/state/<environment>`)
+7. **`terraform-apply`** - Apply Terraform changes (staging and production use **separate state files**, so production creates its own DB and resources without replacing staging)
 8. **`deploy-backend`** - Deploy to Cloud Run
 9. **`deploy-frontend`** - Deploy to Cloud Run
 10. **`smoke-tests`** - Run smoke tests
