@@ -285,6 +285,15 @@ jobs:
           github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
 
+      - name: Import existing Terraform state bucket if needed
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          source /tmp/terraform_vars.sh
+          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
+            terraform import "${TF_VARS[@]}" \
+              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
+          fi
+
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
@@ -391,15 +400,6 @@ jobs:
           microsoft_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/microsoft/callback
           github_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/github/callback
           slack_callback_url: ${{ steps.backend-url-callbacks.outputs.url }}/auth/slack/callback
-
-      - name: Import existing Terraform state bucket if needed
-        working-directory: ${{ env.TF_WORKING_DIR }}
-        run: |
-          source /tmp/terraform_vars.sh
-          if ! terraform state show google_storage_bucket.terraform_state >/dev/null 2>&1; then
-            terraform import "${TF_VARS[@]}" \
-              google_storage_bucket.terraform_state epitrello-terraform-state 2>/dev/null || true
-          fi
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
