@@ -85,3 +85,9 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "create_ssl_client_cert" {
+  description = "Create SSL client cert. Set to false if the cert already exists (cannot be imported)."
+  type        = bool
+  default     = true
+}

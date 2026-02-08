@@ -274,6 +274,15 @@ variable "storage_location" {
 }
 
 # ===================================
+# Cloud SQL
+# ===================================
+variable "cloud_sql_create_ssl_client_cert" {
+  description = "Create Cloud SQL SSL client cert. Set to false if the cert already exists (cannot be imported)."
+  type        = bool
+  default     = false
+}
+
+# ===================================
 # Networking Configuration
 # ===================================
 variable "enable_private_ip" {
