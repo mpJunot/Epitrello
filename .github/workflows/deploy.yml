@@ -516,23 +516,19 @@ jobs:
             exit 0
           fi
 
-          echo "Updating backend (image + env vars)"
-          if [ -n "$DATABASE_URL" ]; then
-            gcloud run services update $SERVICE_NAME \
-              --image $IMAGE \
-              --update-env-vars "FRONTEND_URL=$FRONTEND_URL" \
-              --update-env-vars "DATABASE_URL=$DATABASE_URL" \
-              --region $REGION \
-              --project $PROJECT_ID \
-              --platform managed
-          else
-            gcloud run services update $SERVICE_NAME \
-              --image $IMAGE \
-              --update-env-vars "FRONTEND_URL=$FRONTEND_URL" \
-              --region $REGION \
-              --project $PROJECT_ID \
-              --platform managed
+          INSTANCE="${ENV}-epitrello-db"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL could not be built. Ensure: (1) Cloud SQL instance $INSTANCE exists, (2) CI service account has roles/cloudsql.viewer, (3) Secrets DB_NAME, DB_USER, DB_PASSWORD are set. Cannot deploy backend without DATABASE_URL."
+            exit 1
           fi
+          echo "Updating backend (image + env vars including DATABASE_URL)"
+          gcloud run services update $SERVICE_NAME \
+            --image $IMAGE \
+            --update-env-vars "FRONTEND_URL=$FRONTEND_URL" \
+            --update-env-vars "DATABASE_URL=$DATABASE_URL" \
+            --region $REGION \
+            --project $PROJECT_ID \
+            --platform managed
 
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
