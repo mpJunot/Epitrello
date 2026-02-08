@@ -7,7 +7,6 @@ This directory contains environment-specific Terraform variable files.
 ```
 env/
 ├── staging.tfvars.example    # Example configuration for staging environment
-├── production.tfvars.example  # Example configuration for production environment
 ├── .gitignore                 # Ignore actual .tfvars files (not examples)
 └── README.md                  # This file
 ```
@@ -16,17 +15,16 @@ env/
 
 ### 1. Create Your Configuration Files
 
-Copy the example files and update them with your actual values:
+Copy the example file and update it with your actual values:
 
 ```bash
 cd terraform/env
 cp staging.tfvars.example staging.tfvars
-cp production.tfvars.example production.tfvars
 ```
 
 ### 2. Update Configuration Values
 
-Edit `staging.tfvars` and `production.tfvars` with:
+Edit `staging.tfvars` with:
 
 - **GCP Project IDs**: Your actual project IDs
 - **Secrets**: Generate strong secrets (see below)
@@ -34,36 +32,17 @@ Edit `staging.tfvars` and `production.tfvars` with:
 
 ### 3. Generate Secrets
 
-**For staging:**
-
 ```bash
-echo "Staging JWT Secret: $(openssl rand -base64 48)"
-echo "Staging DB Password: $(openssl rand -base64 24)"
-```
-
-**For production (use DIFFERENT secrets):**
-
-```bash
-echo "Production JWT Secret: $(openssl rand -base64 48)"
-echo "Production DB Password: $(openssl rand -base64 32)"
+echo "JWT Secret: $(openssl rand -base64 48)"
+echo "DB Password: $(openssl rand -base64 24)"
 ```
 
 ### 4. Apply Configuration
-
-**For staging:**
 
 ```bash
 cd terraform
 terraform plan -var-file="env/staging.tfvars"
 terraform apply -var-file="env/staging.tfvars"
-```
-
-**For production:**
-
-```bash
-cd terraform
-terraform plan -var-file="env/production.tfvars"
-terraform apply -var-file="env/production.tfvars"
 ```
 
 ## Security
@@ -81,18 +60,9 @@ terraform apply -var-file="env/production.tfvars"
 
 See `terraform/variables.tf` for a complete list of available variables and their descriptions.
 
-## Environment Differences
+## Staging Configuration
 
-### Staging
-
-- **Database**: `db-f1-micro` (free tier)
+- **Database**: `db-f1-micro` (free tier) or higher
 - **Instances**: Can scale to zero
-- **Private IP**: Usually disabled
-- **Cost**: Lower (~$10-30/month)
-
-### Production
-
-- **Database**: `db-n1-standard-1` (paid tier)
-- **Instances**: Always on (min=1)
-- **Private IP**: Enabled (recommended)
-- **Cost**: Higher (~$80-120/month)
+- **Private IP**: Optional
+- **Cost**: ~$10-30/month (scale to zero)

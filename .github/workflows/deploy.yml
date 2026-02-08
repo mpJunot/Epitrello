@@ -2,18 +2,10 @@ name: Deploy to GCP
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master]
   pull_request:
-    branches: [master, dev]
+    branches: [master]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
 
 env:
   TF_VERSION: '1.6.0'
@@ -36,14 +28,7 @@ jobs:
 
       - name: Detect environment
         id: env
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          fi
+        run: echo "environment=staging" >> $GITHUB_OUTPUT
 
       - name: Detect changes
         id: filter
@@ -188,7 +173,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Configure Docker for GCR
@@ -252,7 +236,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Terraform Init
@@ -346,7 +329,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Download plan
@@ -404,9 +386,11 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          set -o pipefail
           source /tmp/terraform_vars.sh
           terraform apply -auto-approve tfplan 2>&1 | tee /tmp/apply.log || {
             if grep -q "Saved plan is stale" /tmp/apply.log; then
+              echo "::notice::Plan was stale (state changed since plan). Re-planning and applying..."
               terraform refresh "${TF_VARS[@]}" || true
               terraform plan -out=tfplan -parallelism=10 -refresh=true "${TF_VARS[@]}"
               terraform apply -auto-approve tfplan || exit 1
@@ -477,6 +461,29 @@ jobs:
           echo "url=$URL" >> $GITHUB_OUTPUT
           echo "Frontend URL: $URL"
 
+      - name: Build DATABASE_URL for backend
+        id: db-url
+        shell: bash
+        run: |
+          ENV=${{ needs.changes.outputs.environment }}
+          INSTANCE="${ENV}-epitrello-db"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
+          DB_USER="${{ secrets.DB_USER }}"
+          DB_NAME="${{ secrets.DB_NAME }}"
+          DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+
+          PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --project=$PROJECT_ID --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || true)
+          if [ -z "$PUBLIC_IP" ]; then
+            echo "::warning::Could not get Cloud SQL IP, DATABASE_URL will not be set by this step (rely on Terraform)"
+            echo "url=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          # URL-encode password for postgres URL
+          PWD_ENC=$(echo -n "$DB_PASSWORD" | sed 's/@/%40/g; s/:/%3A/g; s/\//%2F/g; s/#/%23/g; s/\[/%5B/g; s/\]/%5D/g')
+          DATABASE_URL="postgresql://${DB_USER}:${PWD_ENC}@${PUBLIC_IP}:5432/${DB_NAME}?sslmode=require"
+          echo "url=$DATABASE_URL" >> $GITHUB_OUTPUT
+          echo "DATABASE_URL built for backend deploy"
+
       - name: Deploy to Cloud Run
         run: |
           ENV=${{ needs.changes.outputs.environment }}
@@ -484,6 +491,7 @@ jobs:
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/epitrello-backend:${IMAGE_TAG}"
           SERVICE_NAME="${ENV}-epitrello-backend"
           FRONTEND_URL="${{ steps.frontend-url.outputs.url }}"
+          DATABASE_URL="${{ steps.db-url.outputs.url }}"
           PROJECT_ID="${{ secrets.GCP_PROJECT_ID }}"
           REGION="${{ env.GCP_REGION }}"
 
@@ -492,22 +500,19 @@ jobs:
             exit 0
           fi
 
-          if [ -n "$FRONTEND_URL" ]; then
-            echo "Updating backend with frontend URL: $FRONTEND_URL"
-            gcloud run services update $SERVICE_NAME \
-              --image $IMAGE \
-              --update-env-vars FRONTEND_URL=$FRONTEND_URL \
-              --region $REGION \
-              --project $PROJECT_ID \
-              --platform managed
-          else
-            echo "Warning: Frontend URL not available, deploying without FRONTEND_URL update"
-            gcloud run services update $SERVICE_NAME \
-              --image $IMAGE \
-              --region $REGION \
-              --project $PROJECT_ID \
-              --platform managed
+          INSTANCE="${ENV}-epitrello-db"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL could not be built. Ensure: (1) Cloud SQL instance $INSTANCE exists, (2) CI service account has roles/cloudsql.viewer, (3) Secrets DB_NAME, DB_USER, DB_PASSWORD are set. Cannot deploy backend without DATABASE_URL."
+            exit 1
           fi
+          echo "Updating backend (image + env vars including DATABASE_URL)"
+          gcloud run services update $SERVICE_NAME \
+            --image $IMAGE \
+            --update-env-vars "FRONTEND_URL=$FRONTEND_URL" \
+            --update-env-vars "DATABASE_URL=$DATABASE_URL" \
+            --region $REGION \
+            --project $PROJECT_ID \
+            --platform managed
 
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
@@ -536,7 +541,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Get Frontend URL
@@ -562,7 +566,7 @@ jobs:
 
           gcloud run services update $SERVICE_NAME \
             --image $IMAGE \
-            --update-env-vars NEXT_PUBLIC_API_URL=$BACKEND_URL \
+            --update-env-vars NEXT_PUBLIC_API_URL=${BACKEND_URL}/graphql \
             --region ${{ env.GCP_REGION }} \
             --platform managed
 

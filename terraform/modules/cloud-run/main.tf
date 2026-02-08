@@ -244,10 +244,10 @@ resource "google_cloud_run_v2_service" "backend" {
         value = "false"
       }
 
-      # CORS origins (includes localhost for local development)
+      # CORS origins: Cloud Run default domain is *.REGION.a.run.app; *.run.app covers both
       env {
         name  = "CORS_ORIGINS"
-        value = "https://*.run.app,http://localhost:3000"
+        value = "https://*.run.app,https://*.a.run.app,http://localhost:3000"
       }
 
       # Frontend URL (for OAuth redirects and email links)

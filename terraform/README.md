@@ -46,7 +46,6 @@ terraform/
 ├── .gitignore               # Git ignore rules
 │
 ├── staging.tfvars           # Staging environment config
-├── production.tfvars        # Production environment config
 ├── terraform.tfvars.example # Example configuration
 │
 └── modules/
@@ -112,25 +111,19 @@ github-actions/              # Service Account + Workload Identity for CI/CD
 
 ### Initial Setup
 
-1. **Create GCP Projects**
+1. **Create GCP Project**
 
    ```bash
-   # Staging
    gcloud projects create epitrello-staging --name="EpiTrello Staging"
-
-   # Production
-   gcloud projects create epitrello-prod --name="EpiTrello Production"
    ```
 
 2. **Enable Billing**
-
    - Go to https://console.cloud.google.com/billing
-   - Link projects to billing account
+   - Link the project to a billing account
 
 3. **Enable Required APIs**
 
    ```bash
-   # For each project
    gcloud config set project epitrello-staging
 
    gcloud services enable \
@@ -147,7 +140,7 @@ github-actions/              # Service Account + Workload Identity for CI/CD
    ```bash
    # Copy example files
    cp terraform.tfvars.example staging.tfvars
-   cp terraform.tfvars.example production.tfvars
+   cp terraform.tfvars.example staging.tfvars
    ```
 
 5. **Generate Secrets**
@@ -163,9 +156,8 @@ github-actions/              # Service Account + Workload Identity for CI/CD
    ```
 
 6. **Update Configuration Files**
-
    - Edit `staging.tfvars` with staging values
-   - Edit `production.tfvars` with production values
+   - Edit `staging.tfvars` with your values
    - Update project IDs, secrets, and resource configurations
 
 7. **Create Terraform State Bucket**
@@ -174,26 +166,26 @@ github-actions/              # Service Account + Workload Identity for CI/CD
    # For staging
    gsutil mb -l europe-west1 gs://epitrello-terraform-state-staging
 
-   # For production
-   gsutil mb -l europe-west1 gs://epitrello-terraform-state-production
+   # For staging state
+   gsutil mb -l europe-west1 gs://epitrello-terraform-state
    ```
 
 ### Destroy or replace environment
 
-When Terraform destroys or replaces an environment (e.g. switching staging → production in the same state), you may hit:
+When Terraform destroys or replaces resources, you may hit:
 
-- **Buckets not empty**  
-  Set `force_destroy_buckets = true` (default) so storage and docs buckets can be destroyed with objects. Buckets *already* created with the old default must be emptied before destroy, then retry:
+- **Buckets not empty**
+  Set `force_destroy_buckets = true` (default) so storage and docs buckets can be destroyed with objects. Buckets _already_ created with the old default must be emptied before destroy, then retry:
 
   ```bash
   gsutil -m rm -r gs://PROJECT_ID-ENV-epitrello-uploads/**
   gsutil -m rm -r gs://PROJECT_ID-ENV-epitrello-docs/**
   ```
 
-- **Cloud SQL: "database is being accessed"**  
+- **Cloud SQL: "database is being accessed"**
   Stop all clients (Cloud Run backend, migration jobs) so no connections remain, then retry destroy. Optionally use the same project and scale backend to 0 before running destroy.
 
-- **Cloud SQL: "role cannot be dropped because some objects depend on it"**  
+- **Cloud SQL: "role cannot be dropped because some objects depend on it"**
   Before destroying, connect to the instance as `postgres` and run (replace `epitrello_user` with your `db_user`):
 
   ```sql
@@ -224,35 +216,13 @@ terraform apply staging.tfplan
 terraform output -json > outputs-staging.json
 ```
 
-#### Deploy to Production
-
-```bash
-# Switch to production workspace
-terraform workspace new production
-
-# Plan deployment
-terraform plan -var-file="production.tfvars" -out=production.tfplan
-
-# Apply deployment
-terraform apply production.tfplan
-
-# Save outputs
-terraform output -json > outputs-production.json
-```
-
 ## 🔄 Daily Operations
 
-### Switch Between Environments
+### Switch Workspace (if using workspaces)
 
 ```bash
-# List workspaces
 terraform workspace list
-
-# Switch to staging
 terraform workspace select staging
-
-# Switch to production
-terraform workspace select production
 ```
 
 ### View Resources
@@ -299,28 +269,18 @@ terraform destroy -var-file="staging.tfvars"
 - **Secrets**: $0.50/month
 - **Total**: ~$17-37/month
 
-### Production Environment
-
-- **Cloud Run (Frontend)**: $10-25/month (always on)
-- **Cloud Run (Backend)**: $20-40/month (always on)
-- **Cloud SQL**: $50/month (db-n1-standard-1)
-- **Cloud Storage**: $2/month
-- **Secrets**: $0.50/month
-- **Total**: ~$82-118/month
-
 ## 🔐 Security
 
 ### Secrets Management
 
 - All secrets stored in Google Secret Manager
 - Never commit `*.tfvars` files to Git
-- Use different secrets for staging and production
 - Rotate secrets regularly
 
 ### Access Control
 
 - Use service accounts with minimum required permissions
-- Enable deletion protection on production database
+- Enable deletion protection on the database when needed
 - Use SSL/TLS for all connections
 - Regularly audit IAM permissions
 

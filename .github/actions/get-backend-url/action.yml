@@ -3,7 +3,7 @@ description: 'Get backend Cloud Run service URL with fallback to secrets'
 
 inputs:
   environment:
-    description: 'Environment (staging or production)'
+    description: 'Environment'
     required: true
   region:
     description: 'GCP Region'
@@ -11,9 +11,6 @@ inputs:
     default: 'europe-west1'
   project_id:
     description: 'GCP Project ID'
-    required: false
-  production_api_url:
-    description: 'Production API URL (fallback)'
     required: false
   staging_api_url:
     description: 'Staging API URL (fallback)'
@@ -45,12 +42,8 @@ runs:
             --format="value(status.url)" 2>/dev/null || echo "")
         fi
 
-        if [ -z "$URL" ]; then
-          if [ "$ENV" == "production" ]; then
-            URL="${{ inputs.production_api_url }}"
-          else
-            URL="${{ inputs.staging_api_url }}"
-          fi
+        if [ -z "$URL" ] && [ -n "${{ inputs.staging_api_url }}" ]; then
+          URL="${{ inputs.staging_api_url }}"
         fi
 
         if [ -z "$URL" ]; then
@@ -61,7 +54,7 @@ runs:
             *) REGION_SUFFIX=$(echo "$REGION_SUFFIX" | sed 's/-[a-z]*$//' | tr -d '-') ;;
           esac
           URL="https://${SERVICE_NAME}-placeholder-${REGION_SUFFIX}.a.run.app"
-          echo "::warning::Backend service not found and no secret set. Using placeholder URL. After first deploy, set PRODUCTION_API_URL (or STAGING_API_URL) in GitHub secrets with the real URL from GCP Console, then re-run to update OAuth callbacks."
+          echo "::warning::Backend service not found and no secret set. Using placeholder URL. After first deploy, set STAGING_API_URL in GitHub secrets with the real URL from GCP Console, then re-run to update OAuth callbacks."
         fi
 
         echo "url=$URL" >> $GITHUB_OUTPUT

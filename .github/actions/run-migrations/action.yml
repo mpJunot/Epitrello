@@ -3,7 +3,7 @@ description: 'Execute Prisma database migrations'
 
 inputs:
   environment:
-    description: 'Environment (staging or production)'
+    description: 'Environment'
     required: true
   project_id:
     description: 'GCP Project ID'
