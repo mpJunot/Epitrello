@@ -5,6 +5,29 @@
 # Add an import block here if you get 409 for another resource.
 # ===================================
 
+# Default service account (main.tf)
+import {
+  to = google_service_account.default
+  id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-sa@${var.project_id}.iam.gserviceaccount.com"
+}
+
+# Networking: VPC
+import {
+  to = module.networking.google_compute_network.vpc
+  id = "projects/${var.project_id}/global/networks/${local.app_name}-vpc"
+}
+
+# Service accounts module: backend + docs
+import {
+  to = module.service_accounts.google_service_account.backend
+  id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-backend-sa@${var.project_id}.iam.gserviceaccount.com"
+}
+
+import {
+  to = module.service_accounts.google_service_account.docs
+  id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-docs-sa@${var.project_id}.iam.gserviceaccount.com"
+}
+
 # Cloud Run backend
 import {
   to = module.cloud_run.google_cloud_run_v2_service.backend

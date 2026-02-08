@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "version": "0.1.0",
-  "description": "Epitrello frontend",
+  "description": "Epitrello frontend with Next.js, Tailwind CSS, and TypeScript",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
