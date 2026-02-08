@@ -8,7 +8,6 @@ import {
   Star,
   Settings,
   Tag,
-  Sticker,
   Activity,
   Archive,
   EyeIcon,
@@ -204,10 +203,6 @@ export function BoardMenu({
   const handleWatch = () => {
     // TODO: Implement watch board functionality
     toast.info('Watch board feature coming soon');
-  };
-
-  const handleStickers = () => {
-    toast.info('Stickers feature coming soon');
   };
 
   const handlePrintExportShare = () => {
@@ -417,13 +412,6 @@ export function BoardMenu({
                 >
                   <Tag className='w-4 h-4' />
                   <span>Labels</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className='flex items-center gap-2'
-                  onClick={handleStickers}
-                >
-                  <Sticker className='w-4 h-4' />
-                  <span>Stickers</span>
                 </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger className='flex items-center gap-2'>
