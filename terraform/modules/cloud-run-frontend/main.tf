@@ -3,7 +3,7 @@
 # ===================================
 # GCP account_id max 30 chars. Use shorter suffix when app_name would exceed (e.g. production-epitrello).
 resource "google_service_account" "frontend" {
-  account_id   = "${var.app_name}-frontend-sa"
+  account_id   = "${var.app_name}-${length(var.app_name) > 18 ? "fe" : "frontend"}-sa"
   display_name = "Cloud Run Frontend Service Account"
   project      = var.project_id
 }
