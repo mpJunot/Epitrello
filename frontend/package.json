@@ -1,6 +1,7 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "description": "Epitrello frontend (deploy-ready)",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",

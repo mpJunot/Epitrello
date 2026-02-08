@@ -436,6 +436,8 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           db_password: ${{ secrets.DB_PASSWORD }}
+          db_name: ${{ secrets.DB_NAME }}
+          db_user: ${{ secrets.DB_USER }}
 
   deploy-backend:
     name: Deploy Backend to Cloud Run
