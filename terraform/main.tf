@@ -82,6 +82,8 @@ module "cloud_sql" {
   network_id                = module.networking.network_id
   private_vpc_connection_id = module.networking.private_vpc_connection_id
 
+  create_ssl_client_cert = var.cloud_sql_create_ssl_client_cert
+
   labels = local.common_labels
 
   depends_on = [module.networking]

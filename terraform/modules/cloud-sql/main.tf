@@ -103,9 +103,11 @@ resource "google_sql_user" "user" {
 }
 
 # ===================================
-# SSL Certificate
+# SSL Certificate 
 # ===================================
 resource "google_sql_ssl_cert" "client_cert" {
+  count = var.create_ssl_client_cert ? 1 : 0
+
   common_name = "${var.app_name}-client-cert"
   instance    = google_sql_database_instance.main.name
   project     = var.project_id

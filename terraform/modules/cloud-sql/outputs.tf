@@ -32,7 +32,7 @@ output "connection_string" {
 }
 
 output "ssl_cert" {
-  description = "SSL certificate"
-  value       = google_sql_ssl_cert.client_cert.cert
+  description = "SSL certificate (null if create_ssl_client_cert = false)"
+  value       = var.create_ssl_client_cert ? google_sql_ssl_cert.client_cert[0].cert : null
   sensitive   = true
 }
