@@ -11,10 +11,41 @@ import {
   id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-sa@${var.project_id}.iam.gserviceaccount.com"
 }
 
-# Networking: VPC
+# Networking: VPC, subnet, connector, firewalls
 import {
   to = module.networking.google_compute_network.vpc
   id = "projects/${var.project_id}/global/networks/${local.app_name}-vpc"
+}
+
+import {
+  to = module.networking.google_compute_subnetwork.subnet
+  id = "projects/${var.project_id}/regions/${var.region}/subnetworks/${local.app_name}-subnet"
+}
+
+import {
+  to = module.networking.google_vpc_access_connector.connector
+  id = "projects/${var.project_id}/locations/${var.region}/connectors/staging-vpc-conn"
+}
+
+import {
+  to = module.networking.google_compute_firewall.allow_internal
+  id = "projects/${var.project_id}/global/firewalls/${local.app_name}-allow-internal"
+}
+
+import {
+  to = module.networking.google_compute_firewall.allow_health_checks
+  id = "projects/${var.project_id}/global/firewalls/${local.app_name}-allow-health-checks"
+}
+
+# Storage buckets (import id: project_id/bucket_name)
+import {
+  to = module.cloud_storage.google_storage_bucket.uploads
+  id = "${var.project_id}/${var.project_id}-${local.app_name}-uploads"
+}
+
+import {
+  to = module.docs_bucket.google_storage_bucket.docs
+  id = "${var.project_id}/${var.project_id}-${local.app_name}-docs"
 }
 
 # Service accounts module: backend + docs
