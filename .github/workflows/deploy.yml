@@ -2,18 +2,10 @@ name: Deploy to GCP
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master]
   pull_request:
-    branches: [master, dev]
+    branches: [master]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy to'
-        required: true
-        type: choice
-        options:
-          - staging
-          - production
 
 env:
   TF_VERSION: '1.6.0'
@@ -36,14 +28,7 @@ jobs:
 
       - name: Detect environment
         id: env
-        run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            echo "environment=production" >> $GITHUB_OUTPUT
-          else
-            echo "environment=staging" >> $GITHUB_OUTPUT
-          fi
+        run: echo "environment=staging" >> $GITHUB_OUTPUT
 
       - name: Detect changes
         id: filter
@@ -188,7 +173,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Configure Docker for GCR
@@ -252,7 +236,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Terraform Init
@@ -346,7 +329,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Download plan
@@ -559,7 +541,6 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-          production_api_url: ${{ secrets.PRODUCTION_API_URL }}
           staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Get Frontend URL

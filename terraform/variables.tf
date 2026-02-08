@@ -16,13 +16,13 @@ variable "zone" {
 }
 
 variable "environment" {
-  description = "Environment (staging or production)"
+  description = "Environment"
   type        = string
-  default     = "production"
+  default     = "staging"
 
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be either 'staging' or 'production'."
+    condition     = var.environment == "staging"
+    error_message = "Environment must be 'staging'."
   }
 }
 

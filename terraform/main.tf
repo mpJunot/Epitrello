@@ -1,5 +1,6 @@
 locals {
-  app_name = "${var.environment}-epitrello"
+  app_name      = "${var.environment}-epitrello"
+  secret_prefix = "projects/${var.project_id}/secrets/${var.project_id}"
   common_labels = {
     app         = "epitrello"
     environment = var.environment

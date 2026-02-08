@@ -2,7 +2,7 @@ name: Database Migrations
 
 on:
   push:
-    branches: [master, dev]
+    branches: [master]
     paths:
       - 'backend/prisma/migrations/**'
   workflow_dispatch:
@@ -13,7 +13,6 @@ on:
         type: choice
         options:
           - staging
-          - production
       action:
         description: 'Action to perform'
         required: true
@@ -166,8 +165,6 @@ jobs:
             ENV=${{ github.event.inputs.environment }}
           elif [ "${{ github.event_name }}" == "workflow_call" ]; then
             ENV="${{ inputs.environment }}"
-          elif [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            ENV="production"
           else
             ENV="staging"
           fi
