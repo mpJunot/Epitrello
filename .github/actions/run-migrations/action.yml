@@ -17,6 +17,14 @@ inputs:
   db_password:
     description: 'Database password (from secrets)'
     required: true
+  db_name:
+    description: 'Database name (fallback if gcloud sql databases list fails; use secret DB_NAME)'
+    required: false
+    default: 'epitrello-db'
+  db_user:
+    description: 'Database user (fallback if gcloud sql users list fails; use secret DB_USER)'
+    required: false
+    default: 'epitrello_user'
 
 runs:
   using: 'composite'
@@ -34,11 +42,18 @@ runs:
         ENV="${{ inputs.environment }}"
         INSTANCE="${ENV}-epitrello-db"
         PROJECT_ID="${{ inputs.project_id }}"
+        FALLBACK_DB_NAME="${{ inputs.db_name }}"
+        FALLBACK_DB_USER="${{ inputs.db_user }}"
 
-        PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || echo "")
-        # Filter out 'postgres' default database and get the application database
-        DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --format="value(name)" | grep -v "^postgres$" | head -1 || echo "epitrello-db")
-        DB_USER=$(gcloud sql users list --instance=$INSTANCE --format="value(name)" | grep -v "postgres" | head -1 || echo "epitrello_user")
+        # Always pass project so we target the correct GCP project
+        PUBLIC_IP=$(gcloud sql instances describe $INSTANCE --project=$PROJECT_ID --format="value(ipAddresses[0].ipAddress)" 2>/dev/null || true)
+        if [ -z "$PUBLIC_IP" ]; then
+          echo "::error::Cloud SQL instance '$INSTANCE' not found or not accessible. Ensure: (1) Terraform apply created the instance, (2) The CI service account (${{ inputs.service_account }}) has role roles/cloudsql.viewer (or cloudsql.admin) on the project."
+          exit 1
+        fi
+
+        DB_NAME=$(gcloud sql databases list --instance=$INSTANCE --project=$PROJECT_ID --format="value(name)" 2>/dev/null | grep -v "^postgres$" | head -1 || echo "$FALLBACK_DB_NAME")
+        DB_USER=$(gcloud sql users list --instance=$INSTANCE --project=$PROJECT_ID --format="value(name)" 2>/dev/null | grep -v "postgres" | head -1 || echo "$FALLBACK_DB_USER")
 
         echo "public_ip=$PUBLIC_IP" >> $GITHUB_OUTPUT
         echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT

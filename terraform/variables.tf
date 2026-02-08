@@ -256,6 +256,12 @@ variable "frontend_max_instances" {
 # ===================================
 # Storage Configuration
 # ===================================
+variable "force_destroy_buckets" {
+  description = "Allow destruction of storage/docs buckets when not empty (needed for env replace or teardown; set to false for production to avoid accidental data loss)"
+  type        = bool
+  default     = true
+}
+
 variable "storage_location" {
   description = "Cloud Storage bucket location (EU, US, ASIA)"
   type        = string

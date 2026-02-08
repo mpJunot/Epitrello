@@ -1,7 +1,7 @@
 {
   "name": "epitrello-backend",
   "version": "0.0.1",
-  "description": "Epitrello backend with NestJS, GraphQL, and Prisma",
+  "description": "Epitrello backend with NestJS, GraphQL, and Prisma (deploy-ready)",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
