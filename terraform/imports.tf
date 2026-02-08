@@ -1,9 +1,14 @@
 # ===================================
 # Import existing resources to avoid 409 "already exists".
-# Terraform imports these into state instead of creating them.
-# After first apply, these blocks are a no-op.
-# Add an import block here if you get 409 for another resource.
+# Si tout existe déjà en GCP, Terraform importe au lieu de recréer.
+# Après le premier apply réussi, ces blocs sont un no-op.
 # ===================================
+
+# Bucket GCS du state Terraform (backend.tf)
+import {
+  to = google_storage_bucket.terraform_state
+  id = "${var.project_id}/epitrello-terraform-state"
+}
 
 # Default service account (main.tf)
 import {
@@ -37,7 +42,7 @@ import {
   id = "projects/${var.project_id}/global/firewalls/${local.app_name}-allow-health-checks"
 }
 
-# Storage buckets (import id: project_id/bucket_name)
+# Storage buckets
 import {
   to = module.cloud_storage.google_storage_bucket.uploads
   id = "${var.project_id}/${var.project_id}-${local.app_name}-uploads"
@@ -48,13 +53,23 @@ import {
   id = "${var.project_id}/${var.project_id}-${local.app_name}-docs"
 }
 
-# Cloud SQL instance (import id: project_id/instance_name)
+# Cloud SQL: instance, base, user
 import {
   to = module.cloud_sql.google_sql_database_instance.main
   id = "${var.project_id}/${local.app_name}-db"
 }
 
-# Service accounts module: backend + docs
+import {
+  to = module.cloud_sql.google_sql_database.database
+  id = "${local.app_name}-db/${var.db_name}"
+}
+
+import {
+  to = module.cloud_sql.google_sql_user.user
+  id = "${local.app_name}-db:${var.db_user}"
+}
+
+# Service accounts: backend, docs, frontend
 import {
   to = module.service_accounts.google_service_account.backend
   id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-backend-sa@${var.project_id}.iam.gserviceaccount.com"
@@ -65,19 +80,23 @@ import {
   id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-docs-sa@${var.project_id}.iam.gserviceaccount.com"
 }
 
-# Cloud Run backend
+import {
+  to = module.cloud_run_frontend.google_service_account.frontend
+  id = "projects/${var.project_id}/serviceAccounts/${local.app_name}-frontend-sa@${var.project_id}.iam.gserviceaccount.com"
+}
+
+# Cloud Run: backend, frontend
 import {
   to = module.cloud_run.google_cloud_run_v2_service.backend
   id = "projects/${var.project_id}/locations/${var.region}/services/${local.app_name}-backend"
 }
 
-# Cloud Run frontend (remove block if the service does not exist yet)
 import {
   to = module.cloud_run_frontend.google_cloud_run_v2_service.frontend
   id = "projects/${var.project_id}/locations/${var.region}/services/${local.app_name}-frontend"
 }
 
-# Secret Manager (remove optional blocks if you don't use that secret)
+# Secret Manager
 import {
   to = module.secrets.google_secret_manager_secret.jwt_secret
   id = "${local.secret_prefix}-jwt-secret"
@@ -133,10 +152,10 @@ import {
   id = "${local.secret_prefix}-slack-client-secret"
 }
 
-# import {
-#   to = module.secrets.google_secret_manager_secret.google_callback_url[0]
-#   id = "${local.secret_prefix}-google-callback-url"
-# }
+import {
+  to = module.secrets.google_secret_manager_secret.google_callback_url[0]
+  id = "${local.secret_prefix}-google-callback-url"
+}
 
 import {
   to = module.secrets.google_secret_manager_secret.microsoft_callback_url[0]
