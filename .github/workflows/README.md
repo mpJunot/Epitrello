@@ -341,10 +341,12 @@ Configure the following secrets in repository settings:
 - `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
 - `GCP_PROJECT_ID` - GCP Project ID
+- `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Cloud SQL database name, user, and password (used by run-migrations; must match Terraform)
 - `STAGING_API_URL` - Staging environment API URL
 - `PRODUCTION_API_URL` - Production environment API URL
-- `DATABASE_URL` - Database connection string (for migrations)
 - `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET` - GitHub OAuth (optional; do not use `GITHUB_` prefix, reserved by GitHub)
+
+**GCP IAM for migrations:** The service account in `GCP_SERVICE_ACCOUNT` must have **`roles/cloudsql.viewer`** (or `roles/cloudsql.admin`) on the project so the run-migrations action can read the Cloud SQL instance (public IP). It also needs **`roles/secretmanager.secretAccessor`** on the DB password secret (or use `DB_PASSWORD` from GitHub secrets).
 
 **Location:** `Settings > Secrets and variables > Actions`
 

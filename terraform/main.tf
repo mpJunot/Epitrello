@@ -106,6 +106,7 @@ module "cloud_storage" {
   project_id                      = var.project_id
   app_name                        = local.app_name
   location                        = var.storage_location
+  force_destroy                   = var.force_destroy_buckets
   service_account_email           = google_service_account.default.email
   cloud_run_service_account_email = module.service_accounts.backend_service_account_email
 
@@ -197,6 +198,7 @@ module "docs_bucket" {
   project_id                  = var.project_id
   app_name                    = local.app_name
   location                    = var.storage_location
+  force_destroy               = var.force_destroy_buckets
   docs_service_account_email  = module.service_accounts.docs_service_account_email
   ci_cd_service_account_email = var.ci_cd_service_account_email
 

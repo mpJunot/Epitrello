@@ -178,6 +178,31 @@ github-actions/              # Service Account + Workload Identity for CI/CD
    gsutil mb -l europe-west1 gs://epitrello-terraform-state-production
    ```
 
+### Destroy or replace environment
+
+When Terraform destroys or replaces an environment (e.g. switching staging → production in the same state), you may hit:
+
+- **Buckets not empty**  
+  Set `force_destroy_buckets = true` (default) so storage and docs buckets can be destroyed with objects. Buckets *already* created with the old default must be emptied before destroy, then retry:
+
+  ```bash
+  gsutil -m rm -r gs://PROJECT_ID-ENV-epitrello-uploads/**
+  gsutil -m rm -r gs://PROJECT_ID-ENV-epitrello-docs/**
+  ```
+
+- **Cloud SQL: "database is being accessed"**  
+  Stop all clients (Cloud Run backend, migration jobs) so no connections remain, then retry destroy. Optionally use the same project and scale backend to 0 before running destroy.
+
+- **Cloud SQL: "role cannot be dropped because some objects depend on it"**  
+  Before destroying, connect to the instance as `postgres` and run (replace `epitrello_user` with your `db_user`):
+
+  ```sql
+  REASSIGN OWNED BY epitrello_user TO postgres;
+  DROP OWNED BY epitrello_user;
+  ```
+
+  Then run `terraform destroy` again (or let the replace continue).
+
 ### Deploy Infrastructure
 
 #### Deploy to Staging
