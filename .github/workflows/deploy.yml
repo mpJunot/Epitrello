@@ -256,7 +256,9 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform init -upgrade
+        run: |
+          terraform init -upgrade -reconfigure \
+            -backend-config="prefix=terraform/state/${{ needs.changes.outputs.environment }}"
 
       - name: Setup Terraform variables
         uses: ./.github/actions/setup-terraform-vars
@@ -361,7 +363,9 @@ jobs:
 
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform init
+        run: |
+          terraform init -reconfigure \
+            -backend-config="prefix=terraform/state/${{ needs.changes.outputs.environment }}"
 
       - name: Setup Terraform variables
         uses: ./.github/actions/setup-terraform-vars
