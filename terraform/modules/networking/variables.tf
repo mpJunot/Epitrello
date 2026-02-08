@@ -14,7 +14,7 @@ variable "app_name" {
 }
 
 variable "environment" {
-  description = "Environment name (staging or production)"
+  description = "Environment name"
   type        = string
 }
 

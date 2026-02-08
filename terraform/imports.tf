@@ -5,11 +5,6 @@
 # Add an import block here if you get 409 for another resource.
 # ===================================
 
-locals {
-  secret_prefix = "projects/${var.project_id}/secrets/${var.project_id}"
-  app_name      = "${var.environment}-epitrello"
-}
-
 # Cloud Run backend
 import {
   to = module.cloud_run.google_cloud_run_v2_service.backend

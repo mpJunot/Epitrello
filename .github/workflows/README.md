@@ -7,7 +7,7 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ```
 .github/
 ├── workflows/
-│   ├── deploy.yml               # Unified deployment (staging/production) with Terraform
+│   ├── deploy.yml               # Unified deployment (staging, master branch) with Terraform
 │   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
 │   ├── frontend-ci.yml          # Frontend tests (lint, build, E2E Playwright)
 │   ├── code-quality.yml         # Code quality (lint, CodeQL, Prisma validation)
@@ -143,13 +143,13 @@ pnpm prisma validate   # prisma-validate job
 
 ### 5. Deploy to GCP (`deploy.yml`)
 
-Unified deployment workflow for staging and production with automatic change detection.
+Unified deployment workflow for staging with automatic change detection.
 
 **Triggers:**
 
-- Push to `master` (production) or `dev` (staging) branches
-- Pull requests
-- Manual workflow dispatch with environment selection
+- Push to `master` branch
+- Pull requests targeting `master`
+- Manual workflow dispatch
 
 **Features:**
 
@@ -169,7 +169,7 @@ Unified deployment workflow for staging and production with automatic change det
 4. **`build-backend`** - Build and push Docker image to GCR
 5. **`build-frontend`** - Build frontend Docker image (build inside image via Dockerfile)
 6. **`terraform-plan`** - Generate Terraform plan (state prefix `terraform/state/<environment>`)
-7. **`terraform-apply`** - Apply Terraform changes (staging and production use **separate state files**, so production creates its own DB and resources without replacing staging)
+7. **`terraform-apply`** - Apply Terraform changes (state prefix `terraform/state/staging`)
 8. **`deploy-backend`** - Deploy to Cloud Run
 9. **`deploy-frontend`** - Deploy to Cloud Run
 10. **`smoke-tests`** - Run smoke tests
@@ -177,17 +177,16 @@ Unified deployment workflow for staging and production with automatic change det
 
 **Note:** Backend and frontend tests run in `backend-ci.yml` and `frontend-ci.yml` (path-filtered). Deploy does not re-run them; rely on branch protection requiring those checks to pass before merge.
 
-**Environments:**
+**Environment:**
 
-- `staging` - Automatic on `dev` branch
-- `production` - Automatic on `master` branch
+- `staging` - Deploy on push to `master` (and manual dispatch)
 
 **Required Secrets:**
 
 - `GCP_SERVICE_ACCOUNT` - GCP Service Account email (for Workload Identity Federation)
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
 - `GCP_PROJECT_ID` - GCP Project ID
-- `STAGING_API_URL` / `PRODUCTION_API_URL` - API URLs
+- `STAGING_API_URL` - Backend API URL (fallback when service not found)
 
 ---
 
@@ -221,10 +220,9 @@ Automated Prisma database migration management.
 - `deploy` - Apply migrations
 - `reset` - Reset database (staging only)
 
-**Environments:**
+**Environment:**
 
-- `staging` - Automatic on push
-- `production` - Manual only
+- `staging` - Push to `master` or manual dispatch
 
 ---
 
@@ -342,8 +340,7 @@ Configure the following secrets in repository settings:
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` - Workload Identity Provider resource name
 - `GCP_PROJECT_ID` - GCP Project ID
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` - Cloud SQL database name, user, and password (used by run-migrations; must match Terraform)
-- `STAGING_API_URL` - Staging environment API URL
-- `PRODUCTION_API_URL` - Production environment API URL
+- `STAGING_API_URL` - Backend API URL (fallback when Cloud Run service not found)
 - `OAUTH_GITHUB_CLIENT_ID` / `OAUTH_GITHUB_CLIENT_SECRET` - GitHub OAuth (optional; do not use `GITHUB_` prefix, reserved by GitHub)
 
 **GCP IAM for migrations:** The service account in `GCP_SERVICE_ACCOUNT` must have **`roles/cloudsql.viewer`** (or `roles/cloudsql.admin`) on the project so the run-migrations action can read the Cloud SQL instance (public IP). It also needs **`roles/secretmanager.secretAccessor`** on the DB password secret (or use `DB_PASSWORD` from GitHub secrets).
@@ -391,9 +388,7 @@ pnpm test:all:report       # Run all tests with formatted report
 The `deploy.yml` workflow replaces the following legacy workflows:
 
 - `deploy-staging.yml` - Merged into `deploy.yml`
-- `deploy-production.yml` - Merged into `deploy.yml`
 - `terraform-staging.yml` - Merged into `deploy.yml`
-- `terraform-production.yml` - Merged into `deploy.yml`
 - `docker-build.yml` - Merged into `deploy.yml` (GCR only)
 - `release.yml` - Can be added to `deploy.yml` if needed
 
@@ -440,7 +435,7 @@ All workflows are now modular and focused on specific responsibilities:
 ### Flexibility
 
 - Manual dispatch for deployments
-- Separate staging/production environments
+- Staging-only deployment
 - Centralized configuration in actions
 
 ---
