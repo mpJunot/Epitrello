@@ -10,6 +10,8 @@ import {
   workspacesQueryKey,
   useMyInvitationsQuery,
 } from '@/lib/queries/workspaces';
+import { useCurrentUserQuery } from '@/lib/queries/users';
+import { useMyInvitationsSubscription } from '@/lib/hooks/use-my-invitations-subscription';
 import {
   Home,
   Plus,
@@ -82,7 +84,7 @@ function saveExpanded(ids: string[]) {
 export default function AppSidebar() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() =>
-    loadExpanded()
+    loadExpanded(),
   );
   const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] =
     useState(false);
@@ -111,7 +113,9 @@ export default function AppSidebar() {
     }
   }, [workspacesError, loadingWorkspaces]);
 
+  const { data: currentUser } = useCurrentUserQuery();
   const { data: myInvitations } = useMyInvitationsQuery();
+  useMyInvitationsSubscription(queryClient, currentUser?.id ?? null, true);
   const pendingInvitationsCount = myInvitations?.length ?? 0;
 
   useEffect(() => {
@@ -248,8 +252,8 @@ export default function AppSidebar() {
                       {pendingInvitationsCount > 99
                         ? '99+'
                         : pendingInvitationsCount > 9
-                        ? '9+'
-                        : pendingInvitationsCount}
+                          ? '9+'
+                          : pendingInvitationsCount}
                     </SidebarMenuBadge>
                   )}
                 </SidebarMenuItem>

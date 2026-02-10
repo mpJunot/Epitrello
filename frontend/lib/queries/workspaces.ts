@@ -67,12 +67,14 @@ export const workspaceMembersQueryKey = (workspaceId: string) =>
   ['workspace', workspaceId, 'members'] as const;
 
 export function useWorkspaceMembersQuery(
-  workspaceId: string
+  workspaceId: string,
+  options?: { refetchInterval?: number },
 ): UseQueryResult<WorkspaceMemberWithUser[] | undefined> {
   return useQuery({
     queryKey: workspaceMembersQueryKey(workspaceId),
     queryFn: () => getWorkspaceMembers(workspaceId),
     enabled: !!workspaceId,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

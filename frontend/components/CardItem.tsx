@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Clock, CheckSquare } from 'lucide-react';
+import { Clock, CheckSquare, TextAlignStart } from 'lucide-react';
 import CardModal from './CardModal';
 import {
   Avatar,
@@ -257,6 +257,18 @@ export default function CardItem({
                     Completed
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Description icon (same as CardModal) */}
+            {card.description?.trim() && (
+              <div
+                className={`flex items-center gap-1.5 text-xs text-muted-foreground ${
+                  localCompleted ? 'line-through opacity-60' : ''
+                }`}
+                title='Has description'
+              >
+                <TextAlignStart className='w-3.5 h-3.5 shrink-0' />
               </div>
             )}
 

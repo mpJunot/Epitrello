@@ -1,5 +1,7 @@
 import { Resolver, Mutation, Query, Args, ID } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { InvitationsService } from './invitations.service';
 import { WorkspaceInvitation } from './entities/invitation.entity';
 import { WorkspaceMemberWithUser } from './entities/workspace-member.entity';
@@ -9,11 +11,20 @@ import { UpdateMemberRoleInput } from './dto/update-member-role.input';
 import { RemoveMemberInput } from './dto/remove-member.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import {
+  TRIGGER_WORKSPACE_MEMBERS_UPDATED,
+  TRIGGER_WORKSPACE_INVITATIONS_UPDATED,
+  TRIGGER_MY_INVITATIONS_UPDATED,
+} from './workspace-members-subscription.resolver';
 
 @Resolver(() => WorkspaceInvitation)
 @UseGuards(GqlAuthGuard)
 export class InvitationsResolver {
-  constructor(private readonly invitationsService: InvitationsService) {}
+  constructor(
+    private readonly invitationsService: InvitationsService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
   @Mutation(() => WorkspaceInvitation, {
     description: 'Invite a member to a workspace. Only ADMIN members can invite.',
@@ -22,7 +33,16 @@ export class InvitationsResolver {
     @Args('input') input: InviteMemberInput,
     @CurrentUser() user: any,
   ): Promise<WorkspaceInvitation> {
-    return this.invitationsService.inviteMember(input, user.id);
+    const result = await this.invitationsService.inviteMember(input, user.id);
+    await this.pubSub.publish(TRIGGER_WORKSPACE_INVITATIONS_UPDATED, {
+      workspaceId: result.workspaceId,
+    });
+    if (result.inviteeId) {
+      await this.pubSub.publish(TRIGGER_MY_INVITATIONS_UPDATED, {
+        userId: result.inviteeId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => WorkspaceInvitation, {
@@ -32,7 +52,20 @@ export class InvitationsResolver {
     @Args('input') input: RespondInvitationInput,
     @CurrentUser() user: any,
   ): Promise<WorkspaceInvitation> {
-    return this.invitationsService.acceptInvitation(input.invitationId, user.id);
+    const result = await this.invitationsService.acceptInvitation(
+      input.invitationId,
+      user.id,
+    );
+    await this.pubSub.publish(TRIGGER_WORKSPACE_MEMBERS_UPDATED, {
+      workspaceId: result.workspaceId,
+    });
+    await this.pubSub.publish(TRIGGER_WORKSPACE_INVITATIONS_UPDATED, {
+      workspaceId: result.workspaceId,
+    });
+    await this.pubSub.publish(TRIGGER_MY_INVITATIONS_UPDATED, {
+      userId: user.id,
+    });
+    return result;
   }
 
   @Mutation(() => WorkspaceInvitation, {
@@ -42,7 +75,22 @@ export class InvitationsResolver {
     @Args('input') input: RespondInvitationInput,
     @CurrentUser() user: any,
   ): Promise<WorkspaceInvitation> {
-    return this.invitationsService.rejectInvitation(input.invitationId, user.id);
+    const workspaceId = await this.invitationsService.getInvitationWorkspaceId(
+      input.invitationId,
+    );
+    const result = await this.invitationsService.rejectInvitation(
+      input.invitationId,
+      user.id,
+    );
+    if (workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_INVITATIONS_UPDATED, {
+        workspaceId,
+      });
+    }
+    await this.pubSub.publish(TRIGGER_MY_INVITATIONS_UPDATED, {
+      userId: user.id,
+    });
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -52,7 +100,16 @@ export class InvitationsResolver {
     @Args('workspaceId', { type: () => ID }) workspaceId: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.invitationsService.joinWorkspaceByInviteLink(workspaceId, user.id);
+    const result = await this.invitationsService.joinWorkspaceByInviteLink(
+      workspaceId,
+      user.id,
+    );
+    if (result) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_MEMBERS_UPDATED, {
+        workspaceId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -62,7 +119,27 @@ export class InvitationsResolver {
     @Args('invitationId', { type: () => ID }) invitationId: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.invitationsService.cancelInvitation(invitationId, user.id);
+    const [workspaceId, inviteeId] = await Promise.all([
+      this.invitationsService.getInvitationWorkspaceId(invitationId),
+      this.invitationsService.getInvitationInviteeId(invitationId),
+    ]);
+    const result = await this.invitationsService.cancelInvitation(
+      invitationId,
+      user.id,
+    );
+    if (result) {
+      if (workspaceId) {
+        await this.pubSub.publish(TRIGGER_WORKSPACE_INVITATIONS_UPDATED, {
+          workspaceId,
+        });
+      }
+      if (inviteeId) {
+        await this.pubSub.publish(TRIGGER_MY_INVITATIONS_UPDATED, {
+          userId: inviteeId,
+        });
+      }
+    }
+    return result;
   }
 
   @Query(() => [WorkspaceInvitation], {
@@ -102,7 +179,16 @@ export class InvitationsResolver {
     @Args('input') input: UpdateMemberRoleInput,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.invitationsService.updateMemberRole(input, user.id);
+    const result = await this.invitationsService.updateMemberRole(
+      input,
+      user.id,
+    );
+    if (result) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_MEMBERS_UPDATED, {
+        workspaceId: input.workspaceId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -112,7 +198,13 @@ export class InvitationsResolver {
     @Args('input') input: RemoveMemberInput,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.invitationsService.removeMember(input, user.id);
+    const result = await this.invitationsService.removeMember(input, user.id);
+    if (result) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_MEMBERS_UPDATED, {
+        workspaceId: input.workspaceId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -122,6 +214,15 @@ export class InvitationsResolver {
     @Args('workspaceId', { type: () => ID }) workspaceId: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.invitationsService.leaveWorkspace(workspaceId, user.id);
+    const result = await this.invitationsService.leaveWorkspace(
+      workspaceId,
+      user.id,
+    );
+    if (result) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_MEMBERS_UPDATED, {
+        workspaceId,
+      });
+    }
+    return result;
   }
 }

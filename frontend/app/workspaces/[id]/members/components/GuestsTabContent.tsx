@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type {
@@ -57,13 +56,8 @@ export function GuestsTabContent({
   onAssignAdmin,
   isOnlyAdmin,
 }: GuestsTabContentProps) {
-  // Filter members with GUEST role (if role is implemented as enum)
-  // For now, we'll show empty since guests might not be implemented yet
-  const guests = useMemo(() => {
-    // If guests are members with role === 'GUEST', filter them
-    // Otherwise return empty array
-    return members.filter((m) => m.role === 'GUEST');
-  }, [members]);
+  // Parent passes only OBSERVER members (guests) for this tab
+  const guests = members;
 
   return (
     <div className='flex-1 flex flex-col mt-0'>

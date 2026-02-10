@@ -100,7 +100,8 @@ export function useBoardCardSubscription(
       shouldRetry: () => true,
     });
 
-    const unsub = client.subscribe(
+    // Subscription for card updates (create/update/move/etc.)
+    const unsubUpdated = client.subscribe(
       {
         query: `subscription CardUpdated($boardId: ID!) {
           cardUpdated(boardId: $boardId) {
@@ -163,8 +164,41 @@ export function useBoardCardSubscription(
       },
     );
 
+    // Subscription for card deletions (remove card from all lists).
+    const unsubDeleted = client.subscribe(
+      {
+        query: `subscription CardDeleted($boardId: ID!) {
+          cardDeleted(boardId: $boardId)
+        }`,
+        variables: { boardId },
+      } as SubscribePayload,
+      {
+        next: (data) => {
+          const deletedId = (data.data as { cardDeleted?: string })?.cardDeleted;
+          if (!deletedId) return;
+          queryClient.setQueryData<Board>(boardQueryKey(boardId), (old) => {
+            if (!old?.lists) return old;
+            return {
+              ...old,
+              lists: old.lists.map((list) => ({
+                ...list,
+                cards: (list.cards ?? []).filter((c) => c.id !== deletedId),
+              })),
+            };
+          });
+        },
+        error: (err) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[useBoardCardSubscription:deleted]', err);
+          }
+        },
+        complete: () => {},
+      },
+    );
+
     return () => {
-      unsub();
+      unsubUpdated();
+      unsubDeleted();
       client.dispose();
     };
   }, [boardId, queryClient, enabled]);

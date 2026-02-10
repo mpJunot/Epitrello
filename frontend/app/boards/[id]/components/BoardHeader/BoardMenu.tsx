@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MoreHorizontal,
@@ -87,6 +87,23 @@ export function BoardMenu({
   const [showLeaveBoardDialog, setShowLeaveBoardDialog] = useState(false);
   const [leaveBoardAdminUserId, setLeaveBoardAdminUserId] = useState('');
   const [leavingBoard, setLeavingBoard] = useState(false);
+  const [isStarred, setIsStarred] = useState(false);
+
+  const STARRED_STORAGE_KEY = 'epitrello-starred-board-ids';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(STARRED_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed) && parsed.some((id) => id === board.id)) {
+        setIsStarred(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [board.id]);
 
   const isOnlyAdmin =
     !!currentUserId &&
@@ -196,8 +213,22 @@ export function BoardMenu({
   };
 
   const handleStar = () => {
-    // TODO: Implement star board functionality
-    toast.info('Star board feature coming soon');
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(STARRED_STORAGE_KEY);
+      const parsed = Array.isArray(raw ? JSON.parse(raw) : [])
+        ? (JSON.parse(raw!) as string[])
+        : [];
+      const exists = parsed.includes(board.id);
+      const next = exists
+        ? parsed.filter((id) => id !== board.id)
+        : [...parsed, board.id];
+      localStorage.setItem(STARRED_STORAGE_KEY, JSON.stringify(next));
+      setIsStarred(!exists);
+      toast.success(exists ? 'Board unstarred' : 'Board starred');
+    } catch {
+      toast.error('Failed to update board star status');
+    }
   };
 
   const handleWatch = () => {
@@ -378,8 +409,10 @@ export function BoardMenu({
               className='flex items-center gap-2'
               onClick={handleStar}
             >
-              <Star className='w-4 h-4' />
-              <span>Star</span>
+              <Star
+                className={`w-4 h-4 ${isStarred ? 'fill-current text-yellow-400' : ''}`}
+              />
+              <span>{isStarred ? 'Unstar' : 'Star'}</span>
             </DropdownMenuItem>
           </div>
 

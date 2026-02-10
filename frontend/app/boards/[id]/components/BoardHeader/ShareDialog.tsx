@@ -24,7 +24,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { getUserByEmail } from '@/lib/actions/users';
-import { addBoardMember } from '@/lib/actions/boards';
+import { addBoardMember, updateBoardMemberRole } from '@/lib/actions/boards';
+import { boardQueryKey } from '@/app/boards/[id]/queries';
 import {
   activityInvalidateKey,
   activityBoardInvalidateKey,
@@ -38,6 +39,8 @@ interface ShareDialogProps {
   boardId: string;
   members: BoardMember[];
   onMemberAdded?: () => void;
+  /** True if current user is BOARD ADMIN and can manage member roles/invites. */
+  canManageMembers?: boolean;
 }
 
 export function ShareDialog({
@@ -46,6 +49,7 @@ export function ShareDialog({
   boardId,
   members,
   onMemberAdded,
+  canManageMembers = true,
 }: ShareDialogProps) {
   const queryClient = useQueryClient();
   const [inviteEmail, setInviteEmail] = useState('');
@@ -74,6 +78,10 @@ export function ShareDialog({
   };
 
   const handleInvite = async () => {
+    if (!canManageMembers) {
+      toast.error('Only board administrators can invite members');
+      return;
+    }
     const email = inviteEmail.trim();
     if (!email) {
       toast.error('Please enter an email address');
@@ -118,34 +126,36 @@ export function ShareDialog({
           </DialogDescription>
         </DialogHeader>
         <div className='space-y-4 py-4'>
-          {/* Invite section */}
-          <div className='space-y-2'>
-            <Label htmlFor='invite-email'>Email address or name</Label>
-            <div className='flex gap-2'>
-              <Input
-                id='invite-email'
-                placeholder='Enter email or name'
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className='flex-1'
-              />
-              <Select
-                value={inviteRole}
-                onValueChange={(v) => setInviteRole(v as 'MEMBER' | 'ADMIN')}
-              >
-                <SelectTrigger className='w-32'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className='border-accent'>
-                  <SelectItem value='MEMBER'>Member</SelectItem>
-                  <SelectItem value='ADMIN'>Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleInvite} disabled={inviteLoading}>
-                {inviteLoading ? 'Adding…' : 'Share'}
-              </Button>
+          {/* Invite section (admins only) */}
+          {canManageMembers && (
+            <div className='space-y-2'>
+              <Label htmlFor='invite-email'>Email address or name</Label>
+              <div className='flex gap-2'>
+                <Input
+                  id='invite-email'
+                  placeholder='Enter email or name'
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className='flex-1'
+                />
+                <Select
+                  value={inviteRole}
+                  onValueChange={(v) => setInviteRole(v as 'MEMBER' | 'ADMIN')}
+                >
+                  <SelectTrigger className='w-32'>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className='border-accent'>
+                    <SelectItem value='MEMBER'>Member</SelectItem>
+                    <SelectItem value='ADMIN'>Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleInvite} disabled={inviteLoading}>
+                  {inviteLoading ? 'Adding…' : 'Share'}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Share link */}
           <div className='space-y-2'>
@@ -203,6 +213,7 @@ export function ShareDialog({
                       .toUpperCase()
                   : (member.user?.email?.charAt(0) || 'U').toUpperCase();
                 const avatarColor = getAvatarColor(displayName);
+
                 return (
                   <div
                     key={member.id}
@@ -231,15 +242,44 @@ export function ShareDialog({
                         </div>
                       </div>
                     </div>
-                    <Select defaultValue={member.role}>
-                      <SelectTrigger className='w-24 h-8'>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className='border-accent'>
-                        <SelectItem value='MEMBER'>Member</SelectItem>
-                        <SelectItem value='ADMIN'>Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {canManageMembers ? (
+                      <Select
+                        value={member.role}
+                        onValueChange={async (v) => {
+                          const nextRole = v as 'ADMIN' | 'MEMBER';
+                          if (nextRole === member.role) return;
+                          try {
+                            await updateBoardMemberRole(
+                              boardId,
+                              member.userId,
+                              nextRole,
+                            );
+                            await queryClient.invalidateQueries({
+                              queryKey: boardQueryKey(boardId),
+                            });
+                            toast.success('Member role updated');
+                          } catch (err) {
+                            const message =
+                              err instanceof Error
+                                ? err.message
+                                : 'Failed to update member role';
+                            toast.error(message);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className='w-24 h-8'>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className='border-accent'>
+                          <SelectItem value='MEMBER'>Member</SelectItem>
+                          <SelectItem value='ADMIN'>Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className='text-xs text-muted-foreground px-2 py-1 rounded border border-dashed border-accent'>
+                        {member.role === 'ADMIN' ? 'Admin' : 'Member'}
+                      </span>
+                    )}
                   </div>
                 );
               })}

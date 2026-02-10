@@ -15,7 +15,7 @@ import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CardsDataLoader } from './dataloaders/cards.dataloader';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
-import { TRIGGER_CARD_UPDATED } from '../boards/board-subscription.resolver';
+import { TRIGGER_CARD_DELETED, TRIGGER_CARD_UPDATED } from '../boards/board-subscription.resolver';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Label } from '../labels/entities/label.entity';
 import DataLoader = require('dataloader');
@@ -121,7 +121,20 @@ export class CardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.cardsService.delete(id, user.id);
+    // Load card and boardId before deletion so we can broadcast the deletion event.
+    const existing = await this.cardsService.findOne(id, user.id);
+    const list = await this.prisma.list.findUnique({
+      where: { id: existing.listId },
+      select: { boardId: true },
+    });
+    const result = await this.cardsService.delete(id, user.id);
+    if (result && list) {
+      await this.pubSub.publish(TRIGGER_CARD_DELETED, {
+        cardDeletedId: id,
+        boardId: list.boardId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Card, {

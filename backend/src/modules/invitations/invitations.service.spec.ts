@@ -29,6 +29,14 @@ describe('InvitationsService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    board: {
+      findMany: jest.fn(),
+    },
+    boardMember: {
+      updateMany: jest.fn(),
+      count: jest.fn(),
+      deleteMany: jest.fn(),
+    },
     user: {
       findUnique: jest.fn(),
     },
@@ -499,17 +507,93 @@ describe('InvitationsService', () => {
     const workspaceId = 'workspace-1';
     const userId = 'user-1';
 
-    it('should successfully leave workspace', async () => {
+    it('should set user to OBSERVER (guest) when still on at least one board', async () => {
       mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
         id: '1',
         role: Role.MEMBER,
       });
+      mockPrismaService.board.findMany.mockResolvedValue([{ id: 'board-1' }]);
+      mockPrismaService.boardMember.count.mockResolvedValue(1);
+      mockPrismaService.workspaceMember.update.mockResolvedValue({
+        id: '1',
+        role: Role.OBSERVER,
+      });
+      mockPrismaService.boardMember.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.leaveWorkspace(workspaceId, userId);
+
+      expect(result).toBe(true);
+      expect(mockPrismaService.workspaceMember.update).toHaveBeenCalledWith({
+        where: {
+          workspaceId_userId: { workspaceId, userId },
+        },
+        data: { role: Role.OBSERVER },
+      });
+      expect(mockPrismaService.boardMember.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId,
+            boardId: { in: ['board-1'] },
+          },
+          data: { role: Role.OBSERVER },
+        }),
+      );
+      expect(mockPrismaService.workspaceMember.delete).not.toHaveBeenCalled();
+    });
+
+    it('should remove user from workspace and all boards when not on any board', async () => {
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: '1',
+        role: Role.MEMBER,
+      });
+      mockPrismaService.board.findMany.mockResolvedValue([{ id: 'board-1' }]);
+      mockPrismaService.boardMember.count.mockResolvedValue(0);
+      mockPrismaService.boardMember.deleteMany.mockResolvedValue({ count: 0 });
       mockPrismaService.workspaceMember.delete.mockResolvedValue({});
 
       const result = await service.leaveWorkspace(workspaceId, userId);
 
       expect(result).toBe(true);
-      expect(mockPrismaService.workspaceMember.delete).toHaveBeenCalled();
+      expect(mockPrismaService.boardMember.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          boardId: { in: ['board-1'] },
+        },
+      });
+      expect(mockPrismaService.workspaceMember.delete).toHaveBeenCalledWith({
+        where: {
+          workspaceId_userId: { workspaceId, userId },
+        },
+      });
+      expect(mockPrismaService.workspaceMember.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.boardMember.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('should remove OBSERVER (guest) from workspace and all boards when they leave', async () => {
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        id: '1',
+        role: Role.OBSERVER,
+      });
+      mockPrismaService.board.findMany.mockResolvedValue([{ id: 'board-1' }, { id: 'board-2' }]);
+      mockPrismaService.boardMember.deleteMany.mockResolvedValue({ count: 2 });
+      mockPrismaService.workspaceMember.delete.mockResolvedValue({});
+
+      const result = await service.leaveWorkspace(workspaceId, userId);
+
+      expect(result).toBe(true);
+      expect(mockPrismaService.boardMember.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId,
+          boardId: { in: ['board-1', 'board-2'] },
+        },
+      });
+      expect(mockPrismaService.workspaceMember.delete).toHaveBeenCalledWith({
+        where: {
+          workspaceId_userId: { workspaceId, userId },
+        },
+      });
+      expect(mockPrismaService.workspaceMember.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.boardMember.updateMany).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if user is not a member', async () => {
@@ -591,12 +675,17 @@ describe('InvitationsService', () => {
           inviteeEmail: 'user@example.com',
           status: InvitationStatus.PENDING,
           inviter: { name: 'Admin User', email: 'admin@example.com' },
+          workspace: { name: 'Test Workspace' },
         },
       ]);
 
       const result = await service.getWorkspaceInvitations(workspaceId, userId);
 
       expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        inviterName: 'Admin User',
+        workspaceName: 'Test Workspace',
+      });
       expect(mockPrismaService.workspaceInvitation.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -609,6 +698,11 @@ describe('InvitationsService', () => {
               select: {
                 name: true,
                 email: true,
+              },
+            },
+            workspace: {
+              select: {
+                name: true,
               },
             },
           },

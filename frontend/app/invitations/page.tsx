@@ -26,15 +26,20 @@ import {
   useMyInvitationsQuery,
   myInvitationsQueryKey,
 } from '@/lib/queries/workspaces';
+import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
 import type { WorkspaceInvitation } from '@/lib/graphql-types';
+import { useMyInvitationsSubscription } from '@/lib/hooks/use-my-invitations-subscription';
 
 export default function InvitationsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [processing, setProcessing] = useState<string | null>(null);
 
+  const { data: currentUser } = useCurrentUserQuery();
   const { data: invitations, isLoading, isError } = useMyInvitationsQuery();
+
+  useMyInvitationsSubscription(queryClient, currentUser?.id ?? null, true);
 
   const handleAccept = async (invitation: WorkspaceInvitation) => {
     setProcessing(invitation.id);
@@ -110,8 +115,8 @@ export default function InvitationsPage() {
 
   if (isLoading) {
     return (
-      <div className='h-full bg-background flex flex-col p-4'>
-        <div className='p-6 w-full max-w-4xl flex items-center justify-center'>
+      <div className='h-full bg-background flex flex-col p-8 md:p-12'>
+        <div className='w-full max-w-5xl flex items-center justify-center flex-1'>
           <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
         </div>
       </div>
@@ -120,8 +125,8 @@ export default function InvitationsPage() {
 
   if (isError) {
     return (
-      <div className='h-full bg-background flex flex-col p-4'>
-        <div className='p-6 w-full max-w-4xl flex items-center justify-center'>
+      <div className='h-full bg-background flex flex-col p-8 md:p-12'>
+        <div className='w-full max-w-5xl flex items-center justify-center flex-1'>
           <p className='text-muted-foreground'>Error loading invitations</p>
         </div>
       </div>
@@ -131,8 +136,8 @@ export default function InvitationsPage() {
   const invitationsList = invitations ?? [];
 
   return (
-    <div className='h-full bg-background flex flex-col p-4'>
-      <div className='p-6 w-full max-w-4xl space-y-6'>
+    <div className='flex h-full w-full flex-col p-8 md:p-12 bg-background'>
+      <div className='flex min-h-0 flex-1 flex-col gap-6 w-full max-w-5xl'>
         <div className='space-y-1'>
           <h1 className='text-2xl font-semibold text-foreground'>
             My Invitations

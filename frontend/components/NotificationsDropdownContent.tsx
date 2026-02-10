@@ -3,7 +3,18 @@
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, MoreVertical, ExternalLink } from 'lucide-react';
+import {
+  Bell,
+  MoreVertical,
+  ExternalLink,
+  Check,
+  UserPlus,
+  CalendarClock,
+  MessageSquare,
+  LayoutDashboard,
+  Users,
+} from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -35,6 +46,8 @@ import {
   ItemGroup,
   ItemContent,
   ItemTitle,
+  ItemDescription,
+  ItemMedia,
   ItemActions,
 } from '@/components/ui/item';
 import {
@@ -43,8 +56,34 @@ import {
   getMyNotificationPreferences,
   updateMyNotificationPreferences,
   type Notification,
+  type NotificationType,
   type NotificationEmailFrequency,
 } from '@/lib/actions/notifications';
+
+function notificationIcon(type: NotificationType) {
+  switch (type) {
+    case 'CARD_ASSIGNED':
+      return <UserPlus className='size-4' />;
+    case 'CARD_DUE_SOON':
+      return <CalendarClock className='size-4' />;
+    case 'COMMENT_ADDED':
+      return <MessageSquare className='size-4' />;
+    case 'BOARD_INVITATION':
+      return <LayoutDashboard className='size-4' />;
+    case 'WORKSPACE_INVITATION':
+      return <Users className='size-4' />;
+    default:
+      return <Bell className='size-4' />;
+  }
+}
+
+function notificationTime(createdAt: string) {
+  try {
+    return formatDistanceToNow(new Date(createdAt), { addSuffix: true });
+  } catch {
+    return '';
+  }
+}
 
 export type NotificationsDropdownContentProps = {
   notifications: Notification[];
@@ -85,7 +124,7 @@ export default function NotificationsDropdownContent({
   });
 
   const handleEmailFrequencyChange = async (
-    value: NotificationEmailFrequency
+    value: NotificationEmailFrequency,
   ) => {
     try {
       await updateMyNotificationPreferences({ emailFrequency: value });
@@ -144,7 +183,7 @@ export default function NotificationsDropdownContent({
           </div>
           <PopoverContent
             align='end'
-            className='w-[300px] p-0 border-accent'
+            className='w-[300px] p-0 border-accent rounded-lg'
             sideOffset={8}
           >
             <PopoverHeader className='p-3 pb-2'>
@@ -213,52 +252,70 @@ export default function NotificationsDropdownContent({
               </EmptyHeader>
             </Empty>
           ) : (
-            <ItemGroup className='gap-0'>
+            <ItemGroup className='gap-2'>
               {uniqueNotifications.map((n) => {
                 const href = notificationHref(n);
                 const content = (
                   <>
+                    <ItemMedia variant='icon'>
+                      {notificationIcon(n.type)}
+                    </ItemMedia>
                     <ItemContent className='min-w-0 flex-1'>
                       <ItemTitle className='font-normal text-sm'>
                         {notificationMessage(n)}
                       </ItemTitle>
+                      <ItemDescription>
+                        {notificationTime(n.createdAt)}
+                      </ItemDescription>
                     </ItemContent>
                     {!n.read && (
                       <ItemActions>
                         <Button
                           variant='ghost'
-                          size='sm'
-                          className='text-xs h-auto py-1 px-2'
+                          size='icon'
+                          className='h-7 w-7 text-muted-foreground hover:text-foreground'
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             onMarkRead(n.id);
                           }}
+                          aria-label='Mark notification as read'
                         >
-                          Mark read
+                          <Check className='h-4 w-4' />
                         </Button>
                       </ItemActions>
                     )}
                   </>
                 );
-                return (
-                  <Item
-                    key={n.id}
-                    variant={n.read ? 'default' : 'muted'}
-                    size='sm'
-                    className='rounded-md'
-                  >
-                    {href ? (
+
+                if (href) {
+                  return (
+                    <Item
+                      key={n.id}
+                      asChild
+                      variant={n.read ? 'outline' : 'muted'}
+                      size='sm'
+                      className='rounded-lg border-accent cursor-pointer'
+                    >
                       <Link
                         href={href}
-                        className='contents'
+                        className='flex w-full items-stretch'
                         onClick={onNotificationClick}
                       >
                         {content}
                       </Link>
-                    ) : (
-                      content
-                    )}
+                    </Item>
+                  );
+                }
+
+                return (
+                  <Item
+                    key={n.id}
+                    variant={n.read ? 'outline' : 'muted'}
+                    size='sm'
+                    className='rounded-lg border-accent'
+                  >
+                    {content}
                   </Item>
                 );
               })}

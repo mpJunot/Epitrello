@@ -35,6 +35,10 @@ export function BoardHeader({
 }: BoardHeaderProps) {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const boardMembers = board.members || [];
+  const currentMembership = boardMembers.find(
+    (m) => m.userId === currentUserId,
+  );
+  const canManageMembers = currentMembership?.role === 'ADMIN';
 
   return (
     <header
@@ -107,6 +111,7 @@ export function BoardHeader({
         boardId={board.id}
         members={boardMembers}
         onMemberAdded={onMemberAdded}
+        canManageMembers={canManageMembers}
       />
     </header>
   );

@@ -771,6 +771,17 @@ input RespondInvitationInput {
 }
 
 type Subscription {
+  """
+  Subscribe to board members changes (add/remove/role). Refetch board to get updated members.
+  """
+  boardMembersUpdated(boardId: ID!): Boolean!
+
+  """Subscribe to board metadata changes for a single board."""
+  boardUpdated(boardId: ID!): Board!
+
+  """Subscribe to card deletions for a board."""
+  cardDeleted(boardId: ID!): ID!
+
   """Subscribe to card create/update/move/delete for a board."""
   cardUpdated(boardId: ID!): Card!
 
@@ -788,11 +799,29 @@ type Subscription {
   """Subscribe to comment edits on a card. Filter by cardId."""
   commentUpdated(cardId: ID!): Comment!
 
+  """Subscribe to list deletions for a board."""
+  listDeleted(boardId: ID!): ID!
+
   """Subscribe to list create/update/reorder/delete for a board."""
   listUpdated(boardId: ID!): List!
 
+  """
+  Subscribe to current user invitations changes (new invite, accept, reject, cancel). Invalidate myInvitations query when received.
+  """
+  myInvitationsUpdated(userId: ID!): Boolean!
+
   """Real-time notifications for the current user (WebSocket)."""
   notificationReceived: Notification!
+
+  """
+  Subscribe to workspace pending invitations changes (invite, cancel, accept, reject). Invalidate workspace invitations query when received.
+  """
+  workspaceInvitationsUpdated(workspaceId: ID!): Boolean!
+
+  """
+  Subscribe to workspace members changes (add, remove, role update). Invalidate workspace members query when received.
+  """
+  workspaceMembersUpdated(workspaceId: ID!): Boolean!
 }
 
 input UnassignMemberFromCardInput {
