@@ -6,6 +6,7 @@ import { InviteMemberInput } from './dto/invite-member.input';
 import { RespondInvitationInput } from './dto/respond-invitation.input';
 import { UpdateMemberRoleInput } from './dto/update-member-role.input';
 import { RemoveMemberInput } from './dto/remove-member.input';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 
 describe('InvitationsResolver', () => {
   let resolver: InvitationsResolver;
@@ -48,6 +49,8 @@ describe('InvitationsResolver', () => {
     rejectInvitation: jest.fn(),
     joinWorkspaceByInviteLink: jest.fn(),
     cancelInvitation: jest.fn(),
+    getInvitationWorkspaceId: jest.fn(),
+    getInvitationInviteeId: jest.fn(),
     getWorkspaceInvitations: jest.fn(),
     getMyInvitations: jest.fn(),
     getWorkspaceMembers: jest.fn(),
@@ -56,13 +59,25 @@ describe('InvitationsResolver', () => {
     leaveWorkspace: jest.fn(),
   };
 
+  const mockPubSub = { publish: jest.fn().mockResolvedValue(undefined) };
+
   beforeEach(async () => {
+    mockInvitationsService.getInvitationWorkspaceId.mockResolvedValue(
+      'workspace-123',
+    );
+    mockInvitationsService.getInvitationInviteeId.mockResolvedValue(
+      'invitee-123',
+    );
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvitationsResolver,
         {
           provide: InvitationsService,
           useValue: mockInvitationsService,
+        },
+        {
+          provide: PUB_SUB,
+          useValue: mockPubSub,
         },
       ],
     }).compile();

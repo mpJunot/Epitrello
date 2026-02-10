@@ -302,7 +302,7 @@ export class InvitationsService {
     // Check if user is ADMIN
     await this.checkAdminPermission(workspaceId, userId);
 
-    return this.prisma.workspaceInvitation.findMany({
+    const invitations = await this.prisma.workspaceInvitation.findMany({
       where: {
         workspaceId,
         status: InvitationStatus.PENDING,
@@ -310,9 +310,18 @@ export class InvitationsService {
       },
       include: {
         inviter: { select: { name: true, email: true } },
+        workspace: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return invitations.map((inv) => ({
+      ...inv,
+      inviterName:
+        (inv.inviter?.name?.trim() as string) || inv.inviter?.email || 'Unknown',
+      workspaceName:
+        (inv.workspace?.name?.trim() as string) || 'Unnamed workspace',
+    }));
   }
 
   /**
@@ -323,18 +332,26 @@ export class InvitationsService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
-    return this.prisma.workspaceInvitation.findMany({
+    const invitations = await this.prisma.workspaceInvitation.findMany({
       where: {
         inviteeEmail: user.email,
         status: InvitationStatus.PENDING,
         expiresAt: { gt: new Date() },
       },
       include: {
-        inviter: { select: { name: true } },
+        inviter: { select: { name: true, email: true } },
         workspace: { select: { name: true, logoUrl: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return invitations.map((inv) => ({
+      ...inv,
+      inviterName:
+        (inv.inviter?.name?.trim() as string) || inv.inviter?.email || 'Unknown',
+      workspaceName:
+        (inv.workspace?.name?.trim() as string) || 'Unnamed workspace',
+    }));
   }
 
   /**
@@ -447,12 +464,14 @@ export class InvitationsService {
   }
 
   /**
-   * Leave a workspace
+   * Leave workspace:
+   * - If user is already OBSERVER (guest): remove from workspace and from all boards (full exit).
+   * - If user is ADMIN/MEMBER and on at least one board: become OBSERVER (guest) in workspace and on boards.
+   * - If user is ADMIN/MEMBER and not on any board: remove from workspace.
    */
   async leaveWorkspace(workspaceId: string, userId: string): Promise<boolean> {
     this.logger.log(`User ${userId} leaving workspace ${workspaceId}`);
 
-    // Check if user is a member
     const member = await this.prisma.workspaceMember.findUnique({
       where: {
         workspaceId_userId: {
@@ -466,7 +485,6 @@ export class InvitationsService {
       throw new NotFoundException('You are not a member of this workspace');
     }
 
-    // Prevent last ADMIN from leaving
     if (member.role === Role.ADMIN) {
       const adminCount = await this.prisma.workspaceMember.count({
         where: {
@@ -482,17 +500,112 @@ export class InvitationsService {
       }
     }
 
-    await this.prisma.workspaceMember.delete({
-      where: {
-        workspaceId_userId: {
-          workspaceId,
-          userId,
-        },
-      },
+    const boardsInWorkspace = await this.prisma.board.findMany({
+      where: { workspaceId },
+      select: { id: true },
     });
+    const boardIds = boardsInWorkspace.map((b) => b.id);
 
-    this.logger.log(`User left workspace successfully`);
+    if (member.role === Role.OBSERVER) {
+      // Already guest: full exit — remove from all boards then from workspace
+      if (boardIds.length > 0) {
+        await this.prisma.boardMember.deleteMany({
+          where: {
+            userId,
+            boardId: { in: boardIds },
+          },
+        });
+      }
+      await this.prisma.workspaceMember.delete({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId,
+          },
+        },
+      });
+      this.logger.log(
+        `User ${userId} (guest) removed from workspace ${workspaceId} and all boards`,
+      );
+      return true;
+    }
+
+    const isOnAnyBoard =
+      boardIds.length > 0 &&
+      (await this.prisma.boardMember.count({
+        where: {
+          userId,
+          boardId: { in: boardIds },
+        },
+      })) > 0;
+
+    if (isOnAnyBoard) {
+      // ADMIN/MEMBER still on at least one board → become OBSERVER (guest)
+      await this.prisma.workspaceMember.update({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId,
+          },
+        },
+        data: { role: Role.OBSERVER },
+      });
+      await this.prisma.boardMember.updateMany({
+        where: {
+          userId,
+          boardId: { in: boardIds },
+        },
+        data: { role: Role.OBSERVER },
+      });
+      this.logger.log(
+        `User ${userId} set to OBSERVER (guest) in workspace ${workspaceId} and on ${boardIds.length} board(s)`,
+      );
+    } else {
+      // ADMIN/MEMBER not on any board → remove from all boards of workspace then from workspace
+      if (boardIds.length > 0) {
+        await this.prisma.boardMember.deleteMany({
+          where: {
+            userId,
+            boardId: { in: boardIds },
+          },
+        });
+      }
+      await this.prisma.workspaceMember.delete({
+        where: {
+          workspaceId_userId: {
+            workspaceId,
+            userId,
+          },
+        },
+      });
+      this.logger.log(
+        `User ${userId} removed from workspace ${workspaceId} and all its boards`,
+      );
+    }
+
     return true;
+  }
+
+  /**
+   * Get workspaceId for an invitation (for publishing invitations-updated event).
+   */
+  async getInvitationWorkspaceId(invitationId: string): Promise<string | null> {
+    const inv = await this.prisma.workspaceInvitation.findUnique({
+      where: { id: invitationId },
+      select: { workspaceId: true },
+    });
+    return inv?.workspaceId ?? null;
+  }
+
+  /**
+   * Get inviteeId for an invitation (for publishing my-invitations-updated event).
+   */
+  async getInvitationInviteeId(invitationId: string): Promise<string | null> {
+    const inv = await this.prisma.workspaceInvitation.findUnique({
+      where: { id: invitationId },
+      select: { inviteeId: true },
+    });
+    return inv?.inviteeId ?? null;
   }
 
   /**
