@@ -12,6 +12,7 @@ import {
   Archive,
   EyeIcon,
   Copy,
+  LayoutTemplate,
   Mail,
   LogOut,
   Eye,
@@ -35,10 +36,11 @@ import { getVisibilityDescription } from '@/components/BoardView';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
 import { toast } from '@/lib/toast';
 import {
-  createBoard,
+  copyBoard,
   leaveBoard,
   updateBoardMemberRole,
 } from '@/lib/actions/boards';
+import { createTemplateFromBoard } from '@/lib/actions/templates';
 import { ChangeBackgroundDialog } from './ChangeBackgroundDialog';
 import { LabelsDialog } from './LabelsDialog';
 import { AboutBoardDialog } from './AboutBoardDialog';
@@ -88,6 +90,9 @@ export function BoardMenu({
   const [leaveBoardAdminUserId, setLeaveBoardAdminUserId] = useState('');
   const [leavingBoard, setLeavingBoard] = useState(false);
   const [isStarred, setIsStarred] = useState(false);
+  const [showSaveAsTemplateDialog, setShowSaveAsTemplateDialog] = useState(false);
+  const [saveAsTemplateName, setSaveAsTemplateName] = useState(board.title);
+  const [savingAsTemplate, setSavingAsTemplate] = useState(false);
 
   const STARRED_STORAGE_KEY = 'epitrello-starred-board-ids';
 
@@ -114,6 +119,25 @@ export function BoardMenu({
     (m) => m.userId !== currentUserId && m.role !== 'ADMIN',
   );
 
+  const handleSaveAsTemplate = async () => {
+    if (!saveAsTemplateName.trim()) {
+      toast.error('Please enter a template name');
+      return;
+    }
+    setSavingAsTemplate(true);
+    try {
+      await createTemplateFromBoard(board.id, saveAsTemplateName.trim());
+      toast.success('Template created');
+      setShowSaveAsTemplateDialog(false);
+      router.push('/templates');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create template';
+      toast.error(message);
+    } finally {
+      setSavingAsTemplate(false);
+    }
+  };
+
   const handleCopyBoard = async () => {
     if (!copyBoardTitle.trim()) {
       toast.error('Please enter a board name');
@@ -122,7 +146,8 @@ export function BoardMenu({
 
     setCopying(true);
     try {
-      const newBoard = await createBoard({
+      const newBoard = await copyBoard({
+        sourceBoardId: board.id,
         title: copyBoardTitle,
         description: board.description || undefined,
         background: board.background || undefined,
@@ -503,6 +528,16 @@ export function BoardMenu({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className='flex items-center gap-2'
+                  onClick={() => {
+                    setSaveAsTemplateName(board.title);
+                    setShowSaveAsTemplateDialog(true);
+                  }}
+                >
+                  <LayoutTemplate className='w-4 h-4' />
+                  <span>Save as template</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className='flex items-center gap-2'
                   onClick={() => setShowEmailDialog(true)}
                 >
                   <Mail className='w-4 h-4' />
@@ -528,6 +563,12 @@ export function BoardMenu({
         setCopyBoardTitle={setCopyBoardTitle}
         copying={copying}
         onCopyBoard={handleCopyBoard}
+        showSaveAsTemplateDialog={showSaveAsTemplateDialog}
+        setShowSaveAsTemplateDialog={setShowSaveAsTemplateDialog}
+        saveAsTemplateName={saveAsTemplateName}
+        setSaveAsTemplateName={setSaveAsTemplateName}
+        savingAsTemplate={savingAsTemplate}
+        onSaveAsTemplate={handleSaveAsTemplate}
         showEmailDialog={showEmailDialog}
         setShowEmailDialog={setShowEmailDialog}
         emailAddress={emailAddress}

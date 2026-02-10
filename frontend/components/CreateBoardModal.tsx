@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useWorkspacesQuery } from '@/lib/queries/workspaces';
+import { getBoardTemplates, type BoardTemplate } from '@/lib/actions/boards';
+import { LayoutGrid, List } from 'lucide-react';
 
 const BOARD_COLORS = [
   {
@@ -59,6 +61,7 @@ export default function CreateBoardModal({
   open,
   onClose,
   onCreate,
+  initialTemplateId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -67,12 +70,17 @@ export default function CreateBoardModal({
     workspaceId?: string;
     visibility?: string;
     background?: string;
+    templateId?: string;
   }) => void;
+  /** When opening from the template gallery, preselect this template. */
+  initialTemplateId?: string;
 }) {
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState<string>(
     BOARD_COLORS[1].value,
   );
+  const [templates, setTemplates] = useState<BoardTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('blank');
   const { data: workspacesData } = useWorkspacesQuery(!!open);
   const workspaces = (workspacesData ?? []).map((w) => ({
     id: w.id,
@@ -81,6 +89,29 @@ export default function CreateBoardModal({
   const [workspaceId, setWorkspaceId] = useState<string | undefined>(undefined);
   const [visibility, setVisibility] = useState<string>('personal');
   const effectiveWorkspaceId = workspaceId ?? workspaces[0]?.id;
+
+  useEffect(() => {
+    if (open) {
+      getBoardTemplates()
+        .then(setTemplates)
+        .catch(() =>
+          setTemplates([
+            {
+              id: 'blank',
+              name: 'Blank',
+              description: 'Empty board with To Do, Doing, Done',
+              listTitles: ['To Do', 'Doing', 'Done'],
+            },
+          ])
+        );
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open && initialTemplateId) {
+      queueMicrotask(() => setSelectedTemplateId(initialTemplateId));
+    }
+  }, [open, initialTemplateId]);
 
   const submit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -97,9 +128,11 @@ export default function CreateBoardModal({
       workspaceId: effectiveWorkspaceId,
       visibility,
       background: selectedColor,
+      templateId: selectedTemplateId || undefined,
     });
     setName('');
     setSelectedColor(BOARD_COLORS[1].value);
+    setSelectedTemplateId('blank');
     onClose();
   };
 
@@ -129,6 +162,39 @@ export default function CreateBoardModal({
               onChange={(e) => setName(e.target.value)}
               placeholder='Board name'
             />
+          </div>
+
+          <div className='space-y-2'>
+            <Label>Template</Label>
+            <p className='text-sm text-muted-foreground'>
+              Choose a layout with predefined lists
+            </p>
+            <div className='grid grid-cols-2 gap-2'>
+              {templates.map((t) => (
+                <button
+                  key={t.id}
+                  type='button'
+                  onClick={() => setSelectedTemplateId(t.id)}
+                  className={`flex flex-col items-start gap-1 rounded-lg border-2 p-3 text-left transition-colors hover:bg-accent/50 ${
+                    selectedTemplateId === t.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-accent'
+                  }`}
+                >
+                  <span className='flex items-center gap-2 font-medium'>
+                    <LayoutGrid className='h-4 w-4 shrink-0' />
+                    {t.name}
+                  </span>
+                  <span className='text-xs text-muted-foreground line-clamp-2'>
+                    {t.description}
+                  </span>
+                  <span className='flex items-center gap-1 text-xs text-muted-foreground'>
+                    <List className='h-3 w-3' />
+                    {t.listTitles.join(' · ')}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className='space-y-2'>
