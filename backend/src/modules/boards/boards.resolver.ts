@@ -1,5 +1,6 @@
 import { Resolver, Query, Mutation, Args, ID, ResolveField, Parent } from '@nestjs/graphql';
-import { UseGuards } from '@nestjs/common';
+import { Inject, UseGuards } from '@nestjs/common';
+import { PubSub } from 'graphql-subscriptions';
 import { BoardsService } from './boards.service';
 import { Board } from './entities/board.entity';
 import { BoardMemberWithUser } from './entities/board-member.entity';
@@ -13,6 +14,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { List } from '../lists/entities/list.entity';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityType } from '@prisma/client';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { TRIGGER_BOARD_UPDATED, TRIGGER_BOARD_MEMBERS_UPDATED } from './board-subscription.resolver';
 
 @Resolver(() => Board)
 @UseGuards(GqlAuthGuard)
@@ -21,6 +24,7 @@ export class BoardsResolver {
     private readonly boardsService: BoardsService,
     private readonly prisma: PrismaService,
     private readonly activityService: ActivityService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) { }
 
   @ResolveField(() => [List])
@@ -76,7 +80,12 @@ export class BoardsResolver {
     @Args('input') input: UpdateBoardInput,
     @CurrentUser() user: any,
   ): Promise<Board> {
-    return this.boardsService.update(input, user.id);
+    const board = await this.boardsService.update(input, user.id);
+    await this.pubSub.publish(TRIGGER_BOARD_UPDATED, {
+      boardUpdated: board,
+      boardId: board.id,
+    });
+    return board;
   }
 
   @Mutation(() => Boolean, {
@@ -103,6 +112,10 @@ export class BoardsResolver {
       boardId: board.id,
       payload: { boardTitle: board.title },
     });
+    await this.pubSub.publish(TRIGGER_BOARD_UPDATED, {
+      boardUpdated: board,
+      boardId: board.id,
+    });
     return board;
   }
 
@@ -119,6 +132,10 @@ export class BoardsResolver {
       userId: user.id,
       boardId: board.id,
       payload: { boardTitle: board.title },
+    });
+    await this.pubSub.publish(TRIGGER_BOARD_UPDATED, {
+      boardUpdated: board,
+      boardId: board.id,
     });
     return board;
   }
@@ -143,6 +160,7 @@ export class BoardsResolver {
         payload: { boardTitle: board.title, memberName: addedUser.name },
       });
     }
+    await this.pubSub.publish(TRIGGER_BOARD_MEMBERS_UPDATED, { boardId: input.boardId });
     return result;
   }
 
@@ -154,7 +172,9 @@ export class BoardsResolver {
     @Args('userId', { type: () => ID }) userId: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.boardsService.removeMember(boardId, userId, user.id);
+    const result = await this.boardsService.removeMember(boardId, userId, user.id);
+    await this.pubSub.publish(TRIGGER_BOARD_MEMBERS_UPDATED, { boardId });
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -164,7 +184,9 @@ export class BoardsResolver {
     @Args('input') input: UpdateBoardMemberRoleInput,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.boardsService.updateMemberRole(input.boardId, input.userId, input.role, user.id);
+    const result = await this.boardsService.updateMemberRole(input.boardId, input.userId, input.role, user.id);
+    await this.pubSub.publish(TRIGGER_BOARD_MEMBERS_UPDATED, { boardId: input.boardId });
+    return result;
   }
 
   @Mutation(() => Boolean, {
@@ -174,6 +196,8 @@ export class BoardsResolver {
     @Args('boardId', { type: () => ID }) boardId: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.boardsService.leaveBoard(boardId, user.id);
+    const result = await this.boardsService.leaveBoard(boardId, user.id);
+    await this.pubSub.publish(TRIGGER_BOARD_MEMBERS_UPDATED, { boardId });
+    return result;
   }
 }

@@ -9,7 +9,7 @@ import { ReorderListsInput } from './dto/reorder-lists.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
-import { TRIGGER_LIST_UPDATED } from '../boards/board-subscription.resolver';
+import { TRIGGER_LIST_DELETED, TRIGGER_LIST_UPDATED } from '../boards/board-subscription.resolver';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityType } from '@prisma/client';
 
@@ -68,7 +68,15 @@ export class ListsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.listsService.delete(id, user.id);
+    const list = await this.listsService.findOne(id, user.id);
+    const result = await this.listsService.delete(id, user.id);
+    if (result && list) {
+      await this.pubSub.publish(TRIGGER_LIST_DELETED, {
+        listDeletedId: id,
+        boardId: list.boardId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => [List], {

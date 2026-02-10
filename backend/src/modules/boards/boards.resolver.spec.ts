@@ -4,6 +4,7 @@ import { BoardsService } from './boards.service';
 import { ActivityService } from '../activity/activity.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Visibility, Role } from '@prisma/client';
+import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 
 describe('BoardsResolver', () => {
   let resolver: BoardsResolver;
@@ -33,6 +34,11 @@ describe('BoardsResolver', () => {
 
   const mockActivityService = {
     create: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPubSub = {
+    publish: jest.fn(),
+    asyncIterableIterator: jest.fn(),
   };
 
   const mockUser = {
@@ -69,6 +75,10 @@ describe('BoardsResolver', () => {
         {
           provide: ActivityService,
           useValue: mockActivityService,
+        },
+        {
+          provide: PUB_SUB,
+          useValue: mockPubSub,
         },
       ],
     }).compile();
