@@ -26,6 +26,12 @@ export type BoardMenuDialogsProps = {
   setCopyBoardTitle: (v: string) => void;
   copying: boolean;
   onCopyBoard: () => Promise<void>;
+  showSaveAsTemplateDialog: boolean;
+  setShowSaveAsTemplateDialog: (v: boolean) => void;
+  saveAsTemplateName: string;
+  setSaveAsTemplateName: (v: string) => void;
+  savingAsTemplate: boolean;
+  onSaveAsTemplate: () => Promise<void>;
   showEmailDialog: boolean;
   setShowEmailDialog: (v: boolean) => void;
   emailAddress: string;
@@ -48,6 +54,12 @@ export function BoardMenuDialogs({
   setCopyBoardTitle,
   copying,
   onCopyBoard,
+  showSaveAsTemplateDialog,
+  setShowSaveAsTemplateDialog,
+  saveAsTemplateName,
+  setSaveAsTemplateName,
+  savingAsTemplate,
+  onSaveAsTemplate,
   showEmailDialog,
   setShowEmailDialog,
   emailAddress,
@@ -69,9 +81,9 @@ export function BoardMenuDialogs({
           <DialogHeader>
             <DialogTitle>Copy board</DialogTitle>
             <DialogDescription>
-              Create a new board with the same title, description, background
-              and visibility. The new board will have default lists (To Do,
-              Doing, Done).
+              Create a new board with the same lists, cards, labels and
+              checklists. You will be the only member. Comments and attachments
+              are not copied.
             </DialogDescription>
           </DialogHeader>
           <div className='space-y-4 py-4'>
@@ -101,6 +113,46 @@ export function BoardMenuDialogs({
                 disabled={copying || !copyBoardTitle.trim()}
               >
                 {copying ? 'Copying...' : 'Copy board'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSaveAsTemplateDialog} onOpenChange={setShowSaveAsTemplateDialog}>
+        <DialogContent className='sm:max-w-md border-accent'>
+          <DialogHeader>
+            <DialogTitle>Save as template</DialogTitle>
+            <DialogDescription>
+              Create a reusable template from this board. Lists and card titles
+              will be saved so you can create new boards from it later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='space-y-4 py-4'>
+            <div className='space-y-2'>
+              <Label htmlFor='save-as-template-name'>Template name</Label>
+              <Input
+                id='save-as-template-name'
+                placeholder='Enter template name'
+                value={saveAsTemplateName}
+                onChange={(e) => setSaveAsTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onSaveAsTemplate();
+                }}
+              />
+            </div>
+            <div className='flex justify-end gap-2'>
+              <Button
+                variant='outline'
+                onClick={() => setShowSaveAsTemplateDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={onSaveAsTemplate}
+                disabled={savingAsTemplate || !saveAsTemplateName.trim()}
+              >
+                {savingAsTemplate ? 'Creating...' : 'Create template'}
               </Button>
             </div>
           </div>

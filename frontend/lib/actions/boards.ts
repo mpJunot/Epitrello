@@ -2,6 +2,7 @@ import { graphqlRequest } from '../graphql-client';
 import type {
   Board as GqlBoard,
   BoardMemberWithUser,
+  BoardTemplate,
   Visibility,
   List as GqlList,
   Card as GqlCard,
@@ -15,15 +16,43 @@ export type Board = Omit<GqlBoard, 'lists'> & {
   }>;
 };
 
-export type { Visibility, BoardMemberWithUser };
+export type { BoardTemplate, Visibility, BoardMemberWithUser };
 
-export type CreateBoardInput = GqlCreateBoardInput;
+export type CreateBoardInput = GqlCreateBoardInput & { templateId?: string };
+
+export type CopyBoardInput = {
+  sourceBoardId: string;
+  title: string;
+  workspaceId?: string;
+  description?: string;
+  visibility?: Visibility;
+  background?: string;
+};
+
 export type UpdateBoardInput = GqlUpdateBoardInput;
 
 export type BoardDetail = Board;
 
 /**
- * Create a new board (backend integration)
+ * Fetch predefined board templates (blank, kanban, sprint, project).
+ */
+export async function getBoardTemplates(): Promise<BoardTemplate[]> {
+  const query = `
+    query BoardTemplates {
+      boardTemplates {
+        id
+        name
+        description
+        listTitles
+      }
+    }
+  `;
+  const result = await graphqlRequest<{ boardTemplates: BoardTemplate[] }>(query);
+  return result.boardTemplates;
+}
+
+/**
+ * Create a new board (backend integration). Optionally use a templateId (blank, kanban, sprint, project).
  */
 export async function createBoard(input: CreateBoardInput): Promise<Board> {
   const mutation = `
@@ -43,6 +72,29 @@ export async function createBoard(input: CreateBoardInput): Promise<Board> {
 
   const result = await graphqlRequest<{ createBoard: Board }>(mutation, { input });
   return result.createBoard;
+}
+
+/**
+ * Copy a board (lists, cards, labels, checklists). Returns the new board.
+ */
+export async function copyBoard(input: CopyBoardInput): Promise<Board> {
+  const mutation = `
+    mutation CopyBoard($input: CopyBoardInput!) {
+      copyBoard(input: $input) {
+        id
+        title
+        description
+        background
+        visibility
+        workspaceId
+        createdAt
+        updatedAt
+      }
+    }
+  `;
+
+  const result = await graphqlRequest<{ copyBoard: Board }>(mutation, { input });
+  return result.copyBoard;
 }
 
 /**

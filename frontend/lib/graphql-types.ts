@@ -16,6 +16,46 @@ export type Scalars = {
   DateTime: { input: string; output: string; }
 };
 
+export type Activity = {
+  __typename?: 'Activity';
+  board?: Maybe<Board>;
+  boardId: Scalars['ID']['output'];
+  cardId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  listId?: Maybe<Scalars['ID']['output']>;
+  payload?: Maybe<ActivityPayload>;
+  type: ActivityType;
+  user?: Maybe<User>;
+  userId: Scalars['ID']['output'];
+};
+
+export type ActivityPayload = {
+  __typename?: 'ActivityPayload';
+  boardTitle?: Maybe<Scalars['String']['output']>;
+  cardTitle?: Maybe<Scalars['String']['output']>;
+  commentPreview?: Maybe<Scalars['String']['output']>;
+  listName?: Maybe<Scalars['String']['output']>;
+  memberName?: Maybe<Scalars['String']['output']>;
+  targetListName?: Maybe<Scalars['String']['output']>;
+};
+
+/** Type of user action recorded in the activity log */
+export type ActivityType =
+  | 'BOARD_ARCHIVED'
+  | 'BOARD_UNARCHIVED'
+  | 'CARD_ARCHIVED'
+  | 'CARD_COMPLETED'
+  | 'CARD_CREATED'
+  | 'CARD_MOVED'
+  | 'CARD_UNARCHIVED'
+  | 'CARD_UNCOMPLETED'
+  | 'COMMENT_ADDED'
+  | 'LIST_ARCHIVED'
+  | 'LIST_UNARCHIVED'
+  | 'MEMBER_ADDED_TO_BOARD'
+  | 'MEMBER_ADDED_TO_CARD';
+
 export type AddBoardMemberInput = {
   boardId: Scalars['ID']['input'];
   role?: InputMaybe<Scalars['String']['input']>;
@@ -76,6 +116,12 @@ export type Board = {
   workspaceId?: Maybe<Scalars['ID']['output']>;
 };
 
+export type BoardActivityInput = {
+  /** Cursor for pagination (activity id). */
+  cursor?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type BoardMemberWithUser = {
   __typename?: 'BoardMemberWithUser';
   boardId: Scalars['ID']['output'];
@@ -84,6 +130,15 @@ export type BoardMemberWithUser = {
   role: Scalars['String']['output'];
   user: MemberUser;
   userId: Scalars['ID']['output'];
+};
+
+export type BoardTemplate = {
+  __typename?: 'BoardTemplate';
+  description: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  /** List titles in order */
+  listTitles: Array<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
 };
 
 export type Card = {
@@ -96,6 +151,7 @@ export type Card = {
   description?: Maybe<Scalars['String']['output']>;
   dueDate?: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
+  isArchived: Scalars['Boolean']['output'];
   labels?: Maybe<Array<Label>>;
   listId: Scalars['ID']['output'];
   position: Scalars['Float']['output'];
@@ -142,6 +198,23 @@ export type Comment = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type CommentDeletedEvent = {
+  __typename?: 'CommentDeletedEvent';
+  cardId: Scalars['ID']['output'];
+  commentId: Scalars['ID']['output'];
+};
+
+export type CopyBoardInput = {
+  background?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  /** ID of the board to copy (lists, cards, labels, checklists). */
+  sourceBoardId: Scalars['ID']['input'];
+  /** Title for the new board. */
+  title: Scalars['String']['input'];
+  visibility?: InputMaybe<Visibility>;
+  workspaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
 export type CreateAttachmentInput = {
   cardId: Scalars['ID']['input'];
   filename: Scalars['String']['input'];
@@ -152,6 +225,8 @@ export type CreateAttachmentInput = {
 export type CreateBoardInput = {
   background?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
+  /** Predefined template: blank, kanban, sprint, project */
+  templateId?: InputMaybe<Scalars['String']['input']>;
   title: Scalars['String']['input'];
   visibility?: InputMaybe<Visibility>;
   workspaceId?: InputMaybe<Scalars['ID']['input']>;
@@ -193,8 +268,17 @@ export type CreateListInput = {
   title: Scalars['String']['input'];
 };
 
+export type CreateTemplateInput = {
+  description: Scalars['String']['input'];
+  lists: Array<TemplateListInput>;
+  name: Scalars['String']['input'];
+  visibility?: InputMaybe<Visibility>;
+  workspaceId?: InputMaybe<Scalars['ID']['input']>;
+};
+
 export type CreateUserInput = {
   avatar?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   email: Scalars['String']['input'];
   name: Scalars['String']['input'];
   password: Scalars['String']['input'];
@@ -296,12 +380,16 @@ export type Mutation = {
   addLabelToCard: Card;
   /** Archive a board. User must be ADMIN or MEMBER. */
   archiveBoard: Board;
+  /** Archive a card. User must have access to the board. */
+  archiveCard: Card;
   /** Archive a list. User must have access to the board. */
   archiveList: List;
   /** Assign a member to a card. User must have access to the board. */
   assignMemberToCard: Card;
   /** Cancel a pending invitation. Only the inviter or workspace admin can cancel. */
   cancelInvitation: Scalars['Boolean']['output'];
+  /** Copy a board (lists, cards, labels, checklists). New board has current user as ADMIN. */
+  copyBoard: Board;
   /** Create an attachment on a card. */
   createAttachment: Attachment;
   /** Create a new board. User must be ADMIN or MEMBER of the workspace (if provided). */
@@ -316,6 +404,10 @@ export type Mutation = {
   createLabel: Label;
   /** Create a new list. Position is calculated automatically if not provided. */
   createList: List;
+  /** Create a custom board template. Optional workspaceId to scope to a workspace. */
+  createTemplate: Template;
+  /** Create a template from an existing board (lists and cards become template structure). */
+  createTemplateFromBoard: Template;
   /** Create a new user (requires authentication) */
   createUser: User;
   /** Create a new workspace. The creator becomes an ADMIN automatically. */
@@ -336,6 +428,8 @@ export type Mutation = {
   deleteLabel: Scalars['Boolean']['output'];
   /** Delete a list. Cards are automatically deleted via cascade. */
   deleteList: Scalars['Boolean']['output'];
+  /** Delete a template. Only creator or workspace admin. */
+  deleteTemplate: Scalars['Boolean']['output'];
   /** Delete a user by ID (requires authentication) */
   deleteUser: Scalars['Boolean']['output'];
   /** Delete a workspace. Only ADMIN members can delete. */
@@ -352,6 +446,10 @@ export type Mutation = {
   leaveWorkspace: Scalars['Boolean']['output'];
   /** Login with email and password. Returns a JWT token for authenticated requests. */
   login: AuthPayload;
+  /** Mark all notifications as read for the current user. Returns count updated. */
+  markAllNotificationsRead: Scalars['Int']['output'];
+  /** Mark a notification as read. */
+  markNotificationRead: Notification;
   /** Move a card to a different list within the same board. Position is calculated automatically if not provided. */
   moveCard: Card;
   /** Register a new user account. If companyName is provided, a workspace is automatically created. */
@@ -374,6 +472,10 @@ export type Mutation = {
   resetPassword: MessageResponse;
   /** Unarchive a board. User must be ADMIN or MEMBER. */
   unarchiveBoard: Board;
+  /** Unarchive a card. User must have access to the board. */
+  unarchiveCard: Card;
+  /** Unarchive a list. User must have access to the board. */
+  unarchiveList: List;
   /** Unassign a member from a card. User must have access to the board. */
   unassignMemberFromCard: Card;
   /** Update an attachment. Uploader only. */
@@ -396,6 +498,10 @@ export type Mutation = {
   updateList: List;
   /** Update a member role in a workspace. Only ADMIN can update roles. */
   updateMemberRole: Scalars['Boolean']['output'];
+  /** Update current user notification preferences. */
+  updateMyNotificationPreferences: NotificationPreferences;
+  /** Update a template. Only creator or workspace admin. */
+  updateTemplate: Template;
   /** Update an existing user (requires authentication) */
   updateUser: User;
   /** Update a workspace. Only ADMIN members can update. */
@@ -430,6 +536,11 @@ export type MutationArchiveBoardArgs = {
 };
 
 
+export type MutationArchiveCardArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationArchiveListArgs = {
   id: Scalars['ID']['input'];
 };
@@ -442,6 +553,11 @@ export type MutationAssignMemberToCardArgs = {
 
 export type MutationCancelInvitationArgs = {
   invitationId: Scalars['ID']['input'];
+};
+
+
+export type MutationCopyBoardArgs = {
+  input: CopyBoardInput;
 };
 
 
@@ -477,6 +593,17 @@ export type MutationCreateLabelArgs = {
 
 export type MutationCreateListArgs = {
   input: CreateListInput;
+};
+
+
+export type MutationCreateTemplateArgs = {
+  input: CreateTemplateInput;
+};
+
+
+export type MutationCreateTemplateFromBoardArgs = {
+  boardId: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -530,6 +657,11 @@ export type MutationDeleteListArgs = {
 };
 
 
+export type MutationDeleteTemplateArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationDeleteUserArgs = {
   id: Scalars['ID']['input'];
 };
@@ -567,6 +699,11 @@ export type MutationLeaveWorkspaceArgs = {
 
 export type MutationLoginArgs = {
   input: LoginInput;
+};
+
+
+export type MutationMarkNotificationReadArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -626,6 +763,16 @@ export type MutationUnarchiveBoardArgs = {
 };
 
 
+export type MutationUnarchiveCardArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationUnarchiveListArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationUnassignMemberFromCardArgs = {
   input: UnassignMemberFromCardInput;
 };
@@ -681,6 +828,16 @@ export type MutationUpdateMemberRoleArgs = {
 };
 
 
+export type MutationUpdateMyNotificationPreferencesArgs = {
+  input: UpdateNotificationPreferencesInput;
+};
+
+
+export type MutationUpdateTemplateArgs = {
+  input: UpdateTemplateInput;
+};
+
+
 export type MutationUpdateUserArgs = {
   id: Scalars['ID']['input'];
   input: UpdateUserInput;
@@ -697,14 +854,89 @@ export type MutationVerifyEmailArgs = {
   token: Scalars['String']['input'];
 };
 
+export type MyActivityInput = {
+  /** Cursor for pagination (activity id). Fetch activities older than this. */
+  cursor?: InputMaybe<Scalars['ID']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Filter by workspace IDs. Only activities from boards in these workspaces. */
+  workspaceIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+export type MyActivityResult = {
+  __typename?: 'MyActivityResult';
+  activities: Array<Activity>;
+  hasMore: Scalars['Boolean']['output'];
+  /** Cursor for next page (last activity id) */
+  nextCursor?: Maybe<Scalars['ID']['output']>;
+};
+
+export type MyNotificationsInput = {
+  /** Cursor for pagination (notification id) */
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  /** Max number of notifications to return (default 20, max 50) */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** If true, only unread notifications */
+  unreadOnly?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type MyNotificationsResult = {
+  __typename?: 'MyNotificationsResult';
+  hasMore: Scalars['Boolean']['output'];
+  /** Cursor for next page (last notification id) */
+  nextCursor?: Maybe<Scalars['String']['output']>;
+  notifications: Array<Notification>;
+};
+
+export type Notification = {
+  __typename?: 'Notification';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** JSON payload (cardId, boardId, workspaceId, etc.) */
+  payload?: Maybe<Scalars['String']['output']>;
+  read: Scalars['Boolean']['output'];
+  type: NotificationType;
+  userId: Scalars['ID']['output'];
+};
+
+/** How often to receive notification emails. */
+export type NotificationEmailFrequency =
+  | 'DAILY'
+  | 'INSTANT'
+  | 'NEVER'
+  | 'PERIODICALLY';
+
+export type NotificationPreferences = {
+  __typename?: 'NotificationPreferences';
+  allowDesktopNotifications: Scalars['Boolean']['output'];
+  emailFrequency: NotificationEmailFrequency;
+};
+
+/** Type of notification (card assigned, due soon, comment, invitation, etc.) */
+export type NotificationType =
+  | 'BOARD_INVITATION'
+  | 'CARD_ASSIGNED'
+  | 'CARD_DUE_SOON'
+  | 'COMMENT_ADDED'
+  | 'WORKSPACE_INVITATION';
+
 export type Query = {
   __typename?: 'Query';
+  /** Get activity feed from all boards the user has access to (all members). Optional workspace filter. */
+  activityFeed: MyActivityResult;
+  /** Get archived cards for a board. User must have access to the board. */
+  archivedCards: Array<Card>;
+  /** Get archived lists for a board. User must have access to the board. */
+  archivedLists: Array<List>;
   /** Get an attachment by ID. User must have access to the board. */
   attachment: Attachment;
   /** Get a board by ID. Access based on visibility and membership. */
   board: Board;
+  /** Get activity for a board (all members). User must have access to the board. */
+  boardActivity: MyActivityResult;
   /** List all labels for a board. User must have access to the board. */
   boardLabels: Array<Label>;
+  /** List predefined board templates (blank, kanban, sprint, project). */
+  boardTemplates: Array<BoardTemplate>;
   /** Get a card by ID. User must have access to the board. */
   card: Card;
   /** List attachments for a card. User must have access to the board. */
@@ -721,10 +953,20 @@ export type Query = {
   list: List;
   /** Get the currently authenticated user information */
   me?: Maybe<User>;
+  /** Get current user activity log with optional workspace filter and pagination. */
+  myActivity: MyActivityResult;
   /** Get all pending invitations for the current user. */
   myInvitations: Array<WorkspaceInvitation>;
+  /** Get current user notification preferences (email frequency, desktop notifications). */
+  myNotificationPreferences: NotificationPreferences;
+  /** Get current user notifications with pagination and optional unread filter. */
+  myNotifications: MyNotificationsResult;
   /** Get all workspaces where the current user is a member */
   myWorkspaces: Array<Workspace>;
+  /** Get a template by ID. User must have access (global or workspace member). */
+  template: Template;
+  /** List templates. If workspaceId is provided, returns global + workspace templates; otherwise global only. */
+  templates: Array<Template>;
   /** Get a user by ID (requires authentication) */
   user?: Maybe<User>;
   /** Get a user by email (for invite flows; requires authentication) */
@@ -744,6 +986,21 @@ export type Query = {
 };
 
 
+export type QueryActivityFeedArgs = {
+  input?: InputMaybe<MyActivityInput>;
+};
+
+
+export type QueryArchivedCardsArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type QueryArchivedListsArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
 export type QueryAttachmentArgs = {
   id: Scalars['ID']['input'];
 };
@@ -751,6 +1008,12 @@ export type QueryAttachmentArgs = {
 
 export type QueryBoardArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryBoardActivityArgs = {
+  boardId: Scalars['String']['input'];
+  input?: InputMaybe<BoardActivityInput>;
 };
 
 
@@ -791,6 +1054,26 @@ export type QueryCommentArgs = {
 
 export type QueryListArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryMyActivityArgs = {
+  input?: InputMaybe<MyActivityInput>;
+};
+
+
+export type QueryMyNotificationsArgs = {
+  input?: InputMaybe<MyNotificationsInput>;
+};
+
+
+export type QueryTemplateArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryTemplatesArgs = {
+  workspaceId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -877,6 +1160,140 @@ export type RespondInvitationInput = {
   invitationId: Scalars['String']['input'];
 };
 
+export type Subscription = {
+  __typename?: 'Subscription';
+  /** Subscribe to board members changes (add/remove/role). Refetch board to get updated members. */
+  boardMembersUpdated: Scalars['Boolean']['output'];
+  /** Subscribe to board metadata changes for a single board. */
+  boardUpdated: Board;
+  /** Subscribe to card deletions for a board. */
+  cardDeleted: Scalars['ID']['output'];
+  /** Subscribe to card create/update/move/delete for a board. */
+  cardUpdated: Card;
+  /** Subscribe to updates for a single card (e.g. card modal). */
+  cardUpdatedByCardId: Card;
+  /** Subscribe to new comments on a card. Filter by cardId. */
+  commentAdded: Comment;
+  /** Subscribe to comment deletions on a card. Payload has commentId and cardId. */
+  commentDeleted: CommentDeletedEvent;
+  /** Subscribe to comment edits on a card. Filter by cardId. */
+  commentUpdated: Comment;
+  /** Subscribe to list deletions for a board. */
+  listDeleted: Scalars['ID']['output'];
+  /** Subscribe to list create/update/reorder/delete for a board. */
+  listUpdated: List;
+  /** Subscribe to current user invitations changes (new invite, accept, reject, cancel). Invalidate myInvitations query when received. */
+  myInvitationsUpdated: Scalars['Boolean']['output'];
+  /** Real-time notifications for the current user (WebSocket). */
+  notificationReceived: Notification;
+  /** Subscribe to workspace pending invitations changes (invite, cancel, accept, reject). Invalidate workspace invitations query when received. */
+  workspaceInvitationsUpdated: Scalars['Boolean']['output'];
+  /** Subscribe to workspace members changes (add, remove, role update). Invalidate workspace members query when received. */
+  workspaceMembersUpdated: Scalars['Boolean']['output'];
+};
+
+
+export type SubscriptionBoardMembersUpdatedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionBoardUpdatedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCardDeletedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCardUpdatedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCardUpdatedByCardIdArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCommentAddedArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCommentDeletedArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionCommentUpdatedArgs = {
+  cardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionListDeletedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionListUpdatedArgs = {
+  boardId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionMyInvitationsUpdatedArgs = {
+  userId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionWorkspaceInvitationsUpdatedArgs = {
+  workspaceId: Scalars['ID']['input'];
+};
+
+
+export type SubscriptionWorkspaceMembersUpdatedArgs = {
+  workspaceId: Scalars['ID']['input'];
+};
+
+export type Template = {
+  __typename?: 'Template';
+  createdAt: Scalars['DateTime']['output'];
+  creatorId: Scalars['ID']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lists: Array<TemplateListType>;
+  name: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  visibility: Visibility;
+  workspaceId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type TemplateListInput = {
+  position: Scalars['Int']['input'];
+  sampleCards?: InputMaybe<Array<TemplateSampleCardInput>>;
+  title: Scalars['String']['input'];
+};
+
+export type TemplateListType = {
+  __typename?: 'TemplateListType';
+  position: Scalars['Int']['output'];
+  sampleCards?: Maybe<Array<TemplateSampleCard>>;
+  title: Scalars['String']['output'];
+};
+
+export type TemplateSampleCard = {
+  __typename?: 'TemplateSampleCard';
+  position: Scalars['Float']['output'];
+  title: Scalars['String']['output'];
+};
+
+export type TemplateSampleCardInput = {
+  position: Scalars['Float']['input'];
+  title: Scalars['String']['input'];
+};
+
 export type UnassignMemberFromCardInput = {
   cardId: Scalars['ID']['input'];
   userId: Scalars['ID']['input'];
@@ -950,8 +1367,22 @@ export type UpdateMemberRoleInput = {
   workspaceId: Scalars['String']['input'];
 };
 
+export type UpdateNotificationPreferencesInput = {
+  allowDesktopNotifications?: InputMaybe<Scalars['Boolean']['input']>;
+  emailFrequency?: InputMaybe<NotificationEmailFrequency>;
+};
+
+export type UpdateTemplateInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  lists?: InputMaybe<Array<TemplateListInput>>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  visibility?: InputMaybe<Visibility>;
+};
+
 export type UpdateUserInput = {
   avatar?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
   email?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;

@@ -23,6 +23,7 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { TemplatesModule } from './modules/templates/templates.module';
 import { SubscriptionsModule } from './common/subscriptions/subscriptions.module';
 import { validateWsConnection } from './common/subscriptions/ws-auth';
 import { GqlAuthGuard } from './common/guards/gql-auth.guard';
@@ -110,6 +111,7 @@ import { HealthController } from './common/controllers/health.controller';
     UploadModule,
     ActivityModule,
     NotificationsModule,
+    TemplatesModule,
   ],
   controllers: [HealthController],
   providers: [

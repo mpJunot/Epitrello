@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { rejectInvitation } from '@/lib/actions/workspaces';
 import { toast } from '@/lib/toast';
 import { getAuthToken } from '@/lib/graphql-client';
 
-export default function RejectInvitationPage() {
+function RejectInvitationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
-  const [status, setStatus] = useState<'idle' | 'processing' | 'done' | 'error'>(
-    id ? 'idle' : 'error',
-  );
+  const [status, setStatus] = useState<
+    'idle' | 'processing' | 'done' | 'error'
+  >(id ? 'idle' : 'error');
   const [message, setMessage] = useState<string>(
     id ? 'Processing invitation...' : 'Missing invitation id in URL.',
   );
@@ -53,27 +53,50 @@ export default function RejectInvitationPage() {
     <div className='h-full min-h-screen flex flex-col p-8 md:p-12 bg-background'>
       <div className='flex-1 flex items-center justify-center'>
         <div className='max-w-md w-full p-6 rounded-lg border border-accent bg-card shadow-sm text-center space-y-3'>
-        <h1 className='text-xl font-semibold text-foreground'>
-          Rejecting invitation
-        </h1>
-        <p className='text-sm text-muted-foreground'>{message}</p>
-        {status === 'processing' && (
-          <div className='flex items-center justify-center pt-2'>
-            <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
-          </div>
-        )}
-        {status === 'error' && (
-          <button
-            type='button'
-            onClick={() => router.push('/invitations')}
-            className='mt-2 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90'
-          >
-            Go to my invitations
-          </button>
-        )}
+          <h1 className='text-xl font-semibold text-foreground'>
+            Rejecting invitation
+          </h1>
+          <p className='text-sm text-muted-foreground'>{message}</p>
+          {status === 'processing' && (
+            <div className='flex items-center justify-center pt-2'>
+              <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
+            </div>
+          )}
+          {status === 'error' && (
+            <button
+              type='button'
+              onClick={() => router.push('/invitations')}
+              className='mt-2 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90'
+            >
+              Go to my invitations
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+export default function RejectInvitationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className='h-full min-h-screen flex flex-col p-8 md:p-12 bg-background'>
+          <div className='flex-1 flex items-center justify-center'>
+            <div className='max-w-md w-full p-6 rounded-lg border border-accent bg-card shadow-sm text-center space-y-3'>
+              <h1 className='text-xl font-semibold text-foreground'>
+                Rejecting invitation
+              </h1>
+              <p className='text-sm text-muted-foreground'>Loading...</p>
+              <div className='flex justify-center pt-2'>
+                <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <RejectInvitationContent />
+    </Suspense>
+  );
+}

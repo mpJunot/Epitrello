@@ -168,7 +168,7 @@ export function MembersTabContent({
                 onAssignAdmin={onAssignAdmin}
                 onRemoveFromWorkspace={onRemoveFromWorkspace}
                 onRemoveFromWorkspaceAndBoards={onRemoveFromWorkspaceAndBoards}
-                isRemoving={removing === member.userId}
+                removing={removing}
                 canRemove={canRemove}
                 canUpdateRole={canUpdateRole}
                 onRoleChange={onRoleChange}

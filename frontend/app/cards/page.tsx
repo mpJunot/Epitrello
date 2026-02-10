@@ -184,7 +184,9 @@ async function fetchAllCards(): Promise<CardsPageData> {
     const da = a.dueDate ? new Date(a.dueDate).getTime() : 0;
     const db = b.dueDate ? new Date(b.dueDate).getTime() : 0;
     if (da !== db) return da - db;
-    return a.boardTitle.localeCompare(b.boardTitle) || a.title.localeCompare(b.title);
+    return (
+      a.boardTitle.localeCompare(b.boardTitle) || a.title.localeCompare(b.title)
+    );
   });
 
   return { cards, currentUserId: me.id };
@@ -196,28 +198,29 @@ export default async function CardsPage() {
   return (
     <main className='flex h-full w-full flex-col p-8 md:p-12 overflow-auto'>
       <div className='flex min-h-0 flex-1 flex-col gap-6 w-full max-w-5xl'>
-      <div className='space-y-2'>
-        <h1 className='text-2xl font-semibold'>Cards</h1>
-        <p className='text-sm text-muted-foreground'>
-          All cards across your boards. Sort by board, list, or due date. Filter by board, list, labels, due date, or assignee.
-        </p>
-      </div>
+        <div className='space-y-2'>
+          <h1 className='text-2xl font-semibold'>Cards</h1>
+          <p className='text-sm text-muted-foreground'>
+            All cards across your boards. Sort by board, list, or due date.
+            Filter by board, list, labels, due date, or assignee.
+          </p>
+        </div>
 
-      {cards.length === 0 ? (
-        <Empty className='rounded-lg border border-dashed border-muted bg-muted/30'>
-          <EmptyHeader>
-            <EmptyMedia variant='icon'>
-              <LayoutGrid className='size-6' />
-            </EmptyMedia>
-            <EmptyTitle>No cards yet</EmptyTitle>
-            <EmptyDescription>
-              Create cards on your boards and they will appear here
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <CardsTable cards={cards} currentUserId={currentUserId} />
-      )}
+        {cards.length === 0 ? (
+          <Empty className='rounded-lg bg-muted/30'>
+            <EmptyHeader>
+              <EmptyMedia variant='icon'>
+                <LayoutGrid className='size-6' />
+              </EmptyMedia>
+              <EmptyTitle>No cards yet</EmptyTitle>
+              <EmptyDescription>
+                Create cards on your boards and they will appear here
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <CardsTable cards={cards} currentUserId={currentUserId} />
+        )}
       </div>
     </main>
   );

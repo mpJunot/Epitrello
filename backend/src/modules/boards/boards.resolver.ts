@@ -4,7 +4,10 @@ import { PubSub } from 'graphql-subscriptions';
 import { BoardsService } from './boards.service';
 import { Board } from './entities/board.entity';
 import { BoardMemberWithUser } from './entities/board-member.entity';
+import { BoardTemplate } from './entities/board-template.entity';
+import { BOARD_TEMPLATES } from './board-templates';
 import { CreateBoardInput } from './dto/create-board.input';
+import { CopyBoardInput } from './dto/copy-board.input';
 import { UpdateBoardInput } from './dto/update-board.input';
 import { AddBoardMemberInput } from './dto/add-board-member.input';
 import { UpdateBoardMemberRoleInput } from './dto/update-board-member-role.input';
@@ -49,6 +52,29 @@ export class BoardsResolver {
     @CurrentUser() user: any,
   ): Promise<Board> {
     return this.boardsService.create(input, user.id);
+  }
+
+  @Mutation(() => Board, {
+    description: 'Copy a board (lists, cards, labels, checklists). New board has current user as ADMIN.',
+  })
+  async copyBoard(
+    @Args('input') input: CopyBoardInput,
+    @CurrentUser() user: any,
+  ): Promise<Board> {
+    return this.boardsService.copy(input, user.id);
+  }
+
+  @Query(() => [BoardTemplate], {
+    name: 'boardTemplates',
+    description: 'List predefined board templates (blank, kanban, sprint, project).',
+  })
+  boardTemplates(): BoardTemplate[] {
+    return BOARD_TEMPLATES.map((t) => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      listTitles: t.lists.map((l) => l.title),
+    }));
   }
 
   @Query(() => Board, {

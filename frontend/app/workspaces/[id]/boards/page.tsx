@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import CreateBoardModal from '@/components/CreateBoardModal';
 import { createBoard, Visibility } from '@/lib/actions/boards';
 import { toast } from '@/lib/toast';
@@ -171,12 +171,26 @@ function CreateBoardCard({
 export default function WorkspaceBoardsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const workspaceId = params.id as string;
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [initialTemplateId, setInitialTemplateId] = useState<string | undefined>();
   const [starredIds, setStarredIds] = useState<string[]>(() =>
     getStarredBoardIds()
   );
+
+  useEffect(() => {
+    const create = searchParams.get('create');
+    const template = searchParams.get('template');
+    if (create === '1') {
+      queueMicrotask(() => {
+        setShowCreate(true);
+        if (template) setInitialTemplateId(template);
+      });
+      router.replace(`/workspaces/${workspaceId}/boards`, { scroll: false });
+    }
+  }, [searchParams, workspaceId, router]);
 
   const { data: workspace } = useWorkspaceQuery(workspaceId);
   const { permissions } = useWorkspaceRole(workspaceId);
@@ -426,12 +440,17 @@ export default function WorkspaceBoardsPage() {
 
       <CreateBoardModal
         open={showCreate}
-        onClose={() => setShowCreate(false)}
+        onClose={() => {
+          setShowCreate(false);
+          setInitialTemplateId(undefined);
+        }}
+        initialTemplateId={initialTemplateId}
         onCreate={async (payload: {
           name: string;
           workspaceId?: string;
           visibility?: string;
           background?: string;
+          templateId?: string;
         }) => {
           try {
             const visMap: Record<string, Visibility> = {
@@ -446,6 +465,7 @@ export default function WorkspaceBoardsPage() {
                 : undefined,
               workspaceId: payload.workspaceId || workspaceId,
               background: payload.background,
+              templateId: payload.templateId,
             });
             await queryClient.invalidateQueries({
               queryKey: workspaceBoardsQueryKey(workspaceId),

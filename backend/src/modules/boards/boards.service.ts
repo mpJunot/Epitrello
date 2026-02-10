@@ -3,16 +3,22 @@ import { NotificationType, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBoardInput } from './dto/create-board.input';
+import { CopyBoardInput } from './dto/copy-board.input';
+import { getBoardTemplate } from './board-templates';
 import { UpdateBoardInput } from './dto/update-board.input';
+import { TemplatesService } from '../templates/templates.service';
 import { AddBoardMemberInput } from './dto/add-board-member.input';
 import { Board } from './entities/board.entity';
 import { BoardMemberWithUser } from './entities/board-member.entity';
+
+const SYSTEM_TEMPLATE_IDS = new Set(['blank', 'kanban', 'sprint', 'project']);
 
 @Injectable()
 export class BoardsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private templatesService: TemplatesService,
   ) {}
 
   /**
@@ -51,14 +57,28 @@ export class BoardsService {
       }
     }
 
-    // Default columns for new boards (To Do, Doing, Done)
-    const defaultLists = [
-      { title: 'To Do', position: 0 },
-      { title: 'Doing', position: 1 },
-      { title: 'Done', position: 2 },
-    ];
+    let templateLists: { title: string; position: number; sampleCards?: { title: string; position: number }[] }[];
+    if (input.templateId && !SYSTEM_TEMPLATE_IDS.has(input.templateId)) {
+      const custom = await this.templatesService.getTemplateForBoard(input.templateId, userId);
+      templateLists = custom?.lists ?? getBoardTemplate(input.templateId).lists;
+    } else {
+      templateLists = getBoardTemplate(input.templateId).lists;
+    }
+    const listsCreate = templateLists.map((list) => ({
+      title: list.title,
+      position: list.position,
+      ...(list.sampleCards?.length
+        ? {
+            cards: {
+              create: list.sampleCards.map((c) => ({
+                title: c.title,
+                position: c.position,
+              })),
+            },
+          }
+        : {}),
+    }));
 
-    // Create board with creator as ADMIN and default lists
     const board = await this.prisma.board.create({
       data: {
         title: input.title,
@@ -74,12 +94,144 @@ export class BoardsService {
           },
         },
         lists: {
-          create: defaultLists,
+          create: listsCreate,
         },
       },
     });
 
     return board;
+  }
+
+  /**
+   * Copy a board: create a new board with the same lists, cards, labels, and checklists.
+   * Does not copy members (except current user as ADMIN), comments, attachments, or assignees.
+   */
+  async copy(input: CopyBoardInput, userId: string): Promise<Board> {
+    const source = await this.prisma.board.findUnique({
+      where: { id: input.sourceBoardId },
+      include: {
+        members: true,
+        workspace: { include: { memberships: true } },
+        labels: true,
+        lists: {
+          where: { isArchived: false },
+          orderBy: { position: 'asc' },
+          include: {
+            cards: {
+              where: { isArchived: false },
+              orderBy: { position: 'asc' },
+              include: {
+                labels: true,
+                checklists: { include: { items: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!source) {
+      throw new NotFoundException('Board not found');
+    }
+
+    await this.checkBoardAccess(source, userId);
+
+    const workspaceId = input.workspaceId ?? source.workspaceId;
+    if (workspaceId) {
+      const membership = await this.prisma.workspaceMember.findUnique({
+        where: {
+          workspaceId_userId: { workspaceId, userId },
+        },
+      });
+      if (!membership) {
+        throw new ForbiddenException('You are not a member of this workspace');
+      }
+      if (membership.role === Role.OBSERVER) {
+        throw new ForbiddenException('Observers cannot create boards');
+      }
+    }
+
+    const newBoard = await this.prisma.$transaction(async (tx) => {
+      const board = await tx.board.create({
+        data: {
+          title: input.title,
+          description: input.description ?? source.description,
+          workspaceId,
+          visibility: input.visibility ?? source.visibility,
+          background: input.background ?? source.background,
+          creatorId: userId,
+          members: {
+            create: { userId, role: Role.ADMIN },
+          },
+        },
+      });
+
+      const labelIdMap = new Map<string, string>();
+      for (const label of source.labels) {
+        const created = await tx.label.create({
+          data: {
+            boardId: board.id,
+            name: label.name,
+            color: label.color,
+          },
+        });
+        labelIdMap.set(label.id, created.id);
+      }
+
+      for (const list of source.lists) {
+        const newList = await tx.list.create({
+          data: {
+            boardId: board.id,
+            title: list.title,
+            position: list.position,
+          },
+        });
+
+        for (const card of list.cards) {
+          const newCard = await tx.card.create({
+            data: {
+              listId: newList.id,
+              title: card.title,
+              description: card.description,
+              background: card.background,
+              startDate: card.startDate,
+              dueDate: card.dueDate,
+              position: card.position,
+              completed: card.completed,
+            },
+          });
+
+          for (const cl of card.labels) {
+            const newLabelId = labelIdMap.get(cl.labelId);
+            if (newLabelId) {
+              await tx.cardLabel.create({
+                data: { cardId: newCard.id, labelId: newLabelId },
+              });
+            }
+          }
+
+          for (const checklist of card.checklists) {
+            const newChecklist = await tx.checklist.create({
+              data: { cardId: newCard.id, title: checklist.title },
+            });
+            for (const item of checklist.items) {
+              await tx.checklistItem.create({
+                data: {
+                  checklistId: newChecklist.id,
+                  content: item.content,
+                  checked: item.checked,
+                  position: item.position,
+                },
+              });
+            }
+          }
+        }
+      }
+
+      return board;
+    });
+
+    return newBoard;
   }
 
   /**
