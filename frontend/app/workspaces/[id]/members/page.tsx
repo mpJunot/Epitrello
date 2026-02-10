@@ -18,6 +18,8 @@ import {
   workspaceMembersQueryKey,
   workspaceInvitationsQueryKey,
 } from '@/lib/queries/workspaces';
+import { useWorkspaceMembersSubscription } from '@/lib/hooks/use-workspace-members-subscription';
+import { useWorkspaceInvitationsSubscription } from '@/lib/hooks/use-workspace-invitations-subscription';
 import { useWorkspaceRole } from '@/lib/hooks/use-workspace-role';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 import { toast } from '@/lib/toast';
@@ -47,7 +49,16 @@ export default function WorkspaceMembersPage() {
     isLoading: loading,
     isError,
     error: membersError,
-  } = useWorkspaceMembersQuery(workspaceId);
+  } = useWorkspaceMembersQuery(workspaceId, {
+    refetchInterval: 15_000,
+  });
+
+  useWorkspaceMembersSubscription(workspaceId, queryClient, true);
+  useWorkspaceInvitationsSubscription(
+    workspaceId,
+    queryClient,
+    !!permissions.canViewPendingInvitations,
+  );
 
   const members: WorkspaceMemberWithUser[] = useMemo(
     () => wsMembers ?? [],
@@ -60,12 +71,20 @@ export default function WorkspaceMembersPage() {
     enabled: permissions.canViewPendingInvitations,
   });
 
-  const memberCount = members.length;
+  const membersOnly = useMemo(
+    () => members.filter((m) => m.role !== 'OBSERVER'),
+    [members],
+  );
+  const guestsOnly = useMemo(
+    () => members.filter((m) => m.role === 'OBSERVER'),
+    [members],
+  );
+  const memberCount = membersOnly.length;
   const memberLimit = 10; // TODO: Get from workspace settings
   const requestsCount = permissions.canViewPendingInvitations
     ? (invitations?.length ?? 0)
     : 0;
-  const guestsCount = members.filter((m) => m.role === 'GUEST').length;
+  const guestsCount = guestsOnly.length;
 
   const isOnlyAdmin =
     !!currentUser?.id &&
@@ -75,9 +94,7 @@ export default function WorkspaceMembersPage() {
   const otherMembersToPromote = useMemo(
     () =>
       members
-        .filter(
-          (m) => m.userId !== currentUser?.id && m.role !== 'ADMIN',
-        )
+        .filter((m) => m.userId !== currentUser?.id && m.role !== 'ADMIN')
         .map((m) => ({
           userId: m.userId,
           name: m.user.name ?? '',
@@ -98,6 +115,20 @@ export default function WorkspaceMembersPage() {
         error instanceof Error ? error.message : 'Failed to assign admin';
       toast.error(message);
       throw error;
+    }
+  };
+
+  const handleRoleChange = async (userId: string, role: string) => {
+    try {
+      await updateMemberRole(workspaceId, userId, role);
+      await queryClient.invalidateQueries({
+        queryKey: workspaceMembersQueryKey(workspaceId),
+      });
+      toast.success('Role updated');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to update role';
+      toast.error(message);
     }
   };
 
@@ -127,6 +158,7 @@ export default function WorkspaceMembersPage() {
         queryKey: workspaceMembersQueryKey(workspaceId),
       });
       await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+      await queryClient.invalidateQueries({ queryKey: ['board'] });
       toast.success('You left the workspace');
       router.push('/dashboard');
     } catch (error) {
@@ -229,16 +261,20 @@ export default function WorkspaceMembersPage() {
             <div className='p-6 flex flex-col h-full flex-1'>
               <TabsContent value='members'>
                 <MembersTabContent
-                  members={members}
+                  members={membersOnly}
                   memberCount={memberCount}
                   memberLimit={memberLimit}
                   workspaceId={workspaceId}
                   onLeaveWorkspace={handleLeaveWorkspace}
                   onRemoveFromWorkspace={handleRemoveFromWorkspace}
-                  onRemoveFromWorkspaceAndBoards={handleRemoveFromWorkspaceAndBoards}
+                  onRemoveFromWorkspaceAndBoards={
+                    handleRemoveFromWorkspaceAndBoards
+                  }
                   removing={removing}
                   canInvite={permissions.canInviteMembers}
                   canRemove={permissions.canRemoveMembers}
+                  canUpdateRole={isAdmin}
+                  onRoleChange={handleRoleChange}
                   workspaceBoards={workspaceBoards}
                   currentUserId={currentUser?.id}
                   isOnlyAdmin={isOnlyAdmin}
@@ -249,10 +285,12 @@ export default function WorkspaceMembersPage() {
 
               <TabsContent value='guests'>
                 <GuestsTabContent
-                  members={members}
+                  members={guestsOnly}
                   onLeaveWorkspace={handleLeaveWorkspace}
                   onRemoveFromWorkspace={handleRemoveFromWorkspace}
-                  onRemoveFromWorkspaceAndBoards={handleRemoveFromWorkspaceAndBoards}
+                  onRemoveFromWorkspaceAndBoards={
+                    handleRemoveFromWorkspaceAndBoards
+                  }
                   removing={removing}
                   canRemove={permissions.canRemoveMembers}
                   workspaceBoards={workspaceBoards}
