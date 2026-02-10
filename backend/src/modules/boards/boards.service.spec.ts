@@ -10,6 +10,16 @@ describe('BoardsService', () => {
   let service: BoardsService;
   let prismaService: PrismaService;
 
+  let mockTx: {
+    board: { create: jest.Mock };
+    label: { create: jest.Mock };
+    list: { create: jest.Mock };
+    card: { create: jest.Mock };
+    cardLabel: { create: jest.Mock };
+    checklist: { create: jest.Mock };
+    checklistItem: { create: jest.Mock };
+  };
+
   const mockPrismaService = {
     board: {
       create: jest.fn(),
@@ -32,6 +42,7 @@ describe('BoardsService', () => {
     workspaceMember: {
       findUnique: jest.fn(),
     },
+    $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn(mockTx)),
   };
 
   const mockNotificationsService = {
@@ -71,6 +82,18 @@ describe('BoardsService', () => {
   };
 
   beforeEach(async () => {
+    mockTx = {
+      board: { create: jest.fn() },
+      label: { create: jest.fn() },
+      list: { create: jest.fn() },
+      card: { create: jest.fn() },
+      cardLabel: { create: jest.fn() },
+      checklist: { create: jest.fn() },
+      checklistItem: { create: jest.fn() },
+    };
+    (mockPrismaService.$transaction as jest.Mock).mockImplementation(
+      (fn: (tx: typeof mockTx) => Promise<unknown>) => fn(mockTx),
+    );
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BoardsService,
@@ -252,6 +275,242 @@ describe('BoardsService', () => {
           }),
         }),
       );
+    });
+
+    it('should create a board with system templateId (kanban)', async () => {
+      const input = {
+        title: 'Kanban Board',
+        templateId: 'kanban',
+      };
+
+      mockPrismaService.board.create.mockResolvedValue(mockBoard);
+
+      const result = await service.create(input, mockUser.id);
+
+      expect(result).toEqual(mockBoard);
+      expect(prismaService.board.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            title: input.title,
+            lists: expect.objectContaining({
+              create: expect.arrayContaining([
+                expect.objectContaining({ title: 'To Do', position: 0 }),
+                expect.objectContaining({ title: 'In Progress', position: 1 }),
+                expect.objectContaining({ title: 'Done', position: 2 }),
+              ]),
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should create a board with custom templateId when getTemplateForBoard returns lists', async () => {
+      const input = {
+        title: 'From Custom Template',
+        templateId: 'custom-tpl-uuid',
+      };
+
+      const customLists = [
+        { title: 'Backlog', position: 0 },
+        { title: 'Done', position: 1 },
+      ];
+      mockTemplatesService.getTemplateForBoard.mockResolvedValue({ lists: customLists });
+      mockPrismaService.board.create.mockResolvedValue(mockBoard);
+
+      const result = await service.create(input, mockUser.id);
+
+      expect(result).toEqual(mockBoard);
+      expect(mockTemplatesService.getTemplateForBoard).toHaveBeenCalledWith(
+        input.templateId,
+        mockUser.id,
+      );
+      expect(prismaService.board.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lists: {
+              create: [
+                { title: 'Backlog', position: 0 },
+                { title: 'Done', position: 1 },
+              ],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('should create a board with custom templateId when getTemplateForBoard returns null (fallback to system template)', async () => {
+      const input = {
+        title: 'Fallback Template Board',
+        templateId: 'custom-missing',
+      };
+
+      mockTemplatesService.getTemplateForBoard.mockResolvedValue(null);
+      mockPrismaService.board.create.mockResolvedValue(mockBoard);
+
+      await service.create(input, mockUser.id);
+
+      expect(mockTemplatesService.getTemplateForBoard).toHaveBeenCalledWith(
+        input.templateId,
+        mockUser.id,
+      );
+      expect(prismaService.board.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lists: expect.objectContaining({ create: expect.any(Array) }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('copy', () => {
+    const sourceBoard = {
+      id: 'source-1',
+      title: 'Source Board',
+      description: 'Source desc',
+      workspaceId: 'workspace-1',
+      visibility: Visibility.PRIVATE,
+      background: null,
+      isArchived: false,
+      creatorId: 'user-1',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      members: [{ id: 'm1', boardId: 'source-1', userId: 'user-1', role: Role.ADMIN, joinedAt: new Date() }],
+      workspace: { id: 'workspace-1', memberships: [{ userId: 'user-1' }] },
+      labels: [
+        { id: 'label-1', boardId: 'source-1', name: 'Bug', color: '#red' },
+      ],
+      lists: [
+        {
+          id: 'list-1',
+          boardId: 'source-1',
+          title: 'To Do',
+          position: 0,
+          isArchived: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cards: [
+            {
+              id: 'card-1',
+              listId: 'list-1',
+              title: 'Card 1',
+              description: null,
+              background: null,
+              startDate: null,
+              dueDate: null,
+              position: 0,
+              completed: false,
+              isArchived: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              labels: [{ labelId: 'label-1' }],
+              checklists: [
+                {
+                  id: 'cl-1',
+                  cardId: 'card-1',
+                  title: 'Check',
+                  items: [
+                    { id: 'item-1', checklistId: 'cl-1', content: 'Item', checked: false, position: 0 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    it('should copy a board with lists, cards, labels and checklists', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(sourceBoard);
+      const newBoard = { id: 'new-board-1', title: 'Copied', workspaceId: 'workspace-1' };
+      mockTx.board.create.mockResolvedValue(newBoard);
+      mockTx.label.create.mockResolvedValue({ id: 'new-label-1' });
+      mockTx.list.create.mockResolvedValue({ id: 'new-list-1' });
+      mockTx.card.create.mockResolvedValue({ id: 'new-card-1' });
+      mockTx.cardLabel.create.mockResolvedValue({});
+      mockTx.checklist.create.mockResolvedValue({ id: 'new-cl-1' });
+      mockTx.checklistItem.create.mockResolvedValue({});
+
+      const result = await service.copy(
+        { sourceBoardId: 'source-1', title: 'Copied' },
+        mockUser.id,
+      );
+
+      expect(result).toEqual(newBoard);
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
+      expect(mockTx.board.create).toHaveBeenCalled();
+      expect(mockTx.label.create).toHaveBeenCalled();
+      expect(mockTx.list.create).toHaveBeenCalled();
+      expect(mockTx.card.create).toHaveBeenCalled();
+      expect(mockTx.checklist.create).toHaveBeenCalled();
+      expect(mockTx.checklistItem.create).toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if source board not found', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.copy({ sourceBoardId: 'invalid', title: 'Copy' }, mockUser.id),
+      ).rejects.toThrow(NotFoundException);
+      await expect(
+        service.copy({ sourceBoardId: 'invalid', title: 'Copy' }, mockUser.id),
+      ).rejects.toThrow('Board not found');
+    });
+
+    it('should throw ForbiddenException if user has no access to source board', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        ...sourceBoard,
+        visibility: Visibility.PRIVATE,
+        members: [],
+        workspace: null,
+      });
+
+      await expect(
+        service.copy({ sourceBoardId: 'source-1', title: 'Copy' }, 'other-user'),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.copy({ sourceBoardId: 'source-1', title: 'Copy' }, 'other-user'),
+      ).rejects.toThrow('You do not have access to this board');
+    });
+
+    it('should throw ForbiddenException if copying to workspace where user is not member', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(sourceBoard);
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.copy(
+          { sourceBoardId: 'source-1', title: 'Copy', workspaceId: 'other-ws' },
+          mockUser.id,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.copy(
+          { sourceBoardId: 'source-1', title: 'Copy', workspaceId: 'other-ws' },
+          mockUser.id,
+        ),
+      ).rejects.toThrow('You are not a member of this workspace');
+    });
+
+    it('should throw ForbiddenException if copying to workspace where user is OBSERVER', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue(sourceBoard);
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue({
+        userId: mockUser.id,
+        workspaceId: 'other-ws',
+        role: Role.OBSERVER,
+      });
+
+      await expect(
+        service.copy(
+          { sourceBoardId: 'source-1', title: 'Copy', workspaceId: 'other-ws' },
+          mockUser.id,
+        ),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.copy(
+          { sourceBoardId: 'source-1', title: 'Copy', workspaceId: 'other-ws' },
+          mockUser.id,
+        ),
+      ).rejects.toThrow('Observers cannot create boards');
     });
   });
 
