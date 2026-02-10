@@ -16,13 +16,14 @@ import {
   Home,
   Plus,
   LayoutGrid,
+  LayoutTemplate,
+  Activity,
   Users,
   Settings,
   ChevronDown,
   Mail,
   Building2,
   CreditCard,
-  ListTodo,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -273,8 +274,18 @@ export default function AppSidebar() {
                     isActive={pathname === '/activity'}
                     tooltip='Activity'
                   >
-                    <ListTodo />
+                    <Activity />
                     <span>Activity</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() => router.push('/templates')}
+                    isActive={pathname === '/templates'}
+                    tooltip='Template gallery'
+                  >
+                    <LayoutTemplate />
+                    <span>Templates</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -418,7 +429,7 @@ export default function AppSidebar() {
                               isActive={activityActive}
                               tooltip='Activity'
                             >
-                              <ListTodo />
+                              <Activity />
                               <span>Activity</span>
                             </SidebarMenuButton>
                           </SidebarMenuItem>

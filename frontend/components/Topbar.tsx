@@ -5,18 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import CreateBoardModal from './CreateBoardModal';
 import { toast } from '@/lib/toast';
-import { Search, Bell, HelpCircle, Keyboard, Zap } from 'lucide-react';
+import { Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchWithAdvancedInput } from './SearchWithAdvancedInput';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
 import {
   clearAuthToken,
   clearEpitrelloLocalStorage,
@@ -116,7 +113,6 @@ export default function Topbar() {
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
   const [userAvatar, setUserAvatar] = useState<string | undefined>(undefined);
-  const [showHelpDialog, setShowHelpDialog] = useState(false);
   const [showSearchDialog, setShowSearchDialog] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const router = useRouter();
@@ -434,7 +430,7 @@ export default function Topbar() {
                           : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className='flex flex-col'>
+                  <div className='flex flex-col gap-1'>
                     <p className='text-sm font-medium leading-none'>
                       {userName || 'User'}
                     </p>
@@ -445,18 +441,6 @@ export default function Topbar() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a
-                  href='#'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Switch accounts (not implemented)');
-                  }}
-                  className='cursor-pointer'
-                >
-                  Switch accounts
-                </a>
-              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/settings' className='cursor-pointer'>
                   Manage account
@@ -487,19 +471,6 @@ export default function Topbar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a
-                  href='#'
-                  onClick={(e) => {
-                    e.preventDefault();
-                    alert('Help (not implemented)');
-                  }}
-                  className='cursor-pointer'
-                >
-                  Help
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className='cursor-pointer text-red-600'
@@ -524,142 +495,6 @@ export default function Topbar() {
         </DialogContent>
       </Dialog>
 
-      {/* Help Dialog */}
-      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
-        <DialogContent className='max-w-2xl max-h-[80vh] overflow-y-auto'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <HelpCircle className='h-5 w-5' />
-              Epitrello Help Center
-            </DialogTitle>
-            <DialogDescription>
-              Learn how to use Epitrello to organize your projects effectively.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className='space-y-6 mt-4'>
-            {/* Getting Started */}
-            <div className='space-y-3'>
-              <h3 className='text-base font-semibold flex items-center gap-2'>
-                <Zap className='h-4 w-4' />
-                Getting started
-              </h3>
-              <ul className='space-y-2 text-sm text-muted-foreground ml-6'>
-                <li className='list-disc'>
-                  Create a <strong>workspace</strong> to organize your projects
-                  by team or domain
-                </li>
-                <li className='list-disc'>
-                  Add <strong>boards</strong> for each project in your workspace
-                </li>
-                <li className='list-disc'>
-                  Use <strong>lists</strong> to represent your workflow stages
-                  (To Do, In Progress, Done)
-                </li>
-                <li className='list-disc'>
-                  Create <strong>cards</strong> for each task and drag them
-                  between lists
-                </li>
-              </ul>
-            </div>
-
-            <Separator />
-
-            {/* Key Features */}
-            <div className='space-y-3'>
-              <h3 className='text-base font-semibold'>Key features</h3>
-              <div className='space-y-3 text-sm'>
-                <div>
-                  <strong className='text-foreground'>Interactive cards</strong>
-                  <p className='text-muted-foreground'>
-                    Add descriptions, checklists, labels and due dates to your
-                    cards.
-                  </p>
-                </div>
-                <div>
-                  <strong className='text-foreground'>
-                    Team collaboration
-                  </strong>
-                  <p className='text-muted-foreground'>
-                    Invite members, assign tasks and comment on cards to
-                    collaborate.
-                  </p>
-                </div>
-                <div>
-                  <strong className='text-foreground'>Customization</strong>
-                  <p className='text-muted-foreground'>
-                    Choose backgrounds for your boards and organize them to your
-                    preferences.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Keyboard Shortcuts */}
-            <div className='space-y-3'>
-              <h3 className='text-base font-semibold flex items-center gap-2'>
-                <Keyboard className='h-4 w-4' />
-                Keyboard shortcuts
-              </h3>
-              <div className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm'>
-                <div className='flex justify-between p-2 rounded bg-muted/50'>
-                  <span className='text-muted-foreground'>New card</span>
-                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
-                    N
-                  </kbd>
-                </div>
-                <div className='flex justify-between p-2 rounded bg-muted/50'>
-                  <span className='text-muted-foreground'>Search</span>
-                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
-                    Ctrl+F
-                  </kbd>
-                </div>
-                <div className='flex justify-between p-2 rounded bg-muted/50'>
-                  <span className='text-muted-foreground'>New board</span>
-                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
-                    B
-                  </kbd>
-                </div>
-                <div className='flex justify-between p-2 rounded bg-muted/50'>
-                  <span className='text-muted-foreground'>Help</span>
-                  <kbd className='px-2 py-1 text-xs bg-background border rounded'>
-                    ?
-                  </kbd>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Support */}
-            <div className='space-y-3'>
-              <h3 className='text-base font-semibold'>Need more help?</h3>
-              <p className='text-sm text-muted-foreground'>
-                Check the full documentation or contact support for more
-                information.
-              </p>
-              <div className='flex gap-2'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => toast.info('Documentation coming soon')}
-                >
-                  Documentation
-                </Button>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => toast.info('Support coming soon')}
-                >
-                  Contact support
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </header>
   );
 }

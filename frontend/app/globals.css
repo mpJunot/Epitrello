@@ -581,7 +581,6 @@ html {
 
   [data-slot="sidebar-container"] {
     border-right: none !important;
-    border-left: none !important;
   }
 
   /* Sidebar sous le Topbar quand .topbar-above est sur le parent */

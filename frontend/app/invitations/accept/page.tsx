@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { acceptInvitation } from '@/lib/actions/workspaces';
 import { toast } from '@/lib/toast';
 import { getAuthToken } from '@/lib/graphql-client';
 
-export default function AcceptInvitationPage() {
+function AcceptInvitationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
@@ -74,6 +74,32 @@ export default function AcceptInvitationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className='h-full min-h-screen flex flex-col p-8 md:p-12 bg-background'>
+          <div className='flex-1 flex items-center justify-center'>
+            <div className='max-w-md w-full p-6 rounded-lg border border-accent bg-card shadow-sm text-center space-y-3'>
+              <h1 className='text-xl font-semibold text-foreground'>
+                Accepting invitation
+              </h1>
+              <p className='text-sm text-muted-foreground'>
+                Loading...
+              </p>
+              <div className='flex justify-center pt-2'>
+                <div className='animate-spin h-6 w-6 border-2 border-trello-blue border-t-transparent rounded-full' />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AcceptInvitationContent />
+    </Suspense>
   );
 }
 

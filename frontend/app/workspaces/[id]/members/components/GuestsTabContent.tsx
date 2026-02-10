@@ -89,7 +89,7 @@ export function GuestsTabContent({
                 onAssignAdmin={onAssignAdmin}
                 onRemoveFromWorkspace={onRemoveFromWorkspace}
                 onRemoveFromWorkspaceAndBoards={onRemoveFromWorkspaceAndBoards}
-                isRemoving={removing === guest.userId}
+                removing={removing}
                 canRemove={canRemove}
                 memberBoards={getBoardsForMember(
                   workspaceBoards,
