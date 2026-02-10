@@ -77,23 +77,25 @@ For detailed Docker setup instructions, see [DOCKER.md](./DOCKER.md).
 
 ```
 Epitrello/
-├── backend/          # NestJS GraphQL API
-├── frontend/         # Next.js React application
-├── docs/             # Project documentation
-├── scripts/          # Utility scripts for Docker management
-├── Makefile          # Development commands
+├── backend/           # NestJS GraphQL API (Prisma, PostgreSQL)
+├── frontend/          # Next.js React app (Tailwind, shadcn/ui)
+├── docs/              # Project documentation
+├── terraform/         # GCP infrastructure (Cloud Run, Cloud SQL, GCS)
+├── terraform-wif/     # Workload Identity Federation for CI/CD
+├── scripts/           # Docker and utility scripts
+├── Makefile           # Development commands
 ├── docker-compose.yml # Docker orchestration
-└── .github/          # GitHub Actions workflows
+└── .github/           # GitHub Actions workflows
 ```
 
 ## Technology Stack
 
-| Component      | Technologies                             |
-| -------------- | ---------------------------------------- |
-| Backend        | NestJS, GraphQL, PostgreSQL, Prisma ORM  |
-| Frontend       | Next.js, React, TypeScript, Tailwind CSS |
-| Infrastructure | Docker, Docker Compose                   |
-| CI/CD          | GitHub Actions                           |
+| Component      | Technologies                                                                 |
+| -------------- | ----------------------------------------------------------------------------- |
+| Backend        | NestJS, GraphQL (Apollo), PostgreSQL, Prisma ORM                              |
+| Frontend       | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui               |
+| Infrastructure | Docker, Docker Compose (local) · Terraform, GCP (Cloud Run, Cloud SQL, GCS)  |
+| CI/CD          | GitHub Actions (backend-ci, frontend-ci, deploy, code-quality, migrations)    |
 
 ## Development
 
@@ -197,14 +199,15 @@ For job and trigger details, see [.github/workflows/README.md](./.github/workflo
 
 ## Documentation
 
-| Document                                                                                               | Description                                  |
-| ------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html) | GraphQL reference (generated, hosted on GCS) |
-| [Docker Setup](./DOCKER.md)                                                                            | Docker configuration and local deployment    |
-| [Deploy (GCP)](./docs/DEPLOY_DOCUMENTATION.md)                                                         | Deploying GraphQL docs to GCS                |
-| [GraphQL docs generation](./docs/GRAPHQL_DOCS_GENERATION.md)                                           | SpectaQL and schema generation               |
-| [Development tasks](./docs/TASKS.md)                                                                   | Prioritized task list                        |
-| [Backend Architecture](./backend/ARCHITECTURE.md)                                                      | Backend architecture and modules             |
+| Document                                                                                               | Description                                       |
+| ------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| [Technical Stack](./docs/TECH_STACK.md)                                                                | Technologies, why we chose them, advantages       |
+| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html)   | GraphQL reference (generated, hosted on GCS)      |
+| [Docker Setup](./DOCKER.md)                                                                            | Docker configuration and local deployment         |
+| [Deploy (GCP)](./docs/DEPLOY_DOCUMENTATION.md)                                                         | Deploying GraphQL docs to GCS                     |
+| [GraphQL docs generation](./docs/GRAPHQL_DOCS_GENERATION.md)                                          | SpectaQL and schema generation                    |
+| [Backend Architecture](./backend/ARCHITECTURE.md)                                                     | Backend architecture and modules                 |
+| [Workflows](./.github/workflows/README.md)                                                             | CI/CD workflows and jobs                          |
 
 ## License
 
