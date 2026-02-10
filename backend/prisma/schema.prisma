@@ -107,6 +107,7 @@ model Workspace {
   boards      Board[]
   memberships WorkspaceMember[]
   invitations WorkspaceInvitation[]
+  templates   BoardTemplate[]
 
   @@map("workspaces")
 }
@@ -132,18 +133,19 @@ model User {
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
-  createdBoards        Board[]               @relation("BoardCreator")
-  boardMembers         BoardMember[]
-  cardAssignees        CardAssignee[]
-  comments             Comment[]
-  attachments          Attachment[]
-  workspaceMemberships WorkspaceMember[]
-  notifications        Notification[]
-  oauthAccounts        OAuthAccount[]
-  sentInvitations      WorkspaceInvitation[] @relation("InvitationInviter")
-  receivedInvitations  WorkspaceInvitation[] @relation("InvitationInvitee")
-  activities           Activity[]
+  createdBoards           Board[]                      @relation("BoardCreator")
+  boardMembers            BoardMember[]
+  cardAssignees           CardAssignee[]
+  comments                Comment[]
+  attachments             Attachment[]
+  workspaceMemberships    WorkspaceMember[]
+  notifications           Notification[]
+  oauthAccounts           OAuthAccount[]
+  sentInvitations         WorkspaceInvitation[]        @relation("InvitationInviter")
+  receivedInvitations     WorkspaceInvitation[]        @relation("InvitationInvitee")
+  activities              Activity[]
   notificationPreferences UserNotificationPreferences?
+  createdTemplates        BoardTemplate[]
 
   @@map("users")
 }
@@ -154,12 +156,12 @@ model User {
 // Per-user notification settings (email frequency, desktop notifications).
 
 model UserNotificationPreferences {
-  id                      String                    @id @default(uuid())
-  userId                  String                    @unique
-  emailFrequency          NotificationEmailFrequency @default(PERIODICALLY)
-  allowDesktopNotifications Boolean                 @default(false)
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
+  id                        String                     @id @default(uuid())
+  userId                    String                     @unique
+  emailFrequency            NotificationEmailFrequency @default(PERIODICALLY)
+  allowDesktopNotifications Boolean                    @default(false)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -525,4 +527,29 @@ model WorkspaceInvitation {
   @@index([inviteeId])
   @@index([status])
   @@map("workspace_invitations")
+}
+
+// ----------------------------------------------------------------------------
+// BoardTemplate (CRUD - custom templates)
+// ----------------------------------------------------------------------------
+// User-created board templates. Lists stored as JSON: [{ title, position, sampleCards?: [{ title, position }] }].
+// workspaceId null = global template; otherwise template is scoped to that workspace.
+
+model BoardTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  lists       Json
+  visibility  Visibility @default(PRIVATE)
+  workspaceId String?
+  creatorId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator   User       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([creatorId])
+  @@map("board_templates")
 }
