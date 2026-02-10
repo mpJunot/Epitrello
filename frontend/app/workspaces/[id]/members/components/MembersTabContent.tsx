@@ -28,6 +28,10 @@ interface MembersTabContentProps {
   /** If false, invite section and remove buttons are hidden (non-admin). */
   canInvite?: boolean;
   canRemove?: boolean;
+  /** If true, workspace admins can change member roles. */
+  canUpdateRole?: boolean;
+  /** Called when admin changes a member's role. */
+  onRoleChange?: (userId: string, role: string) => Promise<void>;
   /** Workspace boards (with members) to show "View boards" per member. */
   workspaceBoards?: GqlBoard[];
   /** Current user id to show "Leave" instead of "Remove" for own row. */
@@ -65,6 +69,8 @@ export function MembersTabContent({
   removing,
   canInvite = true,
   canRemove = true,
+  canUpdateRole = false,
+  onRoleChange,
   workspaceBoards,
   currentUserId,
   otherMembersToPromote,
@@ -164,6 +170,8 @@ export function MembersTabContent({
                 onRemoveFromWorkspaceAndBoards={onRemoveFromWorkspaceAndBoards}
                 isRemoving={removing === member.userId}
                 canRemove={canRemove}
+                canUpdateRole={canUpdateRole}
+                onRoleChange={onRoleChange}
                 memberBoards={getBoardsForMember(
                   workspaceBoards,
                   member.userId,

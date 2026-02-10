@@ -1440,7 +1440,7 @@ export default function CardModal({
             </div>
           </DialogHeader>
           <div className='flex flex-col lg:flex-row flex-1 min-h-0 overflow-hidden'>
-            <div className='flex-1 lg:w-[60%] px-6 pt-4 pb-4 overflow-y-auto custom-scrollbar'>
+            <div className='flex-1 lg:w-[60%] px-6 pt-4 pb-4 overflow-y-auto scrollbar-hidden'>
               <div className='flex items-start gap-3 mb-6'>
                 <Checkbox
                   checked={card.completed ?? false}
@@ -1726,7 +1726,7 @@ export default function CardModal({
               </div>
             </div>
             <div className='hidden lg:block w-px bg-accent' />
-            <div className='lg:w-[40%] overflow-y-auto custom-scrollbar pl-6 pr-4 py-4'>
+            <div className='lg:w-[40%] overflow-y-auto scrollbar-hidden pl-6 pr-4 py-4'>
               <CardModalComments
                 comments={comments}
                 newComment={newComment}

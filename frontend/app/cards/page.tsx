@@ -194,8 +194,9 @@ export default async function CardsPage() {
   const { cards, currentUserId } = await fetchAllCards();
 
   return (
-    <main className='p-6 w-full h-full overflow-auto'>
-      <div className='space-y-2 mb-6'>
+    <main className='flex h-full w-full flex-col p-8 md:p-12 overflow-auto'>
+      <div className='flex min-h-0 flex-1 flex-col gap-6 w-full max-w-5xl'>
+      <div className='space-y-2'>
         <h1 className='text-2xl font-semibold'>Cards</h1>
         <p className='text-sm text-muted-foreground'>
           All cards across your boards. Sort by board, list, or due date. Filter by board, list, labels, due date, or assignee.
@@ -217,6 +218,7 @@ export default async function CardsPage() {
       ) : (
         <CardsTable cards={cards} currentUserId={currentUserId} />
       )}
+      </div>
     </main>
   );
 }

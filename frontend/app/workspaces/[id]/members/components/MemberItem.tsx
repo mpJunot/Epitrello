@@ -1,4 +1,7 @@
-import { Button } from '@/components/ui/button';
+'use client';
+
+import { useState } from 'react';
+import { X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Item,
@@ -8,56 +11,73 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@/components/ui/item';
-import { X, HelpCircle } from 'lucide-react';
-import type { WorkspaceMemberWithUser } from '@/lib/actions/workspaces';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { getInitials, formatLastActive, getAvatarColor } from './utils';
-import {
-  MemberBoardsPopover,
-  type MemberBoardItem,
-} from './MemberBoardsPopover';
-import {
-  LeaveWorkspacePopover,
-  type MemberToPromote,
-} from './LeaveWorkspacePopover';
+import { MemberBoardsPopover } from './MemberBoardsPopover';
+import { LeaveWorkspacePopover } from './LeaveWorkspacePopover';
 import { RemoveMemberPopover } from './RemoveMemberPopover';
+import type { WorkspaceMemberWithUser } from '@/lib/actions/workspaces';
+import type { MemberBoardItem } from './MemberBoardsPopover';
+import type { MemberToPromote } from './LeaveWorkspacePopover';
 
 interface MemberItemProps {
   member: WorkspaceMemberWithUser;
-  /** Called when current user confirms "Leave Workspace" in popover. */
   onLeaveWorkspace?: () => Promise<void>;
-  /** When current user is the only admin, members that can be promoted. */
-  otherMembersToPromote?: MemberToPromote[];
-  /** Called when current user promotes another member to admin (before leaving). */
-  onAssignAdmin?: (userId: string) => Promise<void>;
-  /** Called when admin chooses "Remove from Workspace" in popover. */
   onRemoveFromWorkspace?: (userId: string) => Promise<void>;
-  /** Called when admin chooses "Remove from Workspace and Boards" in popover. */
   onRemoveFromWorkspaceAndBoards?: (userId: string) => Promise<void>;
-  isRemoving: boolean;
-  /** If false, the remove/leave button is hidden (non-admin for remove). */
+  removing: string | null;
   canRemove?: boolean;
-  /** Boards this member is part of in the workspace (for "View boards" popover). */
-  memberBoards?: MemberBoardItem[];
-  /** If true, show "Leave..." popover instead of "Remove..." (current user). */
-  isCurrentUser?: boolean;
-  /** When true, current user is the only admin and must assign another admin before leaving. */
+  canUpdateRole?: boolean;
+  onRoleChange?: (userId: string, role: string) => Promise<void>;
+  memberBoards: MemberBoardItem[];
+  isCurrentUser: boolean;
   isOnlyAdmin?: boolean;
+  otherMembersToPromote?: MemberToPromote[];
+  onAssignAdmin?: (userId: string) => Promise<void>;
 }
 
 export function MemberItem({
   member,
   onLeaveWorkspace,
-  otherMembersToPromote,
-  onAssignAdmin,
   onRemoveFromWorkspace,
   onRemoveFromWorkspaceAndBoards,
-  isRemoving,
+  removing,
   canRemove = true,
-  memberBoards = [],
-  isCurrentUser = false,
+  canUpdateRole = false,
+  onRoleChange,
+  memberBoards,
+  isCurrentUser,
   isOnlyAdmin = false,
+  otherMembersToPromote = [],
+  onAssignAdmin,
 }: MemberItemProps) {
-  const memberName = member.user.name || member.user.email || 'This member';
+  const [updatingRole, setUpdatingRole] = useState(false);
+  const isRemoving = removing === member.userId;
+  const memberName = member.user?.name || member.user?.email || 'Member';
+
+  const handleRoleChange = async (role: string) => {
+    if (!onRoleChange) return;
+    setUpdatingRole(true);
+    try {
+      await onRoleChange(member.userId, role);
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
+
+  const roleLabel =
+    member.role === 'ADMIN'
+      ? 'Admin'
+      : member.role === 'OBSERVER'
+        ? 'Guest'
+        : 'Member';
 
   const removeLeaveTrigger = (
     <Button
@@ -91,51 +111,68 @@ export function MemberItem({
               member.user.name || member.user.email,
             )}`}
           >
-            {getInitials(member.user.name)}
+            {getInitials(member.user.name || member.user.email || 'U')}
           </AvatarFallback>
         </Avatar>
       </ItemMedia>
       <ItemContent>
         <ItemTitle>{member.user.name}</ItemTitle>
         <ItemDescription>
-          <span className='flex items-center gap-2'>
-            @{member.user.email.split('@')[0]}
+          <span className='flex items-center gap-2 flex-wrap'>
+            {member.user.email && (
+              <span className='text-muted-foreground'>{member.user.email}</span>
+            )}
             <span className='text-xs'>{formatLastActive(member.joinedAt)}</span>
           </span>
         </ItemDescription>
       </ItemContent>
       <ItemActions>
         <MemberBoardsPopover memberName={memberName} boards={memberBoards} />
-        <Button variant='outline' size='sm' className='border-border'>
-          Admin
-          <HelpCircle className='h-3 w-3 ml-1' />
-        </Button>
-        {canRemove &&
-          (isCurrentUser
-            ? onLeaveWorkspace && (
-                <LeaveWorkspacePopover
-                  trigger={removeLeaveTrigger}
-                  onConfirm={onLeaveWorkspace}
-                  isOnlyAdmin={isOnlyAdmin}
-                  otherMembers={otherMembersToPromote}
-                  onAssignAdmin={onAssignAdmin}
-                  loading={isRemoving}
-                  disabled={isRemoving}
-                />
-              )
-            : onRemoveFromWorkspace &&
-              onRemoveFromWorkspaceAndBoards && (
-                <RemoveMemberPopover
-                  trigger={removeLeaveTrigger}
-                  userId={member.userId}
-                  onRemoveFromWorkspace={onRemoveFromWorkspace}
-                  onRemoveFromWorkspaceAndBoards={
-                    onRemoveFromWorkspaceAndBoards
-                  }
-                  loading={isRemoving}
-                  disabled={isRemoving}
-                />
-              ))}
+        {canUpdateRole && onRoleChange ? (
+          <Select
+            value={member.role}
+            onValueChange={handleRoleChange}
+            disabled={updatingRole}
+          >
+            <SelectTrigger className='w-28 h-8 text-xs border-accent'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className='border-accent'>
+              <SelectItem value='ADMIN'>Admin</SelectItem>
+              <SelectItem value='MEMBER'>Member</SelectItem>
+              <SelectItem value='OBSERVER'>Guest</SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <span
+            className='text-xs font-medium px-2 py-1 rounded border border-accent bg-muted/30 text-muted-foreground'
+            title={`Role: ${member.role}`}
+          >
+            {roleLabel}
+          </span>
+        )}
+        {isCurrentUser
+          ? onLeaveWorkspace && (
+              <LeaveWorkspacePopover
+                trigger={removeLeaveTrigger}
+                onConfirm={onLeaveWorkspace}
+                isOnlyAdmin={isOnlyAdmin}
+                otherMembers={otherMembersToPromote}
+                onAssignAdmin={onAssignAdmin}
+                loading={isRemoving}
+              />
+            )
+          : canRemove &&
+            onRemoveFromWorkspace &&
+            onRemoveFromWorkspaceAndBoards && (
+              <RemoveMemberPopover
+                trigger={removeLeaveTrigger}
+                userId={member.userId}
+                onRemoveFromWorkspace={onRemoveFromWorkspace}
+                onRemoveFromWorkspaceAndBoards={onRemoveFromWorkspaceAndBoards}
+                loading={isRemoving}
+              />
+            )}
       </ItemActions>
     </Item>
   );
