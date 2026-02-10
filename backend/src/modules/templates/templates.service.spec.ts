@@ -196,6 +196,29 @@ describe('TemplatesService', () => {
         service.createFromBoard('board-1', mockUser.id),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
+
+    it('should throw when board is WORKSPACE visibility and user is not workspace member', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({
+        id: 'board-1',
+        title: 'Workspace Board',
+        description: '',
+        visibility: 'WORKSPACE',
+        workspaceId: 'ws-1',
+        members: [],
+        workspace: {
+          id: 'ws-1',
+          memberships: [{ userId: 'other-user' }],
+        },
+        lists: [{ id: 'l1', title: 'List', position: 0, cards: [] }],
+      });
+
+      await expect(
+        service.createFromBoard('board-1', mockUser.id),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.createFromBoard('board-1', mockUser.id),
+      ).rejects.toThrow('You do not have access to this board');
+    });
   });
 
   describe('findOne', () => {
@@ -251,6 +274,19 @@ describe('TemplatesService', () => {
 
       await expect(service.findOne('tpl-1', mockUser.id)).rejects.toBeInstanceOf(
         ForbiddenException,
+      );
+    });
+
+    it('should throw when visibility WORKSPACE and user is not workspace member', async () => {
+      const row = { ...mockTemplateRow, visibility: 'WORKSPACE' as const, workspaceId: 'ws-1', creatorId: 'other-user' };
+      mockPrismaService.boardTemplate.findUnique.mockResolvedValue(row);
+      mockPrismaService.workspaceMember.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne('tpl-1', mockUser.id)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      await expect(service.findOne('tpl-1', mockUser.id)).rejects.toThrow(
+        'You do not have access to this template',
       );
     });
   });
@@ -334,6 +370,17 @@ describe('TemplatesService', () => {
         ],
       });
     });
+
+    it('should return empty lists when row.lists is not an array', async () => {
+      mockPrismaService.boardTemplate.findUnique.mockResolvedValue({
+        ...mockTemplateRow,
+        lists: null,
+      });
+
+      const result = await service.getTemplateForBoard('tpl-1', mockUser.id);
+
+      expect(result).toEqual({ lists: [] });
+    });
   });
 
   describe('update', () => {
@@ -406,6 +453,17 @@ describe('TemplatesService', () => {
           }),
         }),
       );
+    });
+
+    it('should throw BadRequestException when update sets lists to empty array', async () => {
+      mockPrismaService.boardTemplate.findUnique.mockResolvedValue(mockTemplateRow);
+
+      await expect(
+        service.update({ id: 'tpl-1', lists: [] }, mockUser.id),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.update({ id: 'tpl-1', lists: [] }, mockUser.id),
+      ).rejects.toThrow('At least one list is required');
     });
 
     it('should throw when template not found', async () => {
