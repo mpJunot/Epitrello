@@ -181,17 +181,22 @@ backend/
 ├── prisma/              # Prisma schema and migrations
 ├── scripts/             # Utility scripts
 ├── src/
-│   ├── common/          # Decorators, guards, filters
+│   ├── common/          # Decorators, guards, filters, interceptors
 │   ├── config/          # Configuration (JWT, DB, etc.)
 │   ├── modules/
+│   │   ├── activity/    # Activity feed / audit log
+│   │   ├── attachments/ # File attachments on cards
 │   │   ├── auth/        # Authentication & OAuth
 │   │   ├── boards/      # Boards management
 │   │   ├── cards/       # Cards management
 │   │   ├── checklists/  # Checklists for cards
-│   │   ├── email/       # Email service
+│   │   ├── comments/    # Comments on cards
+│   │   ├── email/       # Email service (Resend)
 │   │   ├── invitations/ # Workspace invitations
 │   │   ├── labels/      # Card labels
 │   │   ├── lists/       # Lists management
+│   │   ├── notifications/ # Notifications utilisateur
+│   │   ├── upload/      # Upload fichiers (avatars, etc.)
 │   │   ├── users/       # Users management
 │   │   └── workspaces/  # Workspaces management
 │   ├── prisma/          # Prisma module

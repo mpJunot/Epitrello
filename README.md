@@ -184,23 +184,27 @@ This project uses GitHub Actions for continuous integration and deployment.
 
 ### Workflows
 
-| Workflow     | File                                 | Description                                         |
-| ------------ | ------------------------------------ | --------------------------------------------------- |
-| CI           | `.github/workflows/ci.yml`           | Runs tests, linting, and builds on every push/PR    |
-| Docker Build | `.github/workflows/docker-build.yml` | Builds and pushes Docker images                     |
-| Code Quality | `.github/workflows/code-quality.yml` | Checks code formatting and Prisma schema validation |
-| Release      | `.github/workflows/release.yml`      | Creates GitHub releases on version tags             |
+| Workflow            | File                                            | Description                                           |
+| ------------------- | ----------------------------------------------- | ----------------------------------------------------- |
+| Deploy              | `.github/workflows/deploy.yml`                  | GCP deployment (staging) with Terraform and Cloud Run |
+| Backend CI          | `.github/workflows/backend-ci.yml`              | Backend tests, lint, and build                        |
+| Frontend CI         | `.github/workflows/frontend-ci.yml`             | Frontend lint, build, and E2E Playwright              |
+| Code Quality        | `.github/workflows/code-quality.yml`            | Prisma, CodeQL, dependency review                     |
+| Database Migrations | `.github/workflows/database-migrations.yml`     | Prisma migrations in staging                          |
+| Cleanup             | `.github/workflows/cleanup-cost-management.yml` | GCP cleanup and cost management                       |
 
-For more details, see [.github/workflows/README.md](./.github/workflows/README.md).
+For job and trigger details, see [.github/workflows/README.md](./.github/workflows/README.md).
 
 ## Documentation
 
-| Document                                                                                               | Description                               |
-| ------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html) | GraphQL API reference and examples        |
-| [Docker Setup](./DOCKER.md)                                                                            | Docker configuration and deployment guide |
-| [Development Tasks](./TASKS.md)                                                                        | Prioritized development task list         |
-| [Backend Architecture](./backend/ARCHITECTURE.md)                                                      | Backend architecture overview             |
+| Document                                                                                               | Description                                  |
+| ------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| [API Documentation](https://storage.googleapis.com/epitrello-481814-staging-epitrello-docs/index.html) | GraphQL reference (generated, hosted on GCS) |
+| [Docker Setup](./DOCKER.md)                                                                            | Docker configuration and local deployment    |
+| [Deploy (GCP)](./docs/DEPLOY_DOCUMENTATION.md)                                                         | Deploying GraphQL docs to GCS                |
+| [GraphQL docs generation](./docs/GRAPHQL_DOCS_GENERATION.md)                                           | SpectaQL and schema generation               |
+| [Development tasks](./docs/TASKS.md)                                                                   | Prioritized task list                        |
+| [Backend Architecture](./backend/ARCHITECTURE.md)                                                      | Backend architecture and modules             |
 
 ## License
 
