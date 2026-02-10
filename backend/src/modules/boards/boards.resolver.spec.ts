@@ -12,6 +12,7 @@ describe('BoardsResolver', () => {
 
   const mockBoardsService = {
     create: jest.fn(),
+    copy: jest.fn(),
     findOne: jest.fn(),
     findByWorkspace: jest.fn(),
     update: jest.fn(),
@@ -141,6 +142,36 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(mockBoard);
       expect(service.create).toHaveBeenCalledWith(input, mockUser.id);
+    });
+  });
+
+  describe('copyBoard', () => {
+    it('should copy a board', async () => {
+      const input = {
+        sourceBoardId: 'board-1',
+        title: 'Copied Board',
+        workspaceId: 'workspace-1',
+      };
+
+      const copiedBoard = { ...mockBoard, id: 'board-2', title: 'Copied Board' };
+      mockBoardsService.copy.mockResolvedValue(copiedBoard);
+
+      const result = await resolver.copyBoard(input, mockUser);
+
+      expect(result).toEqual(copiedBoard);
+      expect(service.copy).toHaveBeenCalledWith(input, mockUser.id);
+    });
+  });
+
+  describe('boardTemplates', () => {
+    it('should return predefined board templates', () => {
+      const result = resolver.boardTemplates();
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty('id');
+      expect(result[0]).toHaveProperty('name');
+      expect(result[0]).toHaveProperty('description');
+      expect(result[0]).toHaveProperty('listTitles');
     });
   });
 

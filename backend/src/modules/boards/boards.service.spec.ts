@@ -3,6 +3,7 @@ import { NotFoundException, ForbiddenException, ConflictException, BadRequestExc
 import { BoardsService } from './boards.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TemplatesService } from '../templates/templates.service';
 import { Role, Visibility } from '@prisma/client';
 
 describe('BoardsService', () => {
@@ -35,6 +36,10 @@ describe('BoardsService', () => {
 
   const mockNotificationsService = {
     create: jest.fn().mockResolvedValue({ id: 'notif-1', userId: 'user-1', type: 'BOARD_INVITATION', read: false, createdAt: new Date() }),
+  };
+
+  const mockTemplatesService = {
+    getTemplateForBoard: jest.fn().mockResolvedValue(null),
   };
 
   const mockUser = {
@@ -76,6 +81,10 @@ describe('BoardsService', () => {
         {
           provide: NotificationsService,
           useValue: mockNotificationsService,
+        },
+        {
+          provide: TemplatesService,
+          useValue: mockTemplatesService,
         },
       ],
     }).compile();

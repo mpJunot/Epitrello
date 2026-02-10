@@ -3,21 +3,28 @@ import { IsNotEmpty, IsString, IsOptional, IsEnum, IsUUID } from 'class-validato
 import { Visibility } from '@prisma/client';
 
 @InputType()
-export class CreateBoardInput {
-  @Field()
+export class CopyBoardInput {
+  @Field(() => ID, {
+    description: 'ID of the board to copy (lists, cards, labels, checklists).',
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  sourceBoardId: string;
+
+  @Field({ description: 'Title for the new board.' })
   @IsNotEmpty()
   @IsString()
   title: string;
-
-  @Field({ nullable: true })
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @Field(() => ID, { nullable: true })
   @IsOptional()
   @IsUUID()
   workspaceId?: string;
+
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  description?: string;
 
   @Field(() => Visibility, { nullable: true })
   @IsOptional()
@@ -28,9 +35,4 @@ export class CreateBoardInput {
   @IsOptional()
   @IsString()
   background?: string;
-
-  @Field({ nullable: true, description: 'Predefined template: blank, kanban, sprint, project' })
-  @IsOptional()
-  @IsString()
-  templateId?: string;
 }
