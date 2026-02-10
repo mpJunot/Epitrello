@@ -115,6 +115,15 @@ type BoardMemberWithUser {
   userId: ID!
 }
 
+type BoardTemplate {
+  description: String!
+  id: String!
+
+  """List titles in order"""
+  listTitles: [String!]!
+  name: String!
+}
+
 type Card {
   assignees: [MemberUser!]
   background: String
@@ -173,6 +182,19 @@ type CommentDeletedEvent {
   commentId: ID!
 }
 
+input CopyBoardInput {
+  background: String
+  description: String
+
+  """ID of the board to copy (lists, cards, labels, checklists)."""
+  sourceBoardId: ID!
+
+  """Title for the new board."""
+  title: String!
+  visibility: Visibility
+  workspaceId: ID
+}
+
 input CreateAttachmentInput {
   cardId: ID!
   filename: String!
@@ -183,6 +205,9 @@ input CreateAttachmentInput {
 input CreateBoardInput {
   background: String
   description: String
+
+  """Predefined template: blank, kanban, sprint, project"""
+  templateId: String
   title: String!
   visibility: Visibility
   workspaceId: ID
@@ -225,6 +250,14 @@ input CreateListInput {
   """Optional position. If not provided, will be calculated automatically."""
   position: Float
   title: String!
+}
+
+input CreateTemplateInput {
+  description: String!
+  lists: [TemplateListInput!]!
+  name: String!
+  visibility: Visibility
+  workspaceId: ID
 }
 
 input CreateUserInput {
@@ -356,6 +389,11 @@ type Mutation {
   """
   cancelInvitation(invitationId: ID!): Boolean!
 
+  """
+  Copy a board (lists, cards, labels, checklists). New board has current user as ADMIN.
+  """
+  copyBoard(input: CopyBoardInput!): Board!
+
   """Create an attachment on a card."""
   createAttachment(input: CreateAttachmentInput!): Attachment!
 
@@ -382,6 +420,16 @@ type Mutation {
   Create a new list. Position is calculated automatically if not provided.
   """
   createList(input: CreateListInput!): List!
+
+  """
+  Create a custom board template. Optional workspaceId to scope to a workspace.
+  """
+  createTemplate(input: CreateTemplateInput!): Template!
+
+  """
+  Create a template from an existing board (lists and cards become template structure).
+  """
+  createTemplateFromBoard(boardId: ID!, name: String): Template!
 
   """Create a new user (requires authentication)"""
   createUser(input: CreateUserInput!): User!
@@ -412,6 +460,9 @@ type Mutation {
 
   """Delete a list. Cards are automatically deleted via cascade."""
   deleteList(id: ID!): Boolean!
+
+  """Delete a template. Only creator or workspace admin."""
+  deleteTemplate(id: ID!): Boolean!
 
   """Delete a user by ID (requires authentication)"""
   deleteUser(id: ID!): Boolean!
@@ -536,6 +587,9 @@ type Mutation {
   """Update current user notification preferences."""
   updateMyNotificationPreferences(input: UpdateNotificationPreferencesInput!): NotificationPreferences!
 
+  """Update a template. Only creator or workspace admin."""
+  updateTemplate(input: UpdateTemplateInput!): Template!
+
   """Update an existing user (requires authentication)"""
   updateUser(id: ID!, input: UpdateUserInput!): User!
 
@@ -647,6 +701,9 @@ type Query {
   """List all labels for a board. User must have access to the board."""
   boardLabels(boardId: ID!): [Label!]!
 
+  """List predefined board templates (blank, kanban, sprint, project)."""
+  boardTemplates: [BoardTemplate!]!
+
   """Get a card by ID. User must have access to the board."""
   card(id: ID!): Card!
 
@@ -691,6 +748,16 @@ type Query {
 
   """Get all workspaces where the current user is a member"""
   myWorkspaces: [Workspace!]!
+
+  """
+  Get a template by ID. User must have access (global or workspace member).
+  """
+  template(id: ID!): Template!
+
+  """
+  List templates. If workspaceId is provided, returns global + workspace templates; otherwise global only.
+  """
+  templates(workspaceId: ID): [Template!]!
 
   """Get a user by ID (requires authentication)"""
   user(id: ID!): User
@@ -824,6 +891,40 @@ type Subscription {
   workspaceMembersUpdated(workspaceId: ID!): Boolean!
 }
 
+type Template {
+  createdAt: DateTime!
+  creatorId: ID!
+  description: String!
+  id: ID!
+  lists: [TemplateListType!]!
+  name: String!
+  updatedAt: DateTime!
+  visibility: Visibility!
+  workspaceId: ID
+}
+
+input TemplateListInput {
+  position: Int!
+  sampleCards: [TemplateSampleCardInput!]
+  title: String!
+}
+
+type TemplateListType {
+  position: Int!
+  sampleCards: [TemplateSampleCard!]
+  title: String!
+}
+
+type TemplateSampleCard {
+  position: Float!
+  title: String!
+}
+
+input TemplateSampleCardInput {
+  position: Float!
+  title: String!
+}
+
 input UnassignMemberFromCardInput {
   cardId: ID!
   userId: ID!
@@ -901,6 +1002,14 @@ input UpdateMemberRoleInput {
 input UpdateNotificationPreferencesInput {
   allowDesktopNotifications: Boolean
   emailFrequency: NotificationEmailFrequency
+}
+
+input UpdateTemplateInput {
+  description: String
+  id: ID!
+  lists: [TemplateListInput!]
+  name: String
+  visibility: Visibility
 }
 
 input UpdateUserInput {
