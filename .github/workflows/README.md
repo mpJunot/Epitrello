@@ -7,12 +7,12 @@ Modular CI/CD architecture for Epitrello with reusable actions.
 ```
 .github/
 ├── workflows/
-│   ├── deploy.yml               # Unified deployment (staging, master branch) with Terraform
+│   ├── deploy.yml               # GCP deployment (staging, master branch) with Terraform
 │   ├── backend-ci.yml           # Backend tests (lint, build, unit, integration)
-│   ├── frontend-ci.yml          # Frontend tests (lint, build, E2E Playwright)
-│   ├── code-quality.yml         # Code quality (lint, CodeQL, Prisma validation)
-│   ├── database-migrations.yml  # Database migrations management
-│   └── cleanup-cost-management.yml # Cost optimization and cleanup
+│   ├── frontend-ci.yml          # Frontend lint, build, E2E Playwright
+│   ├── code-quality.yml         # Code quality (Prisma, CodeQL, dependencies)
+│   ├── database-migrations.yml  # Database migrations
+│   └── cleanup-cost-management.yml # GCP cleanup and cost management
 └── actions/
     ├── setup-backend/           # Reusable: Backend setup with DB
     │   └── action.yml
@@ -190,22 +190,7 @@ Unified deployment workflow for staging with automatic change detection.
 
 ---
 
-### 6. Terraform Plan (`terraform-plan.yml`)
-
-Automated Terraform plan on pull requests with PR comments.
-
-**Triggers:**
-
-- Pull requests modifying Terraform files
-
-**Jobs:**
-
-1. **`terraform-plan`** - Format check, validation, and plan
-2. Comments PR with Terraform plan output
-
----
-
-### 7. Database Migrations (`database-migrations.yml`)
+### 6. Database Migrations (`database-migrations.yml`)
 
 Automated Prisma database migration management.
 
@@ -226,7 +211,7 @@ Automated Prisma database migration management.
 
 ---
 
-### 8. Cleanup & Cost Management (`cleanup-cost-management.yml`)
+### 7. Cleanup & Cost Management (`cleanup-cost-management.yml`)
 
 Automated cost optimization and resource cleanup.
 
@@ -394,11 +379,11 @@ The `deploy.yml` workflow replaces the following legacy workflows:
 
 ### Current Workflow Structure
 
-All workflows are now modular and focused on specific responsibilities:
+All workflows are modular:
 
-- **Testing**: `backend-ci.yml`, `frontend-ci.yml`, `e2e-tests.yml`
+- **Testing**: `backend-ci.yml`, `frontend-ci.yml` (E2E Playwright in frontend-ci)
 - **Quality**: `code-quality.yml`
-- **Infrastructure**: `deploy.yml`, `terraform-plan.yml`
+- **Infrastructure**: `deploy.yml` (Terraform plan/apply included)
 - **Database**: `database-migrations.yml`
 - **Maintenance**: `cleanup-cost-management.yml`
 

@@ -41,44 +41,28 @@ Infrastructure as Code for EpiTrello using Terraform on Google Cloud Platform.
 terraform/
 ├── main.tf                  # Main configuration
 ├── variables.tf             # Input variables
-├── outputs.tf               # Output values
-├── versions.tf              # Provider versions
-├── .gitignore               # Git ignore rules
+├── outputs.tf               # Outputs
+├── versions.tf              # Provider versions and GCS backend
+├── .gitignore
 │
-├── staging.tfvars           # Staging environment config
-├── terraform.tfvars.example # Example configuration
+├── env/                     # Per-environment files (not versioned)
+│   ├── staging.tfvars.example
+│   └── production.tfvars.example
+├── terraform.tfvars.example # Example variables
 │
 └── modules/
     ├── secrets/             # Secret Manager
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── cloud-sql/           # PostgreSQL database
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── cloud-run/           # Backend NestJS
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    ├── cloud-storage/       # File uploads
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    │
-    └── cloud-run-frontend/  # Frontend Next.js
-        ├── main.tf
-        ├── variables.tf
-        └── outputs.tf
-
-github-actions/              # Service Account + Workload Identity for CI/CD
-├── main.tf
-├── variables.tf
-└── outputs.tf
+    ├── cloud-sql/           # PostgreSQL (Cloud SQL)
+    ├── cloud-run/           # Backend NestJS (Cloud Run)
+    ├── cloud-run-frontend/  # Frontend Next.js (Cloud Run)
+    ├── cloud-storage/       # File storage
+    ├── docs-bucket/         # GraphQL docs bucket (GCS)
+    ├── networking/          # VPC, connector
+    ├── service-accounts/    # GCP service accounts
+    └── ...
 ```
+
+At repository root: `terraform-wif/` for Workload Identity Federation (CI/CD).
 
 ## 🚀 Quick Start
 

@@ -5,13 +5,21 @@
 backend/
 ├── src/
 │   ├── modules/
-│   │   ├── auth/           # Authentication (JWT)
+│   │   ├── auth/           # Authentication (JWT + OAuth)
 │   │   ├── users/          # User management
-│   │   ├── boards/         # [TODO] Board management
-│   │   ├── lists/          # [TODO] List management
-│   │   ├── cards/          # [TODO] Card management
-│   │   ├── comments/       # [TODO] Comments
-│   │   └── attachments/    # [TODO] File uploads
+│   │   ├── workspaces/     # Workspaces & roles
+│   │   ├── invitations/    # Workspace invitations
+│   │   ├── boards/         # Board management
+│   │   ├── lists/          # List management
+│   │   ├── cards/          # Card management
+│   │   ├── labels/         # Labels (board/card)
+│   │   ├── checklists/     # Checklists on cards
+│   │   ├── comments/       # Comments on cards
+│   │   ├── attachments/    # File attachments on cards
+│   │   ├── activity/       # Activity feed
+│   │   ├── notifications/  # User notifications
+│   │   ├── email/          # Email (Resend)
+│   │   └── upload/         # File upload (avatars, etc.)
 │   ├── prisma/            # Database service
 │   └── graphql/           # GraphQL schema
 ├── prisma/
@@ -41,38 +49,50 @@ backend/
 - Handles database transactions
 - Manages connection pooling
 
-### Business Logic Modules (TODO)
+### Business Logic Modules
+
+**Workspaces Module**
+- CRUD workspaces, roles (ADMIN, MEMBER, OBSERVER)
+- Permissions and board access
+
+**Invitations Module**
+- Invite members, accept/reject invitations
+- Invitation emails
 
 **Boards Module**
-- Create, read, update, delete boards
-- Manage board visibility (private/public)
-- Handle board member invitations and roles
-- Board-level permissions and access control
+- CRUD boards, archive/restore
+- Members and roles
 
 **Lists Module**
-- Create and manage lists within boards
-- Handle drag-and-drop list reordering
-- Position management with float values
-- List CRUD operations
+- CRUD lists, reordering, archiving
 
 **Cards Module**
-- Create and manage task cards
-- Move cards between lists
-- Assign users to cards
-- Handle due dates and descriptions
-- Card position management
+- CRUD cards, move, assign members
+- Labels and checklists
+
+**Labels Module**
+- Board-level labels, assign to cards
+
+**Checklists Module**
+- CRUD checklists and items, reordering
 
 **Comments Module**
-- Add comments to cards
-- Edit and delete comments
-- Real-time comment notifications
-- Comment history and threading
+- Comments on cards (CRUD, subscriptions)
 
 **Attachments Module**
-- File upload to cards
-- Support multiple file types
-- File size and type validation
-- File deletion and management
+- File attachments on cards (upload, delete)
+
+**Activity Module**
+- Activity feed / audit log
+
+**Notifications Module**
+- User notifications and preferences
+
+**Email Module**
+- Templates (verification, welcome, invitation, password reset)
+
+**Upload Module**
+- File upload (e.g. avatars) via REST controller
 
 ## Database Models
 
@@ -111,9 +131,5 @@ backend/
 - [x] Code quality tools (ESLint, Prettier)
 
 ## What's Next
-- [ ] Board operations - Create, manage, and share boards
-- [ ] Card management - Full card lifecycle with assignments
-- [ ] Real-time updates - WebSocket for live collaboration
-- [ ] File uploads - Handle attachments with proper storage
 - [ ] Search and filters - Advanced querying capabilities
-- [ ] Role-based permissions - Fine-grained access control
+- [ ] Real-time updates - WebSocket for live collaboration (partially in place via subscriptions)

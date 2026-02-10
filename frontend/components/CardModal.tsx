@@ -672,7 +672,7 @@ export default function CardModal({
       } else {
         await assignMemberToCard({ cardId: card.id, userId: member.id });
       }
-      setAssignedMembers(updated);
+    setAssignedMembers(updated);
       if (currentBoardId) {
         updateBoardCardInCache(queryClient, currentBoardId, card.id, { assignees: updated });
       }
@@ -699,7 +699,7 @@ export default function CardModal({
       } else {
         await addLabelToCard({ cardId: card.id, labelId: label.id });
       }
-      setAssignedLabels(updated);
+    setAssignedLabels(updated);
       if (currentBoardId) {
         const labelsWithBoardId = updated.map((l) => ({
           ...l,
@@ -725,7 +725,7 @@ export default function CardModal({
     try {
       const newChecklistAPI = await createChecklistAPI({
         cardId: card.id,
-        title,
+      title,
       });
 
       const mappedItems = (newChecklistAPI.items || []).map((item) => ({
@@ -738,12 +738,12 @@ export default function CardModal({
         title: newChecklistAPI.title,
         cardId: newChecklistAPI.cardId,
         items: mappedItems,
-      };
+    };
 
-      const updated = [...checklists, newChecklist];
-      setChecklists(updated);
+    const updated = [...checklists, newChecklist];
+    setChecklists(updated);
       setNewChecklistTitle('');
-      setOpenMenu(null);
+    setOpenMenu(null);
 
       if (currentBoardId) {
         updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
@@ -775,17 +775,17 @@ export default function CardModal({
         text: newItem.content,
       };
 
-      const updated = checklists.map((checklist) => {
-        if (checklist.id === checklistId) {
-          return {
-            ...checklist,
+    const updated = checklists.map((checklist) => {
+      if (checklist.id === checklistId) {
+        return {
+          ...checklist,
             items: [...(checklist.items || []), mappedItem],
-          };
-        }
-        return checklist;
-      });
+        };
+      }
+      return checklist;
+    });
 
-      setChecklists(updated);
+    setChecklists(updated);
       setNewItemText('');
 
       if (currentBoardId) {
@@ -816,21 +816,21 @@ export default function CardModal({
         checked: newChecked,
       });
 
-      const updated = checklists.map((checklist) => {
-        if (checklist.id === checklistId) {
-          return {
-            ...checklist,
+    const updated = checklists.map((checklist) => {
+      if (checklist.id === checklistId) {
+        return {
+          ...checklist,
             items: (checklist.items || []).map((item) => ({
               ...item,
               text: item.content,
               checked: item.id === itemId ? newChecked : item.checked,
             })),
-          };
-        }
-        return checklist;
-      });
+        };
+      }
+      return checklist;
+    });
 
-      setChecklists(updated);
+    setChecklists(updated);
 
       if (currentBoardId) {
         updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
@@ -851,18 +851,18 @@ export default function CardModal({
     try {
       await deleteChecklistAPI(checklistId);
 
-      const updated = checklists.filter((c) => c.id !== checklistId);
-      setChecklists(updated);
+    const updated = checklists.filter((c) => c.id !== checklistId);
+    setChecklists(updated);
 
       if (currentBoardId) {
         updateBoardCardInCache(queryClient, currentBoardId, card.id, { checklists: updated });
       }
 
-      window.dispatchEvent(
+    window.dispatchEvent(
         new CustomEvent('epitrello:card-checklists-updated', {
-          detail: { cardId: card.id, checklists: updated },
-        })
-      );
+        detail: { cardId: card.id, checklists: updated },
+      })
+    );
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : 'Failed to delete checklist'
@@ -1103,7 +1103,7 @@ export default function CardModal({
         (prev) =>
           prev ? prev.map((c) => (c.id === commentId ? updated : c)) : [updated]
       );
-      setEditingCommentId(null);
+    setEditingCommentId(null);
       setEditingCommentText('');
       emitEvent('epitrello:card-comments-updated', {
         cardId: card.id,
@@ -1185,7 +1185,7 @@ export default function CardModal({
         fromIndex: card.position,
       });
       setIsHeaderMoveOpen(false);
-      onClose();
+    onClose();
     }
   };
 
@@ -1546,7 +1546,7 @@ export default function CardModal({
                   }
                   readOnly={readOnly}
                 />
-              </div>
+        </div>
 
               {attachments.length > 0 && (
                 <div ref={attachmentsSectionRef} className='mb-6'>
@@ -1575,7 +1575,7 @@ export default function CardModal({
                     assignedLabels.length > 0) && (
                     <div className='flex flex-wrap gap-x-6 gap-y-4 items-start'>
                       {assignedMembers.length > 0 && (
-                        <div>
+                <div>
                           <h3 className='text-sm font-semibold text-trello mb-2'>
                             Members
                           </h3>
@@ -1584,7 +1584,7 @@ export default function CardModal({
                               const displayName =
                                 member.name || member.email || 'U';
                               const avatarColor = getAvatarColor(displayName);
-                              return (
+                      return (
                                 <Avatar
                                   key={member.id}
                                   size='default'
@@ -1602,8 +1602,8 @@ export default function CardModal({
                                     {getInitials(member.name, member.email)}
                                   </AvatarFallback>
                                 </Avatar>
-                              );
-                            })}
+                      );
+                    })}
                             {!readOnly && (
                               <CardModalMembersPopover
                                 availableMembers={availableMembers}
@@ -1617,11 +1617,11 @@ export default function CardModal({
                               />
                             )}
                           </AvatarGroup>
-                        </div>
-                      )}
+                </div>
+              )}
 
                       {assignedLabels.length > 0 && (
-                        <div>
+                <div>
                           <h3 className='text-sm font-semibold text-trello mb-2'>
                             Labels
                           </h3>
@@ -1651,11 +1651,11 @@ export default function CardModal({
                                 }
                               />
                             )}
-                          </div>
-                        </div>
+                      </div>
+                  </div>
                       )}
-                    </div>
-                  )}
+                </div>
+              )}
 
                   {(startDate || dueDate) && (
                     <CardModalDates
@@ -1694,33 +1694,33 @@ export default function CardModal({
               )}
 
               <div className='space-y-6'>
-                <DescriptionSection
+              <DescriptionSection
                   cardDescription={card.description ?? undefined}
-                  isEditing={isEditingDescription}
-                  description={description}
-                  onChange={setDescription}
-                  onStartEdit={() => setIsEditingDescription(true)}
-                  onSave={saveDescription}
-                  onCancel={cancelEditDescription}
-                  textareaRef={descriptionTextareaRef}
+                isEditing={isEditingDescription}
+                description={description}
+                onChange={setDescription}
+                onStartEdit={() => setIsEditingDescription(true)}
+                onSave={saveDescription}
+                onCancel={cancelEditDescription}
+                textareaRef={descriptionTextareaRef}
                   readOnly={readOnly}
-                />
+              />
 
-                <ChecklistsSection
-                  checklists={checklists}
-                  addingItemToChecklist={addingItemToChecklist}
-                  newItemText={newItemText}
-                  onDeleteChecklist={deleteChecklist}
+              <ChecklistsSection
+                checklists={checklists}
+                addingItemToChecklist={addingItemToChecklist}
+                newItemText={newItemText}
+                onDeleteChecklist={deleteChecklist}
                   onDeleteItem={deleteChecklistItem}
-                  onToggleItem={toggleChecklistItem}
-                  onStartAddItem={(id) => setAddingItemToChecklist(id)}
-                  onAddItem={addChecklistItem}
-                  onCancelAddItem={() => {
-                    setAddingItemToChecklist(null);
+                onToggleItem={toggleChecklistItem}
+                onStartAddItem={(id) => setAddingItemToChecklist(id)}
+                onAddItem={addChecklistItem}
+                onCancelAddItem={() => {
+                  setAddingItemToChecklist(null);
                     setNewItemText('');
-                  }}
-                  onChangeNewItemText={setNewItemText}
-                  getProgress={getChecklistProgress}
+                }}
+                onChangeNewItemText={setNewItemText}
+                getProgress={getChecklistProgress}
                   readOnly={readOnly}
                 />
               </div>
@@ -1743,8 +1743,8 @@ export default function CardModal({
                 formatCommentDate={formatCommentDate}
                 readOnly={readOnly}
               />
-            </div>
-          </div>
+                </div>
+                </div>
         </DialogContent>
       </Dialog>
 
@@ -1759,16 +1759,16 @@ export default function CardModal({
           </DialogHeader>
           <DialogFooter>
             <Button
-              onClick={() => setShowArchiveConfirm(false)}
+                  onClick={() => setShowArchiveConfirm(false)}
               variant='secondary'
-            >
-              Cancel
+                >
+                  Cancel
             </Button>
             <Button
-              onClick={archiveCard}
+                  onClick={archiveCard}
               className='bg-orange-500 hover:bg-orange-600'
-            >
-              Archive
+                >
+                  Archive
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1785,13 +1785,13 @@ export default function CardModal({
           </DialogHeader>
           <DialogFooter>
             <Button
-              onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() => setShowDeleteConfirm(false)}
               variant='secondary'
-            >
-              Cancel
+                >
+                  Cancel
             </Button>
             <Button onClick={deleteCard} variant='destructive'>
-              Delete
+                  Delete
             </Button>
           </DialogFooter>
         </DialogContent>

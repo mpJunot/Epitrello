@@ -94,7 +94,7 @@ export function BoardMenu({
     members.some((m) => m.userId === currentUserId && m.role === 'ADMIN');
 
   const otherBoardMembersToPromote = members.filter(
-    (m) => m.userId !== currentUserId && m.role !== 'ADMIN'
+    (m) => m.userId !== currentUserId && m.role !== 'ADMIN',
   );
 
   const handleCopyBoard = async () => {
@@ -152,7 +152,7 @@ export function BoardMenu({
       setShowLeaveBoardDialog(true);
     } else if (isOnlyAdmin && otherBoardMembersToPromote.length === 0) {
       toast.error(
-        'You are the last admin. Add another member to the board and assign them as admin before leaving.'
+        'You are the last admin. Add another member to the board and assign them as admin before leaving.',
       );
     } else {
       if (!confirm('Are you sure you want to leave this board?')) return;
