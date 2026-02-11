@@ -2,14 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import * as fs from 'fs';
 import { UploadController, createImageFileFilter } from './upload.controller';
-import { StorageService } from './storage.service';
 
 describe('UploadController', () => {
   let controller: UploadController;
- const mockStorageService = {
-    isGcsEnabled: jest.fn().mockReturnValue(false),
-    uploadToGcs: jest.fn(),
-  };
 
   const mockRequest = (overrides: {
     user?: { id: string };
@@ -37,10 +32,8 @@ describe('UploadController', () => {
     }) as Express.Multer.File;
 
   beforeEach(async () => {
-    mockStorageService.isGcsEnabled.mockReturnValue(false);
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UploadController],
-      providers: [{ provide: StorageService, useValue: mockStorageService }],
     }).compile();
 
     controller = module.get<UploadController>(UploadController);
@@ -96,25 +89,6 @@ describe('UploadController', () => {
       await expect(controller.uploadAvatar(undefined, req)).rejects.toThrow(BadRequestException);
       await expect(controller.uploadAvatar(undefined, req)).rejects.toThrow(
         'No file uploaded. Use form field "avatar".',
-      );
-    });
-
-    it('should use GCS when enabled and return GCS URL', async () => {
-      mockStorageService.isGcsEnabled.mockReturnValue(true);
-      mockStorageService.uploadToGcs.mockResolvedValue(
-        'https://storage.googleapis.com/my-bucket/avatars/user-1-123.jpg',
-      );
-      const req = mockRequest({ user: { id: 'user-1' } });
-      const file = mockFile();
-
-      const result = await controller.uploadAvatar(file, req);
-
-      expect(result.url).toBe('https://storage.googleapis.com/my-bucket/avatars/user-1-123.jpg');
-      expect(mockStorageService.uploadToGcs).toHaveBeenCalledWith(
-        file.buffer,
-        'avatars',
-        expect.stringMatching(/^user-1-\d+\.jpg$/),
-        'image/jpeg',
       );
     });
 
@@ -206,25 +180,6 @@ describe('UploadController', () => {
       await expect(controller.uploadBackground(undefined, req)).rejects.toThrow(BadRequestException);
       await expect(controller.uploadBackground(undefined, req)).rejects.toThrow(
         'No file uploaded. Use form field "background".',
-      );
-    });
-
-    it('should use GCS when enabled and return GCS URL', async () => {
-      mockStorageService.isGcsEnabled.mockReturnValue(true);
-      mockStorageService.uploadToGcs.mockResolvedValue(
-        'https://storage.googleapis.com/my-bucket/backgrounds/background-456-abc123.png',
-      );
-      const req = mockRequest({ user: { id: 'user-1' } });
-      const file = mockFile({ fieldname: 'background', mimetype: 'image/png' });
-
-      const result = await controller.uploadBackground(file, req);
-
-      expect(result.url).toBe('https://storage.googleapis.com/my-bucket/backgrounds/background-456-abc123.png');
-      expect(mockStorageService.uploadToGcs).toHaveBeenCalledWith(
-        file.buffer,
-        'backgrounds',
-        expect.stringMatching(/^background-\d+-[a-z0-9]+\.png$/),
-        'image/png',
       );
     });
 

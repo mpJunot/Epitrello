@@ -1,8 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { useQueries } from '@tanstack/react-query';
+import { useQueryClient, useQueries } from '@tanstack/react-query';
 import {
   createBoard as createBoardAction,
   Visibility,
@@ -53,6 +52,7 @@ import {
   workspaceBoardsQueryKey,
   workspaceBoardsQueryOptions,
 } from '@/lib/queries/workspaces';
+import { useWorkspaceBoardsSubscription } from '@/lib/hooks/use-workspace-boards-subscription';
 
 type Board = {
   id: string;
@@ -80,6 +80,18 @@ function mapGqlToBoard(b: {
     members: b.members ? b.members.length : undefined,
     workspaceId: b.workspaceId,
   };
+}
+
+/** Subscribes to real-time board list changes for one workspace (used in a loop). */
+function WorkspaceBoardsSubscriber({
+  workspaceId,
+  queryClient,
+}: {
+  workspaceId: string;
+  queryClient: ReturnType<typeof useQueryClient>;
+}) {
+  useWorkspaceBoardsSubscription(workspaceId, queryClient, true);
+  return null;
 }
 
 export default function DashboardPage() {
@@ -239,6 +251,13 @@ export default function DashboardPage() {
 
   return (
     <div className='min-h-screen bg-background p-6 text-trello'>
+      {workspaces.map((ws) => (
+        <WorkspaceBoardsSubscriber
+          key={ws.id}
+          workspaceId={ws.id}
+          queryClient={queryClient}
+        />
+      ))}
       <header className='flex items-center justify-between mb-6'>
         <div className='flex items-center gap-4'>
           <div className='h-10 w-10 rounded bg-trello-blue flex items-center justify-center text-white font-bold'>

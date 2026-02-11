@@ -20,7 +20,6 @@ function isValidHttpUrl(s: string): boolean {
 }
 
 const ACCEPT = 'image/jpeg,image/png,image/gif,image/webp';
-const MAX_SIZE_MB = 2;
 
 interface AvatarPickerProps {
   value: string;
@@ -56,10 +55,6 @@ export function AvatarPicker({
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(`Image must be under ${MAX_SIZE_MB} MB`);
-      return;
-    }
     const mime = file.type?.toLowerCase();
     if (!ACCEPT.split(',').some((t) => t.trim() === mime)) {
       toast.error('Use JPEG, PNG, GIF or WebP');
@@ -153,7 +148,7 @@ export function AvatarPicker({
             )}
           </Button>
           <p className={cn('text-xs text-muted-foreground', isLarge && 'text-center')}>
-            JPEG, PNG, GIF or WebP. Max {MAX_SIZE_MB} MB.
+            JPEG, PNG, GIF or WebP.
           </p>
         </div>
       </div>

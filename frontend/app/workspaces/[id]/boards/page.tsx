@@ -25,6 +25,7 @@ import {
   workspaceBoardsQueryKey,
 } from '@/lib/queries/workspaces';
 import { useWorkspaceRole } from '@/lib/hooks/use-workspace-role';
+import { useWorkspaceBoardsSubscription } from '@/lib/hooks/use-workspace-boards-subscription';
 import { useCurrentUserQuery } from '@/lib/queries/users';
 
 const STARRED_STORAGE_KEY = 'epitrello-starred-board-ids';
@@ -201,6 +202,10 @@ export default function WorkspaceBoardsPage() {
     error: boardsError,
     refetch,
   } = useWorkspaceBoardsQuery(workspaceId);
+
+  useWorkspaceBoardsSubscription(workspaceId, queryClient, !!workspaceId);
+
+  useWorkspaceBoardsSubscription(workspaceId, queryClient, !!workspaceId);
 
   const boards: Board[] = useMemo(
     () =>
