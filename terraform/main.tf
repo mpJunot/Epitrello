@@ -119,6 +119,9 @@ module "cloud_storage" {
     "http://localhost:3000" # For development
   ]
 
+  # Public read so uploaded image URLs (avatars, backgrounds) are accessible in the app
+  public_access = var.storage_public_read
+
   labels = local.common_labels
 
   depends_on = [module.service_accounts]

@@ -273,6 +273,12 @@ variable "storage_location" {
   }
 }
 
+variable "storage_public_read" {
+  description = "Allow public read access on the uploads bucket so image URLs (avatars, backgrounds) work without signed URLs. Set to false to use signed URLs only."
+  type        = bool
+  default     = true
+}
+
 # ===================================
 # Cloud SQL
 # ===================================

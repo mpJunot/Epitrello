@@ -253,7 +253,7 @@ export default function DashboardPage() {
           <section className='mb-8'>
             <h2 className='text-lg font-medium mb-4 text-trello'>Overview</h2>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-              <div className='rounded-lg border border-accent bg-card p-4'>
+              <div className='rounded-2xl border border-accent p-4'>
                 <div className='flex items-center gap-2 mb-3'>
                   <BarChart3 className='h-5 w-5 text-muted-foreground' />
                   <span className='text-sm font-medium'>
@@ -284,7 +284,7 @@ export default function DashboardPage() {
                   </BarChart>
                 </ChartContainer>
               </div>
-              <div className='rounded-lg border border-accent bg-card p-4'>
+              <div className='rounded-2xl border border-accent p-4'>
                 <div className='flex items-center gap-2 mb-3'>
                   <PieChartIcon className='h-5 w-5 text-muted-foreground' />
                   <span className='text-sm font-medium'>
