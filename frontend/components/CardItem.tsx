@@ -62,21 +62,24 @@ export default function CardItem({
   availableLists = [],
   currentBoardId,
   readOnly = false,
+  dragHandleProps,
 }: {
   card: Card;
   index?: number;
   onDragStart?: (
     e: React.DragEvent,
     cardId: string,
-    fromIndex?: number
+    fromIndex?: number,
   ) => void;
   onDragOver?: (e: React.DragEvent, overIndex?: number) => void;
   availableLists?: Array<{ id: string; name: string }>;
   currentBoardId?: string;
   readOnly?: boolean;
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const useDndKit = !!dragHandleProps;
   const [isHovering, setIsHovering] = useState(false);
   const propCompleted = card.completed ?? false;
   const [optimisticCompleted, setOptimisticCompleted] = useState<
@@ -103,6 +106,7 @@ export default function CardItem({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (useDndKit) return;
     if (card.id.startsWith('temp-')) {
       e.preventDefault();
       return;
@@ -120,6 +124,7 @@ export default function CardItem({
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
+    if (useDndKit) return;
     setIsDragging(false);
 
     if (e.currentTarget instanceof HTMLElement) {
@@ -129,6 +134,7 @@ export default function CardItem({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (useDndKit) return;
     e.preventDefault();
     e.stopPropagation();
     if (onDragOver) {
@@ -144,7 +150,7 @@ export default function CardItem({
           cardId: card.id,
           completed: checked,
         },
-      })
+      }),
     );
   };
 
@@ -155,13 +161,18 @@ export default function CardItem({
     <>
       <div
         ref={cardRef}
-        draggable={!readOnly && !isModalOpen && !card.id.startsWith('temp-')}
+        draggable={
+          !useDndKit &&
+          !readOnly &&
+          !isModalOpen &&
+          !card.id.startsWith('temp-')
+        }
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
-        className={`bg-secondary dark:bg-card border-2 rounded-lg select-none transition-all duration-200 overflow-hidden ${
+        className={`bg-secondary dark:bg-card border rounded-lg select-none transition-all duration-200 overflow-hidden ${
           card.id.startsWith('temp-')
             ? 'opacity-60 cursor-not-allowed border-accent'
             : `hover:cursor-pointer border-accent hover:border-blue-500 ${
@@ -171,6 +182,7 @@ export default function CardItem({
         onClick={handleClick}
         tabIndex={0}
         title={card.id.startsWith('temp-') ? 'Saving card...' : undefined}
+        {...(dragHandleProps ?? {})}
       >
         {card.background &&
           (card.background.startsWith('data:image') ||
@@ -223,7 +235,7 @@ export default function CardItem({
                 />
               </div>
               <div
-                className={`font-medium text-base leading-5 text-foreground transition-[transform] duration-200 ease-out flex-1 min-w-0 ${
+                className={`font-medium text-sm leading-5 text-foreground transition-[transform] duration-200 ease-out flex-1 min-w-0 ${
                   isHovering || localCompleted
                     ? 'translate-x-2'
                     : 'translate-x-0'
@@ -246,11 +258,11 @@ export default function CardItem({
                 <span>
                   {card.startDate && card.dueDate
                     ? `${formatDate(card.startDate)} → ${formatDate(
-                        card.dueDate
+                        card.dueDate,
                       )}`
                     : card.dueDate
-                    ? `Due: ${formatDate(card.dueDate)}`
-                    : `Start: ${formatDate(card.startDate!)}`}
+                      ? `Due: ${formatDate(card.dueDate)}`
+                      : `Start: ${formatDate(card.startDate!)}`}
                 </span>
                 {localCompleted && (
                   <span className='bg-green-600 text-white px-1.5 py-0.5 rounded text-xs font-medium'>
@@ -276,11 +288,11 @@ export default function CardItem({
             {(() => {
               const total = (card.checklists ?? []).reduce(
                 (s, cl) => s + (cl.items?.length ?? 0),
-                0
+                0,
               );
               const checked = (card.checklists ?? []).reduce(
                 (s, cl) => s + (cl.items?.filter((i) => i.checked).length ?? 0),
-                0
+                0,
               );
               return total > 0 ? (
                 <div

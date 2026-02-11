@@ -4,31 +4,34 @@ import React, {
   useRef,
   useState,
   useEffect,
-  useCallback,
   useMemo,
+  useCallback,
 } from 'react';
 import {
   DndContext,
-  closestCenter,
+  DragOverlay,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
+  DragStartEvent,
   DragEndEvent,
+  DragOverEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
-  useSortable,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import ListColumn from './ListColumn';
-import type { Board, List } from '@/app/boards/[id]/types';
+import { SortableColumn } from './SortableColumn';
+import CardItem from './CardItem';
+import type { Board, List, Card } from '@/app/boards/[id]/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-/** Descriptions pour les options de visibilité du board (Private, Workspace, Public). */
 export function getVisibilityDescription(
   visibility?: string,
   workspaceName?: string,
@@ -55,9 +58,17 @@ export default function BoardView({
   canEdit?: boolean;
 }) {
   const lists = useMemo(() => board.lists || [], [board.lists]);
+  const [draggingCardListId, setDraggingCardListId] = useState<string | null>(
+    null,
+  );
+  const [dropTargetListId, setDropTargetListId] = useState<string | null>(null);
+  const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeList, setActiveList] = useState<List | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
@@ -73,7 +84,73 @@ export default function BoardView({
     });
   }, [board, lists]);
 
+  const listIds = useMemo(() => lists.map((l) => l.id), [lists]);
+
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      const collisions = pointerWithin(args);
+      const activeId = String(args.active.id);
+      if (!listIds.includes(activeId) || collisions.length === 0)
+        return collisions;
+      const first = collisions[0];
+      const overId = String(first.id);
+      const LIST_DROP_PREFIX = 'list-drop-';
+      if (overId.startsWith(LIST_DROP_PREFIX)) {
+        return [{ ...first, id: overId.slice(LIST_DROP_PREFIX.length) }];
+      }
+      return collisions;
+    },
+    [listIds],
+  );
+
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      if (!event.over || !draggingCardListId) {
+        setDropTargetListId(null);
+        return;
+      }
+      const overId = String(event.over.id);
+      const LIST_DROP_PREFIX = 'list-drop-';
+      if (overId.startsWith(LIST_DROP_PREFIX)) {
+        setDropTargetListId(overId.slice(LIST_DROP_PREFIX.length));
+        return;
+      }
+      const listContainingCard = lists.find((l) =>
+        l.cards?.some((c) => c.id === overId),
+      );
+      setDropTargetListId(listContainingCard?.id ?? null);
+    },
+    [draggingCardListId, lists],
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    if (!canEdit) return;
+    const { active } = event;
+    const activeId = String(active.id);
+    if (listIds.includes(activeId)) {
+      setDraggingCardListId(null);
+      setActiveCard(null);
+      const list = lists.find((l) => l.id === activeId) ?? null;
+      setActiveList(list);
+      return;
+    }
+    setActiveList(null);
+    const sourceList = lists.find((l) =>
+      l.cards?.some((c) => c.id === activeId),
+    );
+    const card = sourceList?.cards?.find((c) => c.id === activeId) ?? null;
+    setActiveCard(card);
+    setDraggingCardListId(sourceList?.id ?? null);
+    window.dispatchEvent(
+      new CustomEvent('epitrello:drag-start', { detail: { cardId: activeId } }),
+    );
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setDraggingCardListId(null);
+    setDropTargetListId(null);
+    setActiveCard(null);
+    setActiveList(null);
     if (!canEdit) return;
     const { active, over } = event;
 
@@ -81,30 +158,86 @@ export default function BoardView({
       return;
     }
 
-    const oldIndex = lists.findIndex((list) => list.id === active.id);
-    const newIndex = lists.findIndex((list) => list.id === over.id);
+    const activeId = String(active.id);
+    const overId = String(over.id);
 
-    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-      window.dispatchEvent(
-        new CustomEvent('epitrello:list-moved', {
-          detail: {
-            listId: active.id as string,
-            newPosition: newIndex,
-            boardId: board.id,
-          },
-        }),
-      );
+    if (listIds.includes(activeId)) {
+      const LIST_DROP_PREFIX = 'list-drop-';
+      const overListId = overId.startsWith(LIST_DROP_PREFIX)
+        ? overId.slice(LIST_DROP_PREFIX.length)
+        : overId;
+      const oldIndex = listIds.indexOf(activeId);
+      const newIndex = listIds.indexOf(overListId);
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        window.dispatchEvent(
+          new CustomEvent('epitrello:list-moved', {
+            detail: {
+              listId: activeId,
+              newPosition: newIndex,
+              boardId: board.id,
+            },
+          }),
+        );
+      }
+      return;
     }
-  };
 
-  const listIds = useMemo(() => lists.map((l) => l.id), [lists]);
+    const sourceList = lists.find((l) =>
+      l.cards?.some((c) => c.id === activeId),
+    );
+    if (!sourceList) return;
+    const fromIndex =
+      sourceList.cards?.findIndex((c) => c.id === activeId) ?? -1;
+
+    const LIST_DROP_PREFIX = 'list-drop-';
+    const isDropOnList =
+      overId.startsWith(LIST_DROP_PREFIX) || listIds.includes(overId);
+    const resolvedListId = overId.startsWith(LIST_DROP_PREFIX)
+      ? overId.slice(LIST_DROP_PREFIX.length)
+      : overId;
+
+    let targetListId: string;
+    let targetIndex: number;
+    if (isDropOnList) {
+      targetListId = resolvedListId;
+      const targetList = lists.find((l) => l.id === targetListId);
+      targetIndex = targetList?.cards?.length ?? 0;
+    } else {
+      const targetList = lists.find((l) =>
+        l.cards?.some((c) => c.id === overId),
+      );
+      if (!targetList) return;
+      targetListId = targetList.id;
+      targetIndex = targetList.cards?.findIndex((c) => c.id === overId) ?? 0;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('epitrello:card-move', {
+        detail: {
+          cardId: activeId,
+          sourceListId: sourceList.id,
+          targetListId,
+          targetIndex,
+          fromIndex,
+        },
+      }),
+    );
+  };
 
   return (
     <div id='main-board-content' className='h-full'>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={() => {
+          setDraggingCardListId(null);
+          setDropTargetListId(null);
+          setActiveCard(null);
+          setActiveList(null);
+        }}
       >
         <SortableContext
           items={listIds}
@@ -119,6 +252,8 @@ export default function BoardView({
                 allLists={lists}
                 boardId={board.id}
                 canEdit={canEdit}
+                draggingCardListId={draggingCardListId}
+                dropTargetListId={dropTargetListId}
               />
             ))}
 
@@ -129,53 +264,52 @@ export default function BoardView({
             )}
           </div>
         </SortableContext>
+
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+          }}
+        >
+          {activeList ? (
+            <div
+              className='rotate-2 w-[272px] min-w-[272px] rounded-2xl cursor-grabbing overflow-hidden'
+              style={{
+                boxShadow:
+                  '0 12px 28px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1)',
+              }}
+            >
+              <ListColumn
+                list={activeList}
+                totalListsCount={lists.length}
+                allLists={lists}
+                boardId={board.id}
+                readOnly
+                draggingCardListId={null}
+              />
+            </div>
+          ) : activeCard ? (
+            <div
+              className='rotate-3 shadow-lg rounded-lg cursor-grabbing'
+              style={{
+                boxShadow:
+                  '0 12px 28px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.1)',
+              }}
+            >
+              <CardItem
+                card={activeCard}
+                index={0}
+                availableLists={lists.map((l) => ({
+                  id: l.id,
+                  name: l.title ?? 'Untitled',
+                }))}
+                currentBoardId={board.id}
+                readOnly
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
-    </div>
-  );
-}
-
-function SortableColumn({
-  list,
-  totalListsCount,
-  allLists,
-  boardId,
-  canEdit,
-}: {
-  list: List;
-  totalListsCount: number;
-  allLists: List[];
-  boardId: string;
-  canEdit: boolean;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: list.id, disabled: !canEdit });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className='snap-center md:snap-align-none'
-    >
-      <ListColumn
-        list={list}
-        totalListsCount={totalListsCount}
-        allLists={allLists}
-        boardId={boardId}
-        readOnly={!canEdit}
-        dragHandleProps={canEdit ? { ...attributes, ...listeners } : undefined}
-      />
     </div>
   );
 }

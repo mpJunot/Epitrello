@@ -1,13 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import CardItem from '../CardItem';
+import { useDroppable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Card, ListColumnProps, SortOption } from './types';
 import { dispatchCustomEvent, generateId, createCardsSignature } from './utils';
 import { useFocusWhen } from './hooks';
 import { CardComposer } from './components/CardComposer';
 import { ListColumnDialogs } from './components/ListColumnDialogs';
+import { SortableCard } from './components/SortableCard';
 import {
+  GripVertical,
   MoreVertical,
   Plus,
   Copy,
@@ -39,6 +45,8 @@ export default function ListColumn({
   dragHandleProps,
   boardId,
   readOnly = false,
+  draggingCardListId = null,
+  dropTargetListId = null,
 }: ListColumnProps) {
   const [cards, setCards] = useState<Card[]>(list.cards || []);
   const [lastLocalChange, setLastLocalChange] = useState<number>(0);
@@ -47,10 +55,16 @@ export default function ListColumn({
   const [title, setTitle] = useState(list.title || 'Untitled');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-
   const [addingCard, setAddingCard] = useState(false);
+  const droppableId = `list-drop-${list.id}`;
+  const { setNodeRef: setDroppableRef, isOver: isDropOver } = useDroppable({
+    id: droppableId,
+  });
+  const isDropTarget =
+    (isDropOver || dropTargetListId === list.id) &&
+    draggingCardListId != null &&
+    draggingCardListId !== list.id;
+  const showDropHighlight = isDropTarget;
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const [isHoveringColumn, setIsHoveringColumn] = useState(false);
@@ -68,16 +82,15 @@ export default function ListColumn({
     const incomingSignature = createCardsSignature(incoming);
 
     if (localSignature === incomingSignature) return;
-    // Sync immédiat si le parent a plus de cartes (création temps réel ou handler)
     const hasNewCardsFromParent =
       (incoming?.length ?? 0) > (cards?.length ?? 0);
     if (!hasNewCardsFromParent && Date.now() - lastLocalChange < 400) return;
 
-    setCards(incoming);
+    queueMicrotask(() => setCards(incoming));
   }, [list.cards, cards, lastLocalChange, list.id, list.title]);
 
   useEffect(() => {
-    setTitle(list.title || 'Untitled');
+    queueMicrotask(() => setTitle(list.title || 'Untitled'));
   }, [list.title]);
 
   useFocusWhen(editing, inputRef as React.RefObject<HTMLElement>, true);
@@ -177,24 +190,24 @@ export default function ListColumn({
         sortedCards.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA; // Newest first
+          return dateB - dateA;
         });
         break;
       case 'date-oldest':
         sortedCards.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateA - dateB; // Oldest first
+          return dateA - dateB;
         });
         break;
       case 'due-date':
         sortedCards.sort((a, b) => {
           if (!a.dueDate && !b.dueDate) return 0;
-          if (!a.dueDate) return 1; // Cards without due date go to the end
+          if (!a.dueDate) return 1;
           if (!b.dueDate) return -1;
           const dateA = new Date(a.dueDate).getTime();
           const dateB = new Date(b.dueDate).getTime();
-          return dateA - dateB; // Earliest due date first
+          return dateA - dateB;
         });
         break;
       case 'alpha-asc':
@@ -209,178 +222,13 @@ export default function ListColumn({
     setLastLocalChange(Date.now());
   };
 
-  // Drag & drop handlers
-  const handleCardDragStart = (
-    e: React.DragEvent,
-    cardId: string,
-    fromIndex?: number
-  ) => {
-    console.log('🎬 Drag start:', {
-      cardId,
-      isTemp: cardId?.startsWith('temp-'),
-      fromIndex,
-      listId: list.id,
-    });
-
-    // CRITICAL: Extra safety check - should not reach here due to draggable=false, but just in case
-    if (cardId?.startsWith('temp-')) {
-      console.warn('⚠️ Attempted to drag temporary card:', cardId);
-      e.preventDefault();
-      return;
-    }
-
-    try {
-      const fromIndexCalculated =
-        typeof fromIndex === 'number'
-          ? fromIndex
-          : cards.findIndex((c) => c.id === cardId);
-
-      const dragData = {
-        cardId,
-        fromListId: list.id,
-        fromIndex: fromIndexCalculated,
-      };
-      e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-      e.dataTransfer.effectAllowed = 'move';
-
-      console.log('📦 Drag data set:', dragData);
-
-      // Dispatch snapshot event - store full board state before drag
-      dispatchCustomEvent('epitrello:drag-start', {
-        cardId,
-        fromListId: list.id,
-        fromIndex: fromIndexCalculated,
-      });
-
-      // Set drag image for better UX
-      const draggedCard = cards.find((c) => c.id === cardId);
-      if (draggedCard && e.currentTarget instanceof HTMLElement) {
-        const clone = e.currentTarget.cloneNode(true) as HTMLElement;
-        clone.style.opacity = '0.8';
-        clone.style.transform = 'rotate(5deg)';
-        document.body.appendChild(clone);
-        e.dataTransfer.setDragImage(clone, 0, 0);
-        setTimeout(() => document.body.removeChild(clone), 0);
-      }
-    } catch (error) {
-      console.error('Error setting drag data:', error);
-    }
-  };
-
-  const handleCardDragOver = (e: React.DragEvent, overIndex?: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(true);
-
-    // Calculate precise drop index based on mouse position
-    if (typeof overIndex === 'number') {
-      const cardElements =
-        e.currentTarget.parentElement?.querySelectorAll('[draggable="true"]');
-      if (cardElements && cardElements[overIndex]) {
-        const rect = cardElements[overIndex].getBoundingClientRect();
-        const midpoint = rect.top + rect.height / 2;
-        const adjustedIndex = e.clientY > midpoint ? overIndex + 1 : overIndex;
-        setDragOverIndex(adjustedIndex);
-      } else {
-        setDragOverIndex(overIndex);
-      }
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragOver(false);
-    if (readOnly) {
-      setDragOverIndex(null);
-      return;
-    }
-
-    const raw = e.dataTransfer.getData('application/json');
-    if (!raw) {
-      setDragOverIndex(null);
-      return;
-    }
-
-    try {
-      const data = JSON.parse(raw);
-      console.log('📥 Drop data received:', {
-        cardId: data?.cardId,
-        fromListId: data?.fromListId,
-        toListId: list.id,
-        isTemp: data?.cardId?.startsWith('temp-'),
-      });
-
-      if (!data?.cardId) {
-        setDragOverIndex(null);
-        return;
-      }
-
-      let targetIndex = dragOverIndex !== null ? dragOverIndex : cards.length;
-      const fromIndex = data.fromIndex;
-      const isIntralistMove = data.fromListId === list.id;
-
-      if (isIntralistMove && (fromIndex === -1 || targetIndex === fromIndex)) {
-        setDragOverIndex(null);
-        return;
-      }
-
-      if (isIntralistMove && fromIndex < targetIndex) {
-        targetIndex = Math.max(0, targetIndex - 1);
-      }
-
-      dispatchCustomEvent('epitrello:card-move', {
-        cardId: data.cardId,
-        sourceListId: data.fromListId,
-        targetListId: list.id,
-        targetIndex: targetIndex,
-        fromIndex: fromIndex,
-      });
-    } catch (error) {
-      console.error('Error handling drop:', error);
-    } finally {
-      setDragOverIndex(null);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const { clientX, clientY } = e;
-
-    if (
-      clientX < rect.left ||
-      clientX > rect.right ||
-      clientY < rect.top ||
-      clientY > rect.bottom
-    ) {
-      setIsDragOver(false);
-      setDragOverIndex(null);
-    }
-  };
-
   return (
     <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragOver(true);
-        if (dragOverIndex === null && cards.length > 0) {
-          setDragOverIndex(cards.length);
-        } else if (cards.length === 0) {
-          setDragOverIndex(0);
-        }
-      }}
-      onDrop={handleDrop}
-      onDragEnter={(e) => {
-        e.stopPropagation();
-        setIsDragOver(true);
-      }}
-      onDragLeave={handleDragLeave}
+      ref={setDroppableRef}
       onMouseEnter={() => setIsHoveringColumn(true)}
       onMouseLeave={() => setIsHoveringColumn(false)}
       className={`w-[272px] min-w-[272px] shrink-0 rounded-2xl flex flex-col animate-slide-in transition-all duration-200 ${
-        isDragOver
+        showDropHighlight
           ? 'bg-primary/20 ring-2 ring-primary shadow-lg'
           : 'bg-white dark:bg-black'
       }`}
@@ -390,16 +238,31 @@ export default function ListColumn({
       <div className='p-4 pb-3 shrink-0'>
         <div className='flex items-center justify-between gap-2'>
           {!editing ? (
-            <h3
-              className={`font-medium text-foreground text-sm flex-1 ${
-                !readOnly ? 'cursor-text' : ''
-              }`}
-              onClick={() => !readOnly && setEditing(true)}
-              title={readOnly ? undefined : 'Click to edit'}
-              {...(readOnly ? {} : dragHandleProps)}
-            >
-              {title}
-            </h3>
+            <>
+              {!readOnly && dragHandleProps && (
+                <div
+                  {...dragHandleProps}
+                  className='shrink-0 cursor-grab active:cursor-grabbing touch-none p-1 -m-1 rounded text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10'
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => {
+                    dragHandleProps.onPointerDown?.(e);
+                    e.stopPropagation();
+                  }}
+                  aria-label='Drag to reorder list'
+                >
+                  <GripVertical className='w-4 h-4' />
+                </div>
+              )}
+              <h3
+                className={`font-medium text-foreground text-sm flex-1 min-w-0 ${
+                  !readOnly ? 'cursor-text' : ''
+                }`}
+                onClick={() => !readOnly && setEditing(true)}
+                title={readOnly ? undefined : 'Click to edit'}
+              >
+                {title}
+              </h3>
+            </>
           ) : (
             <Input
               ref={inputRef}
@@ -513,7 +376,7 @@ export default function ListColumn({
                     window.dispatchEvent(
                       new CustomEvent('epitrello:list-archived', {
                         detail: { listId: list.id },
-                      })
+                      }),
                     );
                   }}
                 >
@@ -555,41 +418,44 @@ export default function ListColumn({
         </div>
       </div>
 
-      {/* Cards area */}
+      {/* Cards area (droppable for @dnd-kit) */}
       <div
         className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 scrollbar-hidden ${
           cards.length > 0 ? 'max-h-full' : ''
         }`}
       >
-        {cards.length === 0 && dragOverIndex === 0 && (
+        {showDropHighlight && cards.length === 0 && (
           <div className='h-20 border-2 border-dashed border-indigo-300 bg-primary/20 rounded-xl flex items-center justify-center animate-drag-placeholder'>
             <span className='text-indigo-400 text-sm font-medium'>
               Drop card here
             </span>
           </div>
         )}
-        {cards.map((c, i) => (
-          <div key={`${c.id}-${i}`} className='relative animate-fade-in'>
-            {dragOverIndex === i && (
-              <div className='mb-2 h-2 bg-linear-to-r from-indigo-400 to-indigo-500 rounded-full shadow-lg animate-drag-placeholder' />
-            )}
-            <CardItem
+        <SortableContext
+          items={cards.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {cards.map((c, i) => (
+            <SortableCard
+              key={c.id}
               card={c}
               index={i}
-              onDragStart={readOnly ? undefined : handleCardDragStart}
-              onDragOver={readOnly ? undefined : handleCardDragOver}
+              readOnly={readOnly}
               availableLists={allLists.map((l) => ({
                 id: l.id,
                 name: l.title,
               }))}
-              currentBoardId={boardId}
-              readOnly={readOnly}
+              boardId={boardId}
             />
-          </div>
-        ))}
-        {dragOverIndex === cards.length && cards.length > 0 && (
-          <div className='h-2 bg-linear-to-r from-(--trello-blue) to-(--trello-blue-hover) rounded-full shadow-lg animate-drag-placeholder' />
-        )}
+          ))}
+          {showDropHighlight && cards.length > 0 && (
+            <div className='h-12 min-h-[48px] border-2 border-dashed border-indigo-300 bg-primary/10 rounded-xl flex items-center justify-center'>
+              <span className='text-indigo-400 text-sm font-medium'>
+                Drop here
+              </span>
+            </div>
+          )}
+        </SortableContext>
       </div>
 
       {/* Footer - hide when read only */}

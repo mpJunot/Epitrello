@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { Dispatch, SetStateAction } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { createList, updateList, reorderLists, deleteList, archiveList } from '@/lib/actions/lists';
 import { createCard, moveCard } from '@/lib/actions/cards';
 import { List, Card } from './types';
@@ -63,36 +64,27 @@ export function createListEventHandlers(
     if (!detail) return;
     const { listId, newPosition } = detail;
 
-    let updatedLists: List[] = [];
+    let listPositions: { id: string; position: number }[] = [];
     let originalLists: List[] = [];
 
-    // Optimistic UI update
     setLists((prevLists) => {
       originalLists = [...prevLists];
       const sourceIndex = prevLists.findIndex((l) => l.id === listId);
-
       if (sourceIndex === -1 || sourceIndex === newPosition) return prevLists;
 
-      const updated = [...prevLists];
-      const [moved] = updated.splice(sourceIndex, 1);
-      updated.splice(newPosition, 0, moved);
-      updatedLists = updated;
+      const updated = arrayMove(prevLists, sourceIndex, newPosition);
+      listPositions = updated.map((l, idx) => ({ id: l.id, position: idx }));
       return updated;
     });
 
-    // Backend sync with rollback
-    (async () => {
-      try {
-        const positions = updatedLists.map((l, idx) => ({ id: l.id, position: idx }));
-        await reorderLists({ boardId, listPositions: positions });
-        logAction('✅', 'Lists reordered');
-        invalidateBoard();
-      } catch (err) {
-        handleAsyncError(err, 'reorder lists');
-        // Rollback on failure
-        setLists(() => originalLists);
-      }
-    })();
+    try {
+      await reorderLists({ boardId, listPositions });
+      logAction('✅', 'Lists reordered');
+      invalidateBoard();
+    } catch (err) {
+      handleAsyncError(err, 'reorder lists');
+      setLists(() => originalLists);
+    }
   }
 
   async function handleListCopy(e?: DetailEvent<{ sourceListId: string; newListTitle: string }>) {
@@ -123,7 +115,6 @@ export function createListEventHandlers(
       return [...prevLists, newList];
     });
 
-    // If no cards to create, exit early
     if (!cardsToCreate) return;
 
     (async () => {
@@ -132,7 +123,6 @@ export function createListEventHandlers(
         const newList = await createList({ boardId, title: newListTitle });
         if (!newList) throw new Error('Failed to copy list');
 
-        // 2. Create all cards in the new list
         const createdCards: Card[] = [];
         for (let i = 0; i < cardsToCreate.length; i++) {
           const sourceCard = cardsToCreate[i];
