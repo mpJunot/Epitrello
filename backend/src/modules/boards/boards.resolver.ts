@@ -18,7 +18,11 @@ import { List } from '../lists/entities/list.entity';
 import { ActivityService } from '../activity/activity.service';
 import { ActivityType } from '@prisma/client';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
-import { TRIGGER_BOARD_UPDATED, TRIGGER_BOARD_MEMBERS_UPDATED } from './board-subscription.resolver';
+import {
+  TRIGGER_BOARD_UPDATED,
+  TRIGGER_BOARD_MEMBERS_UPDATED,
+  TRIGGER_WORKSPACE_BOARDS_CHANGED,
+} from './board-subscription.resolver';
 
 @Resolver(() => Board)
 @UseGuards(GqlAuthGuard)
@@ -51,7 +55,13 @@ export class BoardsResolver {
     @Args('input') input: CreateBoardInput,
     @CurrentUser() user: any,
   ): Promise<Board> {
-    return this.boardsService.create(input, user.id);
+    const board = await this.boardsService.create(input, user.id);
+    if (board.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: board.workspaceId,
+      });
+    }
+    return board;
   }
 
   @Mutation(() => Board, {
@@ -61,7 +71,13 @@ export class BoardsResolver {
     @Args('input') input: CopyBoardInput,
     @CurrentUser() user: any,
   ): Promise<Board> {
-    return this.boardsService.copy(input, user.id);
+    const board = await this.boardsService.copy(input, user.id);
+    if (board.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: board.workspaceId,
+      });
+    }
+    return board;
   }
 
   @Query(() => [BoardTemplate], {
@@ -111,6 +127,11 @@ export class BoardsResolver {
       boardUpdated: board,
       boardId: board.id,
     });
+    if (board.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: board.workspaceId,
+      });
+    }
     return board;
   }
 
@@ -121,7 +142,17 @@ export class BoardsResolver {
     @Args('id', { type: () => ID }) id: string,
     @CurrentUser() user: any,
   ): Promise<boolean> {
-    return this.boardsService.delete(id, user.id);
+    const existing = await this.prisma.board.findUnique({
+      where: { id },
+      select: { workspaceId: true },
+    });
+    const result = await this.boardsService.delete(id, user.id);
+    if (existing?.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: existing.workspaceId,
+      });
+    }
+    return result;
   }
 
   @Mutation(() => Board, {
@@ -142,6 +173,11 @@ export class BoardsResolver {
       boardUpdated: board,
       boardId: board.id,
     });
+    if (board.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: board.workspaceId,
+      });
+    }
     return board;
   }
 
@@ -163,6 +199,11 @@ export class BoardsResolver {
       boardUpdated: board,
       boardId: board.id,
     });
+    if (board.workspaceId) {
+      await this.pubSub.publish(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: board.workspaceId,
+      });
+    }
     return board;
   }
 

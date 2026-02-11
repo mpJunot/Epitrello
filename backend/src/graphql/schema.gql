@@ -881,6 +881,11 @@ type Subscription {
   notificationReceived: Notification!
 
   """
+  Subscribe to workspace boards list changes (create/delete/copy). Refetch workspace boards when this fires.
+  """
+  workspaceBoardsChanged(workspaceId: ID!): Boolean!
+
+  """
   Subscribe to workspace pending invitations changes (invite, cancel, accept, reject). Invalidate workspace invitations query when received.
   """
   workspaceInvitationsUpdated(workspaceId: ID!): Boolean!

@@ -5,6 +5,7 @@ import { ActivityService } from '../activity/activity.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Visibility, Role } from '@prisma/client';
 import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
+import { TRIGGER_WORKSPACE_BOARDS_CHANGED } from './board-subscription.resolver';
 
 describe('BoardsResolver', () => {
   let resolver: BoardsResolver;
@@ -129,7 +130,7 @@ describe('BoardsResolver', () => {
   });
 
   describe('createBoard', () => {
-    it('should create a board', async () => {
+    it('should create a board and publish workspaceBoardsChanged when workspaceId is set', async () => {
       const input = {
         title: 'New Board',
         description: 'Description',
@@ -142,11 +143,27 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(mockBoard);
       expect(service.create).toHaveBeenCalledWith(input, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: mockBoard.workspaceId,
+      });
+    });
+
+    it('should create a board without publishing workspaceBoardsChanged when workspaceId is null', async () => {
+      const input = { title: 'Personal Board' };
+      const boardNoWorkspace = { ...mockBoard, workspaceId: null };
+      mockBoardsService.create.mockResolvedValue(boardNoWorkspace);
+
+      await resolver.createBoard(input, mockUser);
+
+      const workspacePublishCalls = (mockPubSub.publish as jest.Mock).mock.calls.filter(
+        (c) => c[0] === TRIGGER_WORKSPACE_BOARDS_CHANGED,
+      );
+      expect(workspacePublishCalls).toHaveLength(0);
     });
   });
 
   describe('copyBoard', () => {
-    it('should copy a board', async () => {
+    it('should copy a board and publish workspaceBoardsChanged when workspaceId is set', async () => {
       const input = {
         sourceBoardId: 'board-1',
         title: 'Copied Board',
@@ -160,6 +177,9 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(copiedBoard);
       expect(service.copy).toHaveBeenCalledWith(input, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: copiedBoard.workspaceId,
+      });
     });
   });
 
@@ -199,7 +219,7 @@ describe('BoardsResolver', () => {
   });
 
   describe('updateBoard', () => {
-    it('should update a board', async () => {
+    it('should update a board and publish boardUpdated and workspaceBoardsChanged when workspaceId is set', async () => {
       const input = {
         id: mockBoard.id,
         title: 'Updated Board',
@@ -216,22 +236,41 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(updatedBoard);
       expect(service.update).toHaveBeenCalledWith(input, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: updatedBoard.workspaceId,
+      });
     });
   });
 
   describe('deleteBoard', () => {
-    it('should delete a board', async () => {
+    it('should delete a board and publish workspaceBoardsChanged when board had workspaceId', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({ workspaceId: 'workspace-1' });
       mockBoardsService.delete.mockResolvedValue(true);
 
       const result = await resolver.deleteBoard(mockBoard.id, mockUser);
 
       expect(result).toBe(true);
       expect(service.delete).toHaveBeenCalledWith(mockBoard.id, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: 'workspace-1',
+      });
+    });
+
+    it('should delete a board without publishing workspaceBoardsChanged when board had no workspace', async () => {
+      mockPrismaService.board.findUnique.mockResolvedValue({ workspaceId: null });
+      mockBoardsService.delete.mockResolvedValue(true);
+
+      await resolver.deleteBoard(mockBoard.id, mockUser);
+
+      const workspacePublishCalls = (mockPubSub.publish as jest.Mock).mock.calls.filter(
+        (c) => c[0] === TRIGGER_WORKSPACE_BOARDS_CHANGED,
+      );
+      expect(workspacePublishCalls).toHaveLength(0);
     });
   });
 
   describe('archiveBoard', () => {
-    it('should archive a board', async () => {
+    it('should archive a board and publish workspaceBoardsChanged when workspaceId is set', async () => {
       const archivedBoard = {
         ...mockBoard,
         isArchived: true,
@@ -243,11 +282,14 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(archivedBoard);
       expect(service.archive).toHaveBeenCalledWith(mockBoard.id, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: archivedBoard.workspaceId,
+      });
     });
   });
 
   describe('unarchiveBoard', () => {
-    it('should unarchive a board', async () => {
+    it('should unarchive a board and publish workspaceBoardsChanged when workspaceId is set', async () => {
       const unarchivedBoard = {
         ...mockBoard,
         isArchived: false,
@@ -259,6 +301,9 @@ describe('BoardsResolver', () => {
 
       expect(result).toEqual(unarchivedBoard);
       expect(service.unarchive).toHaveBeenCalledWith(mockBoard.id, mockUser.id);
+      expect(mockPubSub.publish).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED, {
+        workspaceId: unarchivedBoard.workspaceId,
+      });
     });
   });
 

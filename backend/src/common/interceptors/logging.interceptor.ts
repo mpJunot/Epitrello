@@ -31,7 +31,7 @@ export class LoggingInterceptor implements NestInterceptor {
     this.logger.log(
       `→ ${method} ${url} | Operation: ${parentType}.${operationName}`,
     );
-    if (userAgent) this.logger.debug(`User-Agent: ${userAgent}`);
+    this.logger.debug(`User-Agent: ${userAgent}`);
 
     return next.handle().pipe(
       tap({

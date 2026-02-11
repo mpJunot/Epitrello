@@ -34,6 +34,12 @@ export const TRIGGER_LIST_DELETED = 'listDeleted';
 /** Payload when board members change (add/remove/role). */
 export type BoardMembersUpdatedPayload = { boardId: string };
 
+/** Payload when the list of boards in a workspace changes (create/delete/copy). */
+export type WorkspaceBoardsChangedPayload = { workspaceId: string };
+
+/** Trigger when boards are created, deleted or copied in a workspace (for real-time list refresh). */
+export const TRIGGER_WORKSPACE_BOARDS_CHANGED = 'workspaceBoardsChanged';
+
 @Resolver()
 @UseGuards(GqlAuthGuard)
 export class BoardSubscriptionResolver {
@@ -148,5 +154,21 @@ export class BoardSubscriptionResolver {
   listDeleted(@Args('boardId', { type: () => ID }) boardId: string) {
     void boardId;
     return this.pubSub.asyncIterableIterator<ListDeletedPayload>(TRIGGER_LIST_DELETED);
+  }
+
+  /**
+   * Subscribe to workspace boards list changes (board created, deleted, copied).
+   * Clients should refetch workspaceBoards(workspaceId) when this fires.
+   */
+  @Subscription(() => Boolean, {
+    name: 'workspaceBoardsChanged',
+    description: 'Subscribe to workspace boards list changes (create/delete/copy). Refetch workspace boards when this fires.',
+    filter: (payload: WorkspaceBoardsChangedPayload, variables: { workspaceId: string }) =>
+      payload.workspaceId === variables.workspaceId,
+    resolve: () => true,
+  })
+  workspaceBoardsChanged(@Args('workspaceId', { type: () => ID }) workspaceId: string) {
+    void workspaceId;
+    return this.pubSub.asyncIterableIterator<WorkspaceBoardsChangedPayload>(TRIGGER_WORKSPACE_BOARDS_CHANGED);
   }
 }

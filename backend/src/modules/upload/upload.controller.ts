@@ -14,7 +14,6 @@ import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { Request } from 'express';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
-import { StorageService } from './storage.service';
 
 const AVATARS_DIR = 'uploads/avatars';
 const BACKGROUNDS_DIR = 'uploads/backgrounds';
@@ -56,8 +55,6 @@ export function createImageFileFilter(): (
 @Controller('api/upload')
 @UseGuards(GqlAuthGuard)
 export class UploadController {
-  constructor(private readonly storage: StorageService) {}
-
   @Post('avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -78,17 +75,6 @@ export class UploadController {
     }
     const ext = getExtension(file.mimetype);
     const filename = `${user.id}-${Date.now()}.${ext}`;
-
-    if (this.storage.isGcsEnabled()) {
-      const url = await this.storage.uploadToGcs(
-        file.buffer,
-        'avatars',
-        filename,
-        file.mimetype,
-      );
-      return { url };
-    }
-
     const dest = join(process.cwd(), AVATARS_DIR);
     if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
     const filepath = join(dest, filename);
@@ -117,17 +103,6 @@ export class UploadController {
     }
     const ext = getExtension(file.mimetype);
     const filename = `background-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
-
-    if (this.storage.isGcsEnabled()) {
-      const url = await this.storage.uploadToGcs(
-        file.buffer,
-        'backgrounds',
-        filename,
-        file.mimetype,
-      );
-      return { url };
-    }
-
     const dest = join(process.cwd(), BACKGROUNDS_DIR);
     if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
     writeFileSync(join(dest, filename), file.buffer);
