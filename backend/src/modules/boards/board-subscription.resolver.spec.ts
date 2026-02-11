@@ -4,6 +4,11 @@ import { PUB_SUB } from '../../common/subscriptions/pubsub.provider';
 import {
   TRIGGER_CARD_UPDATED,
   TRIGGER_LIST_UPDATED,
+  TRIGGER_BOARD_UPDATED,
+  TRIGGER_BOARD_MEMBERS_UPDATED,
+  TRIGGER_CARD_DELETED,
+  TRIGGER_LIST_DELETED,
+  TRIGGER_WORKSPACE_BOARDS_CHANGED,
   type CardUpdatedPayload,
   type ListUpdatedPayload,
 } from './board-subscription.resolver';
@@ -77,6 +82,46 @@ describe('BoardSubscriptionResolver', () => {
       expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_LIST_UPDATED);
       expect(result).toBeDefined();
       expect(typeof result[Symbol.asyncIterator]).toBe('function');
+    });
+  });
+
+  describe('boardUpdated', () => {
+    it('should return async iterable for TRIGGER_BOARD_UPDATED', () => {
+      const result = resolver.boardUpdated('board-1');
+      expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_BOARD_UPDATED);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('boardMembersUpdated', () => {
+    it('should return async iterable for TRIGGER_BOARD_MEMBERS_UPDATED', () => {
+      const result = resolver.boardMembersUpdated('board-1');
+      expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_BOARD_MEMBERS_UPDATED);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('cardDeleted', () => {
+    it('should return async iterable for TRIGGER_CARD_DELETED', () => {
+      const result = resolver.cardDeleted('board-1');
+      expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_CARD_DELETED);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('listDeleted', () => {
+    it('should return async iterable for TRIGGER_LIST_DELETED', () => {
+      const result = resolver.listDeleted('board-1');
+      expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_LIST_DELETED);
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('workspaceBoardsChanged', () => {
+    it('should return async iterable for TRIGGER_WORKSPACE_BOARDS_CHANGED', () => {
+      const result = resolver.workspaceBoardsChanged('workspace-1');
+      expect(pubSub.asyncIterableIterator).toHaveBeenCalledWith(TRIGGER_WORKSPACE_BOARDS_CHANGED);
+      expect(result).toBeDefined();
     });
   });
 
