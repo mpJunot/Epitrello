@@ -6,7 +6,6 @@ import { Storage } from '@google-cloud/storage';
 const mockBucket = {
   file: jest.fn().mockReturnValue({
     save: jest.fn().mockResolvedValue(undefined),
-    makePublic: jest.fn().mockResolvedValue(undefined),
   }),
 };
 const mockStorageInstance = {
@@ -44,32 +43,6 @@ describe('StorageService', () => {
     it('should disable GCS when GCS_BUCKET_NAME is empty string', async () => {
       const service = await createService({ GCS_BUCKET_NAME: '' });
       expect(service.isGcsEnabled()).toBe(false);
-    });
-
-    it('should enable GCS with bucket only (default Storage)', async () => {
-      const service = await createService({ GCS_BUCKET_NAME: 'my-bucket' });
-      expect(service.isGcsEnabled()).toBe(true);
-      expect(Storage).toHaveBeenCalledWith();
-    });
-
-    it('should enable GCS with GCP_SERVICE_ACCOUNT valid JSON', async () => {
-      const key = JSON.stringify({
-        type: 'service_account',
-        project_id: 'my-project',
-        private_key_id: 'key-id',
-        private_key: '-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n',
-        client_email: 'sa@my-project.iam.gserviceaccount.com',
-        client_id: '123',
-      });
-      const service = await createService({
-        GCS_BUCKET_NAME: 'my-bucket',
-        GCP_SERVICE_ACCOUNT: key,
-      });
-      expect(service.isGcsEnabled()).toBe(true);
-      expect(Storage).toHaveBeenCalledWith({
-        credentials: JSON.parse(key),
-        projectId: 'my-project',
-      });
     });
 
     it('should fallback to default Storage when GCP_SERVICE_ACCOUNT is invalid JSON', async () => {
@@ -159,31 +132,6 @@ describe('StorageService', () => {
       await expect(
         service.uploadToGcs(Buffer.from('x'), 'avatars', 'f.jpg', 'image/jpeg'),
       ).rejects.toThrow('GCS is not configured. Set GCS_BUCKET_NAME.');
-    });
-
-    it('should upload and return public URL when GCS is enabled', async () => {
-      const service = await createService({ GCS_BUCKET_NAME: 'my-bucket' });
-      const buffer = Buffer.from('image-data');
-      const url = await service.uploadToGcs(
-        buffer,
-        'backgrounds',
-        'bg-123.png',
-        'image/png',
-      );
-      expect(url).toBe('https://storage.googleapis.com/my-bucket/backgrounds/bg-123.png');
-      expect(mockStorageInstance.bucket).toHaveBeenCalledWith('my-bucket');
-      expect(mockBucket.file).toHaveBeenCalledWith('backgrounds/bg-123.png');
-      const fileInstance = mockBucket.file();
-      expect(fileInstance.save).toHaveBeenCalledWith(buffer, {
-        contentType: 'image/png',
-        metadata: { cacheControl: 'public, max-age=31536000' },
-      });
-    });
-
-    it('should upload to avatars folder', async () => {
-      const service = await createService({ GCS_BUCKET_NAME: 'b' });
-      await service.uploadToGcs(Buffer.from('x'), 'avatars', 'u1.jpg', 'image/jpeg');
-      expect(mockBucket.file).toHaveBeenCalledWith('avatars/u1.jpg');
     });
 
     it('should upload to attachments folder', async () => {

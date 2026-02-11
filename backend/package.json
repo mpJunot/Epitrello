@@ -1,5 +1,5 @@
 {
-  "name": "epitrello-backend",
+  "name": "epitrello-backend epitech",
   "version": "0.0.1",
   "description": "Epitrello backend with NestJS, GraphQL, and Prisma",
   "private": true,
