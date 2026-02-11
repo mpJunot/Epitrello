@@ -91,6 +91,7 @@ export class StorageService {
       contentType: mimetype,
       metadata: { cacheControl: 'public, max-age=31536000' },
     });
+    await file.makePublic();
     return `https://storage.googleapis.com/${this.bucketName}/${path}`;
   }
 }
