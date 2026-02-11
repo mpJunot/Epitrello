@@ -679,6 +679,7 @@ jobs:
           environment: ${{ needs.changes.outputs.environment }}
           region: ${{ env.GCP_REGION }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          staging_api_url: ${{ secrets.STAGING_API_URL }}
 
       - name: Get Frontend URL
         id: frontend-url

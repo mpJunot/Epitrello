@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { UploadController } from './upload.controller';
+import * as fs from 'fs';
+import { UploadController, createImageFileFilter } from './upload.controller';
 import { StorageService } from './storage.service';
 
 describe('UploadController', () => {
   let controller: UploadController;
-
-  const mockStorageService = {
+ const mockStorageService = {
     isGcsEnabled: jest.fn().mockReturnValue(false),
     uploadToGcs: jest.fn(),
   };
@@ -117,6 +117,60 @@ describe('UploadController', () => {
         'image/jpeg',
       );
     });
+
+    it('should use .gif extension when mimetype is image/gif', async () => {
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ mimetype: 'image/gif' });
+
+      const result = await controller.uploadAvatar(file, req);
+
+      expect(result.url).toMatch(/\.gif$/);
+      expect(result.url).toMatch(/^http:\/\/localhost:4000\/uploads\/avatars\/user-1-\d+\.gif$/);
+    });
+
+    it('should use .jpg as fallback extension for unknown mimetype', async () => {
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ mimetype: 'image/bmp' } as Express.Multer.File);
+
+      const result = await controller.uploadAvatar(file, req);
+
+      expect(result.url).toMatch(/\.jpg$/);
+    });
+
+    it('should create avatars directory when it does not exist', async () => {
+      const existsSyncSpy = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+      const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile();
+
+      const result = await controller.uploadAvatar(file, req);
+
+      expect(existsSyncSpy).toHaveBeenCalled();
+      expect(mkdirSyncSpy).toHaveBeenCalledWith(expect.stringContaining('uploads/avatars'), { recursive: true });
+      expect(result.url).toMatch(/\/uploads\/avatars\//);
+      existsSyncSpy.mockRestore();
+      mkdirSyncSpy.mockRestore();
+      writeFileSyncSpy.mockRestore();
+    });
+  });
+
+  describe('createImageFileFilter', () => {
+    it('should call cb with error and false for invalid mimetype', () => {
+      const filter = createImageFileFilter();
+      const cb = jest.fn();
+      filter(null, { mimetype: 'application/pdf' } as Express.Multer.File, cb);
+      expect(cb).toHaveBeenCalledWith(expect.any(BadRequestException), false);
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call cb with null and true for valid mimetype', () => {
+      const filter = createImageFileFilter();
+      const cb = jest.fn();
+      filter(null, { mimetype: 'image/png' } as Express.Multer.File, cb);
+      expect(cb).toHaveBeenCalledWith(null, true);
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('uploadBackground', () => {
@@ -172,6 +226,33 @@ describe('UploadController', () => {
         expect.stringMatching(/^background-\d+-[a-z0-9]+\.png$/),
         'image/png',
       );
+    });
+
+    it('should use .gif extension when mimetype is image/gif', async () => {
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ fieldname: 'background', mimetype: 'image/gif' });
+
+      const result = await controller.uploadBackground(file, req);
+
+      expect(result.url).toMatch(/\.gif$/);
+      expect(result.url).toMatch(/^http:\/\/localhost:4000\/uploads\/backgrounds\/background-\d+-[a-z0-9]+\.gif$/);
+    });
+
+    it('should create backgrounds directory when it does not exist', async () => {
+      const existsSyncSpy = jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+      const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => undefined);
+      const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => undefined);
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ fieldname: 'background', mimetype: 'image/webp' });
+
+      const result = await controller.uploadBackground(file, req);
+
+      expect(existsSyncSpy).toHaveBeenCalled();
+      expect(mkdirSyncSpy).toHaveBeenCalledWith(expect.stringContaining('uploads/backgrounds'), { recursive: true });
+      expect(result.url).toMatch(/\/uploads\/backgrounds\//);
+      existsSyncSpy.mockRestore();
+      mkdirSyncSpy.mockRestore();
+      writeFileSyncSpy.mockRestore();
     });
   });
 });

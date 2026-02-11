@@ -16,7 +16,7 @@ import { StorageService } from './storage.service';
 
 const AVATARS_DIR = 'uploads/avatars';
 const BACKGROUNDS_DIR = 'uploads/backgrounds';
-const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+export const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 function getExtension(mimetype: string): string {
   const map: Record<string, string> = {
@@ -26,6 +26,24 @@ function getExtension(mimetype: string): string {
     'image/webp': 'webp',
   };
   return map[mimetype] ?? 'jpg';
+}
+
+/** Used by FileInterceptor to reject non-image uploads. Exported for tests. */
+export function createImageFileFilter(): (
+  _req: unknown,
+  file: Express.Multer.File,
+  cb: (err: Error | null, accept: boolean) => void,
+) => void {
+  return (_req: unknown, file: Express.Multer.File, cb: (err: Error | null, accept: boolean) => void) => {
+    if (!ALLOWED_MIMES.includes(file.mimetype)) {
+      cb(
+        new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'),
+        false,
+      );
+      return;
+    }
+    cb(null, true);
+  };
 }
 
 /**
@@ -40,16 +58,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: memoryStorage(),
-      fileFilter: (_req, file, cb) => {
-        if (!ALLOWED_MIMES.includes(file.mimetype)) {
-          cb(
-            new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'),
-            false,
-          );
-          return;
-        }
-        cb(null, true);
-      },
+      fileFilter: createImageFileFilter(),
     }),
   )
   async uploadAvatar(
@@ -89,16 +98,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('background', {
       storage: memoryStorage(),
-      fileFilter: (_req, file, cb) => {
-        if (!ALLOWED_MIMES.includes(file.mimetype)) {
-          cb(
-            new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'),
-            false,
-          );
-          return;
-        }
-        cb(null, true);
-      },
+      fileFilter: createImageFileFilter(),
     }),
   )
   async uploadBackground(
