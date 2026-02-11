@@ -270,7 +270,7 @@ export default function DashboardPage() {
                   >
                     <CartesianGrid
                       strokeDasharray='3 3'
-                      className='stroke-muted'
+                      className='stroke-muted text-trello'
                     />
                     <XAxis dataKey='workspace' tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
