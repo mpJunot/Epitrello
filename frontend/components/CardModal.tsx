@@ -402,6 +402,7 @@ export default function CardModal({
 
   const [headerBackground, setHeaderBackground] = useState<string | null>(null);
   const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+  const [backgroundUploading, setBackgroundUploading] = useState(false);
 
   useEffect(() => {
     if (
@@ -1044,6 +1045,7 @@ export default function CardModal({
       return;
     }
 
+    setBackgroundUploading(true);
     try {
       const { url } = await uploadBackground(file);
       await saveBackground(url);
@@ -1051,6 +1053,7 @@ export default function CardModal({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
+      setBackgroundUploading(false);
       e.target.value = '';
     }
   };
@@ -1280,9 +1283,9 @@ export default function CardModal({
                   : 'bg-background'
               }`}
               style={
-                isImageHeaderBackground
+                isImageHeaderBackground && background
                   ? {
-                      backgroundImage: `url(${background})`,
+                      backgroundImage: `url("${String(background).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       backgroundRepeat: 'no-repeat',
@@ -1369,6 +1372,7 @@ export default function CardModal({
                         removeBackground={removeBackground}
                         onImageUpload={handleImageUpload}
                         onClose={() => setShowBackgroundPicker(false)}
+                        uploadingImage={backgroundUploading}
                       />
                     </PopoverContent>
                   </Popover>

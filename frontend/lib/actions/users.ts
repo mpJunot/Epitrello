@@ -120,52 +120,67 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
   return result.updateUser;
 }
 
-/**
- * Upload avatar image. Backend saves the file and updates the user's avatar. Returns the new avatar URL.
- */
-export async function uploadAvatar(file: File): Promise<{ url: string }> {
+function getUploadBaseUrl(): string {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
-  const baseUrl = apiUrl.replace(/\/graphql\/?$/, '') || 'http://localhost:4000';
+  const base = (apiUrl || '').trim().replace(/\/graphql\/?$/i, '');
+  return base || 'http://localhost:4000';
+}
+
+async function uploadFile(
+  endpoint: 'avatar' | 'background',
+  field: 'avatar' | 'background',
+  file: File,
+): Promise<{ url: string }> {
+  const baseUrl = getUploadBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  if (!token?.trim()) {
+    throw new Error('Vous devez être connecté pour envoyer une image.');
+  }
   const formData = new FormData();
-  formData.append('avatar', file);
-  const res = await fetch(`${baseUrl}/api/upload/avatar`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-    credentials: 'include',
-  });
+  formData.append(field, file);
+  const uploadUrl = `${baseUrl.replace(/\/$/, '')}/api/upload/${endpoint}`;
+  let res: Response;
+  try {
+    res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      credentials: 'include',
+    });
+  } catch (networkError) {
+    const msg = networkError instanceof Error ? networkError.message : 'Erreur réseau';
+    throw new Error(`Impossible de contacter le serveur (${uploadUrl}): ${msg}`);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     const msg = err?.message;
-    const text = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : 'Upload failed';
-    throw new Error(text);
+    let text = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : res.statusText;
+    if (res.status === 401) {
+      text = 'Session expirée ou non autorisée. Reconnectez-vous puis réessayez.';
+    } else if (res.status === 404) {
+      text = "Point d’upload introuvable. Vérifiez que NEXT_PUBLIC_API_URL pointe vers le backend.";
+    } else if (res.status === 413) {
+      text = 'Fichier trop volumineux.';
+    }
+    throw new Error(text || 'Échec de l’upload.');
   }
-  return res.json();
+  const data = await res.json().catch(() => null);
+  if (data && typeof data.url === 'string') return { url: data.url };
+  throw new Error('Réponse du serveur invalide (URL manquante).');
+}
+
+/**
+ * Upload avatar image. Backend saves the file and returns the new avatar URL.
+ */
+export async function uploadAvatar(file: File): Promise<{ url: string }> {
+  return uploadFile('avatar', 'avatar', file);
 }
 
 /**
  * Upload background image (board or card). Backend saves to GCS or disk and returns the public URL.
  */
 export async function uploadBackground(file: File): Promise<{ url: string }> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
-  const baseUrl = apiUrl.replace(/\/graphql\/?$/, '') || 'http://localhost:4000';
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-  const formData = new FormData();
-  formData.append('background', file);
-  const res = await fetch(`${baseUrl}/api/upload/background`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    body: formData,
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    const msg = err?.message;
-    const text = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : 'Upload failed';
-    throw new Error(text);
-  }
-  return res.json();
+  return uploadFile('background', 'background', file);
 }
 
 /**

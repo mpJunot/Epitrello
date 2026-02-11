@@ -15,6 +15,8 @@ export type CardModalBackgroundPickerProps = {
   removeBackground: () => Promise<void>;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClose: () => void;
+  /** True while an image is being uploaded (disables file input, shows loading). */
+  uploadingImage?: boolean;
 };
 
 export function CardModalBackgroundPicker({
@@ -25,6 +27,7 @@ export function CardModalBackgroundPicker({
   removeBackground,
   onImageUpload,
   onClose,
+  uploadingImage = false,
 }: CardModalBackgroundPickerProps) {
   return (
     <div className='space-y-4'>
@@ -47,15 +50,16 @@ export function CardModalBackgroundPicker({
               type='file'
               accept='image/*'
               onChange={onImageUpload}
+              disabled={uploadingImage}
               className='flex-1'
               id='background-image-upload-header'
             />
             <LabelComponent
               htmlFor='background-image-upload-header'
-              className='cursor-pointer'
+              className={uploadingImage ? 'pointer-events-none opacity-70' : 'cursor-pointer'}
             >
-              <Button variant='outline' size='sm' asChild>
-                <span>Choose File</span>
+              <Button variant='outline' size='sm' asChild disabled={uploadingImage}>
+                <span>{uploadingImage ? 'Chargement…' : 'Choose File'}</span>
               </Button>
             </LabelComponent>
           </div>

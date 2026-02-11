@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { User, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -43,27 +44,9 @@ export function AvatarPicker({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const url = (value ?? '').trim();
 
+  // Reset error when URL changes so we retry display (preload was hiding valid URLs on race/Strict Mode)
   useEffect(() => {
-    if (!url) {
-      setPreviewUrl(null);
-      return;
-    }
-    let cancelled = false;
-    const img = new window.Image();
-    img.onload = () => {
-      if (!cancelled) {
-        setImgError(false);
-        setPreviewUrl(null);
-      }
-    };
-    img.onerror = () => {
-      if (!cancelled) setImgError(true);
-    };
-    img.src = url;
-    return () => {
-      cancelled = true;
-      img.src = '';
-    };
+    setImgError(false);
   }, [url]);
 
   const displayUrl = previewUrl ?? (isValidHttpUrl(url) && !imgError ? url : null);
@@ -119,23 +102,28 @@ export function AvatarPicker({
       >
         <div
           className={cn(
-            'flex shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted bg-cover bg-center',
+            'flex shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-muted',
             isLarge ? 'h-40 w-40' : 'h-24 w-24',
           )}
-          style={
-            displayUrl && !showPlaceholder
-              ? { backgroundImage: `url(${displayUrl})` }
-              : undefined
-          }
           role="img"
           aria-label={displayUrl ? 'Avatar preview' : 'Avatar placeholder'}
         >
-          {showPlaceholder && (
+          {showPlaceholder ? (
             <User
               className={cn('text-muted-foreground', isLarge ? 'h-20 w-20' : 'h-10 w-10')}
               aria-hidden
             />
-          )}
+          ) : displayUrl ? (
+            <Image
+              src={displayUrl}
+              alt="Avatar preview"
+              width={isLarge ? 160 : 96}
+              height={isLarge ? 160 : 96}
+              className={cn('h-full w-full object-cover', isLarge ? 'h-40 w-40' : 'h-24 w-24')}
+              unoptimized
+              onError={() => setImgError(true)}
+            />
+          ) : null}
         </div>
         <div className={cn('flex flex-col gap-2', isLarge && 'items-center')}>
           <input

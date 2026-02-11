@@ -7,6 +7,7 @@ import {
   reorderCards,
   deleteCard,
   archiveCard,
+  updateCard,
 } from '@/lib/actions/cards';
 import { List, Card } from './types';
 import { boardQueryKey } from './queries';
@@ -237,7 +238,7 @@ export function createCardEventHandlers(
     );
   }
 
-  function handleCardCompletedUpdate(
+  async function handleCardCompletedUpdate(
     e?: DetailEvent<{ cardId: string; completed: boolean }>
   ) {
     const detail = e?.detail;
@@ -249,6 +250,21 @@ export function createCardEventHandlers(
         cards: (lst.cards || []).map((c) => (c.id === cardId ? { ...c, completed } : c)),
       }))
     );
+    try {
+      await updateCard({ id: cardId, completed });
+      invalidateBoard();
+      invalidateActivity();
+    } catch (err) {
+      setLists((prevLists) =>
+        prevLists.map((lst) => ({
+          ...lst,
+          cards: (lst.cards || []).map((c) =>
+            c.id === cardId ? { ...c, completed: !completed } : c
+          ),
+        }))
+      );
+      handleAsyncError(err, 'update completed');
+    }
   }
 
   async function handleCardDelete(e?: DetailEvent<{ cardId: string }>) {

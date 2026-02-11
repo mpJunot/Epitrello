@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Req,
+  UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -12,6 +13,7 @@ import { memoryStorage } from 'multer';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { Request } from 'express';
+import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { StorageService } from './storage.service';
 
 const AVATARS_DIR = 'uploads/avatars';
@@ -49,8 +51,10 @@ export function createImageFileFilter(): (
 /**
  * Upload controller: saves files to Google Cloud Storage (or disk when GCS not configured)
  * and returns public URLs. Used for avatar, board/card background images.
+ * Protected by JWT (Bearer or cookie auth_token); same auth as GraphQL.
  */
 @Controller('api/upload')
+@UseGuards(GqlAuthGuard)
 export class UploadController {
   constructor(private readonly storage: StorageService) {}
 
