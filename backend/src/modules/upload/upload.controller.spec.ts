@@ -98,6 +98,25 @@ describe('UploadController', () => {
         'No file uploaded. Use form field "avatar".',
       );
     });
+
+    it('should use GCS when enabled and return GCS URL', async () => {
+      mockStorageService.isGcsEnabled.mockReturnValue(true);
+      mockStorageService.uploadToGcs.mockResolvedValue(
+        'https://storage.googleapis.com/my-bucket/avatars/user-1-123.jpg',
+      );
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile();
+
+      const result = await controller.uploadAvatar(file, req);
+
+      expect(result.url).toBe('https://storage.googleapis.com/my-bucket/avatars/user-1-123.jpg');
+      expect(mockStorageService.uploadToGcs).toHaveBeenCalledWith(
+        file.buffer,
+        'avatars',
+        expect.stringMatching(/^user-1-\d+\.jpg$/),
+        'image/jpeg',
+      );
+    });
   });
 
   describe('uploadBackground', () => {
@@ -108,6 +127,16 @@ describe('UploadController', () => {
       const result = await controller.uploadBackground(file, req);
 
       expect(result.url).toMatch(/^http:\/\/localhost:4000\/uploads\/backgrounds\/background-\d+-[a-z0-9]+\.png$/);
+    });
+
+    it('should use API_PUBLIC_URL for background when set (local upload)', async () => {
+      process.env.API_PUBLIC_URL = 'https://api.example.com';
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ fieldname: 'background', mimetype: 'image/webp' });
+
+      const result = await controller.uploadBackground(file, req);
+
+      expect(result.url).toMatch(/^https:\/\/api\.example\.com\/uploads\/backgrounds\/background-\d+-[a-z0-9]+\.webp$/);
     });
 
     it('should throw UnauthorizedException when not authenticated', async () => {
@@ -123,6 +152,25 @@ describe('UploadController', () => {
       await expect(controller.uploadBackground(undefined, req)).rejects.toThrow(BadRequestException);
       await expect(controller.uploadBackground(undefined, req)).rejects.toThrow(
         'No file uploaded. Use form field "background".',
+      );
+    });
+
+    it('should use GCS when enabled and return GCS URL', async () => {
+      mockStorageService.isGcsEnabled.mockReturnValue(true);
+      mockStorageService.uploadToGcs.mockResolvedValue(
+        'https://storage.googleapis.com/my-bucket/backgrounds/background-456-abc123.png',
+      );
+      const req = mockRequest({ user: { id: 'user-1' } });
+      const file = mockFile({ fieldname: 'background', mimetype: 'image/png' });
+
+      const result = await controller.uploadBackground(file, req);
+
+      expect(result.url).toBe('https://storage.googleapis.com/my-bucket/backgrounds/background-456-abc123.png');
+      expect(mockStorageService.uploadToGcs).toHaveBeenCalledWith(
+        file.buffer,
+        'backgrounds',
+        expect.stringMatching(/^background-\d+-[a-z0-9]+\.png$/),
+        'image/png',
       );
     });
   });
