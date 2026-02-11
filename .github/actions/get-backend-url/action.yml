@@ -30,24 +30,34 @@ runs:
       run: |
         ENV="${{ inputs.environment }}"
         SERVICE_NAME="${ENV}-epitrello-backend"
+        REGION="${{ inputs.region }}"
+        PROJECT_ID="${{ inputs.project_id }}"
 
-        if [ -n "${{ inputs.project_id }}" ]; then
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ inputs.region }} \
-            --project ${{ inputs.project_id }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
+        URL=""
+        if [ -n "${PROJECT_ID}" ]; then
+          URL=$(gcloud run services describe "$SERVICE_NAME" \
+            --region "$REGION" \
+            --project "$PROJECT_ID" \
+            --format="value(status.url)" 2>&1) || true
         else
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region ${{ inputs.region }} \
-            --format="value(status.url)" 2>/dev/null || echo "")
+          URL=$(gcloud run services describe "$SERVICE_NAME" \
+            --region "$REGION" \
+            --format="value(status.url)" 2>&1) || true
         fi
+
+        # Trim whitespace; if gcloud output contains error message, treat as empty
+        URL=$(echo "$URL" | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        case "$URL" in
+          https://*) ;;
+          *) URL="" ;;
+        esac
 
         if [ -z "$URL" ] && [ -n "${{ inputs.staging_api_url }}" ]; then
           URL="${{ inputs.staging_api_url }}"
         fi
 
         if [ -z "$URL" ]; then
-          REGION_SUFFIX="${{ inputs.region }}"
+          REGION_SUFFIX="$REGION"
           case "$REGION_SUFFIX" in
             europe-west1) REGION_SUFFIX="ew" ;;
             us-central1)  REGION_SUFFIX="uc" ;;
