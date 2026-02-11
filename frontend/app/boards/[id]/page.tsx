@@ -144,15 +144,19 @@ export default function BoardPage({
       board.background.startsWith('http') ||
       board.background.startsWith('https'));
 
+  const safeBackgroundUrl = isImageBackground && board.background
+    ? `url("${String(board.background).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`
+    : undefined;
+
   return (
     <div
       className={`h-screen w-full ${
         !isImageBackground ? board.background || 'bg-accent' : 'bg-muted/30'
       }`}
       style={
-        isImageBackground
+        safeBackgroundUrl
           ? {
-              backgroundImage: `url(${board.background})`,
+              backgroundImage: safeBackgroundUrl,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',

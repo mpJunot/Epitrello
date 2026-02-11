@@ -37,7 +37,13 @@ function getSafeImageSrc(url: string | undefined): string | undefined {
   return undefined;
 }
 
-function BackgroundPreviewImg({ src }: { src: string }) {
+function BackgroundPreviewImg({
+  src,
+  onError,
+}: {
+  src: string;
+  onError?: () => void;
+}) {
   return (
     <Image
       src={src}
@@ -45,6 +51,7 @@ function BackgroundPreviewImg({ src }: { src: string }) {
       fill
       className='object-cover'
       unoptimized
+      onError={onError}
     />
   );
 }
@@ -64,14 +71,16 @@ export function ChangeBackgroundDialog({
 }: ChangeBackgroundDialogProps) {
   const [backgroundInput, setBackgroundInput] = useState('');
   const [localBackground, setLocalBackground] = useState<string | undefined>(
-    undefined
+    undefined,
   );
+  const [previewError, setPreviewError] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (board) {
       setBackgroundInput(board.background || '');
       setLocalBackground(board.background || undefined);
+      setPreviewError(false);
     }
   }, [board, open]);
 
@@ -89,7 +98,9 @@ export function ChangeBackgroundDialog({
       const { url } = await uploadBackground(file);
       await saveBoardBackground(url);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to upload image',
+      );
     } finally {
       setUpdating(false);
       e.target.value = '';
@@ -141,6 +152,7 @@ export function ChangeBackgroundDialog({
   };
 
   const safePreviewUrl = getSafeImageSrc(localBackground);
+  const showPreview = safePreviewUrl && !previewError;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,9 +186,12 @@ export function ChangeBackgroundDialog({
                 </Button>
               </Label>
             </div>
-            {safePreviewUrl && (
+            {showPreview && (
               <div className='relative w-full h-32 rounded-lg overflow-hidden border border-accent'>
-                <BackgroundPreviewImg src={safePreviewUrl} />
+                <BackgroundPreviewImg
+                  src={safePreviewUrl}
+                  onError={() => setPreviewError(true)}
+                />
                 <Button
                   variant='destructive'
                   size='icon'

@@ -238,7 +238,7 @@ export function CardsTable({
                             card.boardBackground?.startsWith('http') ||
                             card.boardBackground?.startsWith('/')
                               ? {
-                                  backgroundImage: `url(${card.boardBackground})`,
+                                  backgroundImage: `url("${String(card.boardBackground).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")`,
                                   backgroundSize: 'cover',
                                   backgroundPosition: 'center',
                                 }
