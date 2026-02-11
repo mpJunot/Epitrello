@@ -113,3 +113,11 @@ resource "google_storage_bucket_object" "thumbnails_folder" {
 
   depends_on = [google_storage_bucket.uploads]
 }
+
+resource "google_storage_bucket_object" "backgrounds_folder" {
+  name    = "backgrounds/.keep"
+  content = "folder"
+  bucket  = google_storage_bucket.uploads.name
+
+  depends_on = [google_storage_bucket.uploads]
+}

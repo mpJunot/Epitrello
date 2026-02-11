@@ -78,6 +78,7 @@ import {
   unassignMemberFromCard,
   updateCard,
 } from '@/lib/actions/cards';
+import { uploadBackground } from '@/lib/actions/users';
 import {
   createChecklist as createChecklistAPI,
   deleteChecklist as deleteChecklistAPI,
@@ -1034,27 +1035,24 @@ export default function CardModal({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error('Please select an image file (JPEG, PNG, GIF or WebP)');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        saveBackground(base64);
-        setHeaderBackground(null);
-      }
-    };
-    reader.onerror = () => {
-      toast.error('Failed to read image file');
-    };
-    reader.readAsDataURL(file);
+    try {
+      const { url } = await uploadBackground(file);
+      await saveBackground(url);
+      setHeaderBackground(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      e.target.value = '';
+    }
   };
 
   const addComment = async () => {
