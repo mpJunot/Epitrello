@@ -8,13 +8,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { Request } from 'express';
+import { StorageService } from './storage.service';
 
 const AVATARS_DIR = 'uploads/avatars';
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const BACKGROUNDS_DIR = 'uploads/backgrounds';
 const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 function getExtension(mimetype: string): string {
@@ -28,38 +29,27 @@ function getExtension(mimetype: string): string {
 }
 
 /**
- * Upload controller: saves files and returns public URLs.
- * Avatar is only applied to the user when they save the profile form (updateUser).
+ * Upload controller: saves files to Google Cloud Storage (or disk when GCS not configured)
+ * and returns public URLs. Used for avatar, board/card background images.
  */
 @Controller('api/upload')
 export class UploadController {
+  constructor(private readonly storage: StorageService) {}
+
   @Post('avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      limits: { fileSize: MAX_SIZE },
+      storage: memoryStorage(),
       fileFilter: (_req, file, cb) => {
         if (!ALLOWED_MIMES.includes(file.mimetype)) {
-          cb(new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'), false);
+          cb(
+            new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'),
+            false,
+          );
           return;
         }
         cb(null, true);
       },
-      storage: diskStorage({
-        destination: (_req, _file, cb) => {
-          const dest = join(process.cwd(), AVATARS_DIR);
-          if (!existsSync(dest)) {
-            mkdirSync(dest, { recursive: true });
-          }
-          cb(null, dest);
-        },
-        filename: (req, file, cb) => {
-          const user = (req as Request & { user?: { id: string } }).user;
-          const userId = user?.id ?? 'anon';
-          const ext = getExtension(file.mimetype);
-          const name = `${userId}-${Date.now()}.${ext}`;
-          cb(null, name);
-        },
-      }),
     }),
   )
   async uploadAvatar(
@@ -73,9 +63,72 @@ export class UploadController {
     if (!file) {
       throw new BadRequestException('No file uploaded. Use form field "avatar".');
     }
-    const baseUrl = process.env.API_PUBLIC_URL ?? `${req.protocol}://${req.get('host')}`;
-    const relativePath = `/${AVATARS_DIR}/${file.filename}`;
-    const url = `${baseUrl}${relativePath}`;
-    return { url };
+    const ext = getExtension(file.mimetype);
+    const filename = `${user.id}-${Date.now()}.${ext}`;
+
+    if (this.storage.isGcsEnabled()) {
+      const url = await this.storage.uploadToGcs(
+        file.buffer,
+        'avatars',
+        filename,
+        file.mimetype,
+      );
+      return { url };
+    }
+
+    const dest = join(process.cwd(), AVATARS_DIR);
+    if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+    const filepath = join(dest, filename);
+    writeFileSync(filepath, file.buffer);
+    const baseUrl =
+      process.env.API_PUBLIC_URL ?? `${req.protocol}://${req.get('host')}`;
+    return { url: `${baseUrl}/${AVATARS_DIR}/${filename}` };
+  }
+
+  @Post('background')
+  @UseInterceptors(
+    FileInterceptor('background', {
+      storage: memoryStorage(),
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_MIMES.includes(file.mimetype)) {
+          cb(
+            new BadRequestException('Invalid file type. Use JPEG, PNG, GIF or WebP.'),
+            false,
+          );
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadBackground(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request & { user?: { id: string } },
+  ): Promise<{ url: string }> {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('Authentication required');
+    }
+    if (!file) {
+      throw new BadRequestException('No file uploaded. Use form field "background".');
+    }
+    const ext = getExtension(file.mimetype);
+    const filename = `background-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+
+    if (this.storage.isGcsEnabled()) {
+      const url = await this.storage.uploadToGcs(
+        file.buffer,
+        'backgrounds',
+        filename,
+        file.mimetype,
+      );
+      return { url };
+    }
+
+    const dest = join(process.cwd(), BACKGROUNDS_DIR);
+    if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+    writeFileSync(join(dest, filename), file.buffer);
+    const baseUrl =
+      process.env.API_PUBLIC_URL ?? `${req.protocol}://${req.get('host')}`;
+    return { url: `${baseUrl}/${BACKGROUNDS_DIR}/${filename}` };
   }
 }

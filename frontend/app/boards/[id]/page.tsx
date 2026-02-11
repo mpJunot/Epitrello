@@ -153,7 +153,7 @@ export default function BoardPage({
         isImageBackground
           ? {
               backgroundImage: `url(${board.background})`,
-              backgroundSize: 'contain',
+              backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
             }

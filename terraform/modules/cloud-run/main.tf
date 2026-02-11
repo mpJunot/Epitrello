@@ -222,7 +222,10 @@ resource "google_cloud_run_v2_service" "backend" {
         }
       }
 
-      # Cloud Storage bucket
+      env {
+        name  = "GCS_BUCKET_NAME"
+        value = var.storage_bucket
+      }
       env {
         name  = "STORAGE_BUCKET"
         value = var.storage_bucket

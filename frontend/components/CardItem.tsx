@@ -172,10 +172,10 @@ export default function CardItem({
         onDragOver={handleDragOver}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
-        className={`bg-secondary dark:bg-card border rounded-lg select-none transition-all duration-200 overflow-hidden ${
+        className={`bg-secondary dark:bg-card rounded-lg select-none transition-all duration-200 overflow-hidden ${
           card.id.startsWith('temp-')
             ? 'opacity-60 cursor-not-allowed border-accent'
-            : `hover:cursor-pointer border-accent hover:border-blue-500 ${
+            : `hover:cursor-pointer border-accent hover:border hover:border-blue-500 ${
                 isDragging ? 'opacity-40' : ''
               }`
         } ${localCompleted ? 'opacity-70' : ''}`}

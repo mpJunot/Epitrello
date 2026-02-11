@@ -8,7 +8,28 @@ import {
   Visibility,
 } from '@/lib/actions/boards';
 import Image from 'next/image';
-import { AlertTriangle, LayoutGrid } from 'lucide-react';
+import {
+  AlertTriangle,
+  LayoutGrid,
+  BarChart3,
+  PieChart as PieChartIcon,
+} from 'lucide-react';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { Button } from '@/components/ui/button';
 import {
   Empty,
@@ -75,7 +96,7 @@ export default function DashboardPage() {
   >({});
   const [newBoardVisibilityByWorkspace, setNewBoardVisibilityByWorkspace] =
     useState<Record<string, 'personal' | 'workspace' | 'public' | undefined>>(
-      {}
+      {},
     );
   const [deleteConfirm, setDeleteConfirm] = useState<{
     show: boolean;
@@ -120,11 +141,46 @@ export default function DashboardPage() {
     return m;
   }, [workspaces, boardQueries]);
 
+  const chartData = useMemo(() => {
+    const barData = workspaces.map((ws) => {
+      const br = boardResultsByWsId[ws.id];
+      const list = (br?.data ?? []) as unknown[];
+      return {
+        workspace: ws.title,
+        boards: list.length,
+        fill: 'var(--trello-blue)',
+      };
+    });
+    const pieData = barData
+      .map((d) => ({
+        name: d.workspace,
+        value: d.boards,
+        fill: 'var(--trello-blue)',
+      }))
+      .filter((d) => d.value > 0);
+    return { barData, pieData };
+  }, [workspaces, boardResultsByWsId]);
+
+  const barChartConfig = useMemo<ChartConfig>(
+    () => ({
+      boards: { label: 'Boards', color: 'var(--trello-blue)' },
+      workspace: { label: 'Workspace' },
+    }),
+    [],
+  );
+
+  const pieChartConfig = useMemo<ChartConfig>(
+    () => ({
+      boards: { label: 'Boards' },
+    }),
+    [],
+  );
+
   const createBoard = async (
     workspaceId?: string,
     name?: string,
     desc?: string,
-    visibility?: 'personal' | 'workspace' | 'public'
+    visibility?: 'personal' | 'workspace' | 'public',
   ) => {
     const boardName = (name ?? newBoardName).trim();
     if (!boardName) return;
@@ -159,7 +215,7 @@ export default function DashboardPage() {
       queryClient.setQueryData(
         workspaceBoardsQueryKey(wsId),
         (old: { id: string }[] | undefined) =>
-          (old || []).filter((b) => b.id !== boardId)
+          (old || []).filter((b) => b.id !== boardId),
       );
       setFeedback(`Board "${deleteConfirm.boardName}" has been deleted`);
       setTimeout(() => setFeedback(null), 3000);
@@ -193,6 +249,88 @@ export default function DashboardPage() {
       </header>
 
       <main>
+        {workspaces.length > 0 && (
+          <section className='mb-8'>
+            <h2 className='text-lg font-medium mb-4 text-trello'>Overview</h2>
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+              <div className='rounded-lg border border-accent bg-card p-4'>
+                <div className='flex items-center gap-2 mb-3'>
+                  <BarChart3 className='h-5 w-5 text-muted-foreground' />
+                  <span className='text-sm font-medium'>
+                    Boards per workspace
+                  </span>
+                </div>
+                <ChartContainer
+                  config={barChartConfig}
+                  className='h-[240px] w-full'
+                >
+                  <BarChart
+                    data={chartData.barData}
+                    margin={{ top: 8, right: 8, left: 8, bottom: 8 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray='3 3'
+                      className='stroke-muted'
+                    />
+                    <XAxis dataKey='workspace' tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent className='border-accent' />
+                      }
+                      cursor={{ fill: 'transparent' }}
+                    />
+                    <Bar dataKey='boards' radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ChartContainer>
+              </div>
+              <div className='rounded-lg border border-accent bg-card p-4'>
+                <div className='flex items-center gap-2 mb-3'>
+                  <PieChartIcon className='h-5 w-5 text-muted-foreground' />
+                  <span className='text-sm font-medium'>
+                    Board distribution
+                  </span>
+                </div>
+                {chartData.pieData.length > 0 ? (
+                  <ChartContainer
+                    config={pieChartConfig}
+                    className='h-[240px] w-full'
+                  >
+                    <PieChart>
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent className='border-accent' />
+                        }
+                      />
+                      <Pie
+                        data={chartData.pieData}
+                        dataKey='value'
+                        nameKey='name'
+                        cx='50%'
+                        cy='50%'
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        label={({ name, percent }) =>
+                          `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                      >
+                        {chartData.pieData.map((_, i) => (
+                          <Cell key={i} fill={chartData.pieData[i].fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                ) : (
+                  <div className='h-[240px] flex items-center justify-center text-muted-foreground text-sm'>
+                    No boards to display in the chart
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className='text-lg font-medium mb-4 text-trello'>Workspaces</h2>
           <div className='space-y-6'>
@@ -305,7 +443,7 @@ export default function DashboardPage() {
                                   ws.id,
                                   newBoardNameByWorkspace[ws.id],
                                   newBoardDescByWorkspace[ws.id],
-                                  newBoardVisibilityByWorkspace[ws.id]
+                                  newBoardVisibilityByWorkspace[ws.id],
                                 );
                                 setNewBoardNameByWorkspace((s) => ({
                                   ...s,
@@ -421,7 +559,7 @@ export default function DashboardPage() {
                                   src={board.background as string}
                                   alt={board.name}
                                   fill
-                                  className='object-contain'
+                                  className='object-cover'
                                   unoptimized
                                 />
                               )}

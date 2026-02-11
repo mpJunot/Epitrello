@@ -3,17 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import CreateBoardModal from './CreateBoardModal';
+import CreateBoardPopoverContent from './CreateBoardPopoverContent';
 import { toast } from '@/lib/toast';
 import { Search, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
 import { SearchWithAdvancedInput } from './SearchWithAdvancedInput';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   clearAuthToken,
   clearEpitrelloLocalStorage,
@@ -38,8 +34,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getAvatarColor } from '@/lib/utils/avatar-colors';
+import { createBoard as createBoardAction, type Visibility } from '@/lib/actions/boards';
+import { workspaceBoardsQueryKey } from '@/lib/queries/workspaces';
 
 export default function Topbar() {
   const pathname = usePathname();
@@ -225,62 +228,49 @@ export default function Topbar() {
       .slice(0, 2);
   };
 
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createPopoverOpen, setCreatePopoverOpen] = useState(false);
+  const [createPopoverKey, setCreatePopoverKey] = useState(0);
 
-  const createBoard = (payload?: {
+  const createBoard = async (payload?: {
     name?: string;
     workspaceId?: string;
     visibility?: string;
     background?: string;
+    templateId?: string;
   }) => {
-    if (!payload) {
-      setCreateOpen(true);
-      return;
-    }
+    if (!payload) return;
 
-    const { name, workspaceId, visibility, background } = payload;
-    if (!name) return;
+    const { name, workspaceId, visibility, background, templateId } = payload;
+    if (!name?.trim()) return;
+
+    const visMap: Record<string, Visibility> = {
+      personal: 'PRIVATE',
+      workspace: 'WORKSPACE',
+      public: 'PUBLIC',
+    };
 
     try {
-      const backgrounds = [
-        'bg-gradient-to-br from-amber-400 to-orange-500',
-        'bg-gradient-to-br from-sky-400 to-blue-500',
-        'bg-gradient-to-br from-emerald-400 to-green-500',
-        'bg-gradient-to-br from-violet-400 to-purple-500',
-        'bg-gradient-to-br from-rose-400 to-pink-500',
-        'bg-gradient-to-br from-cyan-400 to-teal-500',
-      ];
-
-      const selectedBackground =
-        background ||
-        backgrounds[Math.floor(Math.random() * backgrounds.length)];
-
-      const raw = localStorage.getItem('epitrello_boards');
-      const boards = raw ? JSON.parse(raw) : [];
-      const id =
-        typeof crypto !== 'undefined' &&
-        'randomUUID' in crypto &&
-        typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : Date.now().toString();
-      const board = {
-        id,
-        name,
-        description: undefined,
-        background: selectedBackground,
-        members: 1,
+      const newBoard = await createBoardAction({
+        title: name.trim(),
+        visibility: visibility ? visMap[visibility] : undefined,
         workspaceId,
-        visibility,
-      };
+        background,
+        templateId,
+      });
 
-      const next = [board, ...boards];
-      localStorage.setItem('epitrello_boards', JSON.stringify(next));
-      window.dispatchEvent(new Event('epitrello:boards-updated'));
+      if (newBoard.workspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: workspaceBoardsQueryKey(newBoard.workspaceId),
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
 
-      router.push(`/boards/${id}`);
+      router.push(`/boards/${newBoard.id}`);
     } catch (e) {
       console.error(e);
-      toast.error('Unable to create board');
+      const msg = e instanceof Error ? e.message : 'Unable to create board';
+      toast.error(msg);
+      throw e;
     }
   };
 
@@ -319,28 +309,44 @@ export default function Topbar() {
         </div>
 
         <div className='flex items-center gap-2 shrink-0'>
-          {/* Create board */}
-          <Button
-            onClick={() => createBoard()}
-            aria-label='Create a new board'
-            className='hidden sm:inline-flex shrink-0'
+          {/* Create – Trello-style popover (one trigger: desktop "Create" or mobile "+") */}
+          <Popover
+            open={createPopoverOpen}
+            onOpenChange={(open) => {
+              setCreatePopoverOpen(open);
+              if (open) setCreatePopoverKey((k) => k + 1);
+            }}
           >
-            + Create
-          </Button>
-          <Button
-            onClick={() => createBoard()}
-            aria-label='Create board'
-            size='icon'
-            className='sm:hidden shrink-0'
-            title='Create'
-          >
-            +
-          </Button>
-          <CreateBoardModal
-            open={createOpen}
-            onClose={() => setCreateOpen(false)}
-            onCreate={(p) => createBoard(p)}
-          />
+            <PopoverTrigger asChild>
+              <Button
+                aria-label='Create'
+                title='Create'
+                className='shrink-0 h-9 w-9 sm:w-auto sm:px-4 bg-trello-blue hover:bg-trello-blue/90 text-white'
+              >
+                <span className='sm:hidden'>+</span>
+                <span className='hidden sm:inline'>+ Create</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align='end'
+              sideOffset={6}
+              className='w-[360px] max-w-[calc(100vw-2rem)] p-0 rounded-lg border border-accent bg-card shadow-lg max-h-[min(85vh,520px)] min-h-0 overflow-y-auto overflow-x-hidden'
+            >
+              <CreateBoardPopoverContent
+                key={createPopoverKey}
+                open={createPopoverOpen}
+                onClose={() => setCreatePopoverOpen(false)}
+                onCreate={async (p) => {
+                  try {
+                    await createBoard(p);
+                    setCreatePopoverOpen(false);
+                  } catch {
+                    /* createBoard already shows toast */
+                  }
+                }}
+              />
+            </PopoverContent>
+          </Popover>
 
           <DropdownMenu
             open={notificationsOpen}
@@ -494,7 +500,6 @@ export default function Topbar() {
           <SearchWithAdvancedInput onClose={() => setShowSearchDialog(false)} />
         </DialogContent>
       </Dialog>
-
     </header>
   );
 }

@@ -418,7 +418,6 @@ export default function ListColumn({
         </div>
       </div>
 
-      {/* Cards area (droppable for @dnd-kit) */}
       <div
         className={`overflow-y-auto overflow-x-hidden px-2 space-y-3 scrollbar-hidden ${
           cards.length > 0 ? 'max-h-full' : ''

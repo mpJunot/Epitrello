@@ -378,7 +378,7 @@ function AddListInline() {
           ref={buttonRef}
           onClick={openInput}
           variant='secondary'
-          className='w-full justify-start hover:bg-trello-blue-hover'
+          className='w-full justify-start bg-trello-blue hover:bg-trello-blue-hover'
           aria-label='Add another list'
         >
           + Add another list

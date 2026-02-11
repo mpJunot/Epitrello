@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { Image as ImageIcon, X } from 'lucide-react';
 import { updateBoard } from '@/lib/actions/boards';
+import { uploadBackground } from '@/lib/actions/users';
 import { toast } from '@/lib/toast';
 import { BACKGROUND_COLORS } from '@/components/CardModal/constants';
 import type { Board } from '../../types';
@@ -74,26 +75,25 @@ export function ChangeBackgroundDialog({
     }
   }, [board, open]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error('Please select an image file (JPEG, PNG, GIF or WebP)');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      if (base64) {
-        saveBoardBackground(base64);
-      }
-    };
-    reader.onerror = () => {
-      toast.error('Failed to read image file');
-    };
-    reader.readAsDataURL(file);
+    setUpdating(true);
+    try {
+      const { url } = await uploadBackground(file);
+      await saveBoardBackground(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      setUpdating(false);
+      e.target.value = '';
+    }
   };
 
   const saveBoardBackground = async (url: string) => {

@@ -145,6 +145,30 @@ export async function uploadAvatar(file: File): Promise<{ url: string }> {
 }
 
 /**
+ * Upload background image (board or card). Backend saves to GCS or disk and returns the public URL.
+ */
+export async function uploadBackground(file: File): Promise<{ url: string }> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/graphql';
+  const baseUrl = apiUrl.replace(/\/graphql\/?$/, '') || 'http://localhost:4000';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+  const formData = new FormData();
+  formData.append('background', file);
+  const res = await fetch(`${baseUrl}/api/upload/background`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }));
+    const msg = err?.message;
+    const text = Array.isArray(msg) ? msg.join(', ') : typeof msg === 'string' ? msg : 'Upload failed';
+    throw new Error(text);
+  }
+  return res.json();
+}
+
+/**
  * Delete the current user account. Caller should clear auth and redirect after.
  */
 export async function deleteUser(id: string): Promise<boolean> {
