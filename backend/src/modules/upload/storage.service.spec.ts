@@ -6,7 +6,6 @@ import { Storage } from '@google-cloud/storage';
 const mockBucket = {
   file: jest.fn().mockReturnValue({
     save: jest.fn().mockResolvedValue(undefined),
-    makePublic: jest.fn().mockResolvedValue(undefined),
   }),
 };
 const mockStorageInstance = {
